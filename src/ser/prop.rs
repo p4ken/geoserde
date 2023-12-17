@@ -6,7 +6,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use super::err::SerializeError;
+use crate::SerializeError;
 
 pub trait PropertySink {
     type Error: std::error::Error;

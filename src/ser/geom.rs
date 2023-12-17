@@ -6,7 +6,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use super::SerializeError;
+use crate::SerializeError;
 
 #[derive(Debug)]
 enum Container {

@@ -6,7 +6,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use super::{GeometrySerializer, GeometrySink, PropertySerializer, PropertySink, SerializeError};
+use crate::{GeometrySerializer, GeometrySink, PropertySerializer, PropertySink, SerializeError};
 
 pub trait FeatureSink: GeometrySink + PropertySink<Error = <Self as GeometrySink>::Error> {
     fn properties_start(&mut self) -> Result<(), <Self as GeometrySink>::Error>;
