@@ -3,7 +3,7 @@ use std::io::Cursor;
 use fgbfile::FgbFile;
 use flatgeobuf::{geozero::ToGeo, FallibleStreamingIterator, FeatureProperties, FgbReader};
 use geo_types::LineString;
-use serde_derive::Serialize;
+use serde::Serialize;
 
 #[test]
 fn serialize_to_fgb() -> anyhow::Result<()> {
