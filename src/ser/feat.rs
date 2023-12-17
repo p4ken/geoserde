@@ -187,8 +187,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
     }
 
     fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        // field key is required
-        Err(SerializeError::InvalidFeatureStructure)
+        Ok(self)
     }
 
     fn serialize_tuple_struct(
@@ -259,15 +258,15 @@ impl<'a, S: FeatureSink> SerializeTuple for &mut FeatureSerializer<'a, S> {
     type Ok = ();
     type Error = SerializeError<<S as GeometrySink>::Error>;
 
-    fn serialize_element<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
     {
-        unimplemented!()
+        SerializeSeq::serialize_element(&mut *self, value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        SerializeSeq::end(&mut *self)
     }
 }
 impl<'a, S: FeatureSink> SerializeTupleStruct for &mut FeatureSerializer<'a, S> {
@@ -356,6 +355,7 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
                 Err(e) if key == self.geom_key => return Err(e),
 
                 // ignore the error
+                // FIXME: some junk may have been written
                 Err(_) => (),
             }
         }

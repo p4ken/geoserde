@@ -1,12 +1,18 @@
 use std::io::Cursor;
 
-use fgbfile::FgbFile;
-use flatgeobuf::{geozero::ToGeo, FallibleStreamingIterator, FeatureProperties, FgbReader};
+use flatgeobuf::{
+    geozero::ToGeo, FallibleStreamingIterator, FeatureProperties, FgbReader, FgbWriter,
+    GeometryType,
+};
 use geo_types::LineString;
+use geoserde::ser::FeatureSerializer;
 use serde::Serialize;
 
+#[cfg(feature = "geozero")]
 #[test]
 fn serialize_to_fgb() -> anyhow::Result<()> {
+    use flatgeobuf::FgbWriterOptions;
+
     let mut buf = vec![];
     let layer = [
         Feature {
@@ -18,9 +24,16 @@ fn serialize_to_fgb() -> anyhow::Result<()> {
             rank: 2,
         },
     ];
-    let count = FgbFile::new(&mut buf, "my_layer").write_features(&layer)?;
-    assert_eq!(count, 2);
+    let option = FgbWriterOptions {
+        promote_to_multi: false,
+        ..Default::default()
+    };
+    let mut fgb = FgbWriter::create_with_options("my_layer", GeometryType::Unknown, option)?;
+    let mut sut = FeatureSerializer::new(&mut fgb);
+    layer.serialize(&mut sut)?;
+    assert_eq!(sut.count(), 2);
 
+    fgb.write(&mut buf)?;
     let cursor = Cursor::new(buf);
     let mut fgb_iter = FgbReader::open(cursor)?.select_all()?;
     assert_eq!(Some(2), fgb_iter.features_count());
