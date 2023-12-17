@@ -1,1 +1,5 @@
-pub mod ser;
+#![doc = include_str!("../README.md")]
+
+mod ser;
+
+pub use ser::*;

@@ -1,11 +1,11 @@
+#![cfg(feature = "geozero")]
+
 use geo_types::LineString as LS;
+use geoserde::{FeatureSerializer, GeometrySerializer, PropertySerializer};
 use serde::Serialize;
 
-#[cfg(feature = "geozero")]
 #[test]
 fn geometry_test() -> anyhow::Result<()> {
-    use geoserde::ser::GeometrySerializer;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = geozero::wkt::WktWriter::new(&mut buf);
     let mut sut = GeometrySerializer::new(&mut sink);
@@ -17,11 +17,8 @@ fn geometry_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "geozero")]
 #[test]
 fn property_test() -> anyhow::Result<()> {
-    use geoserde::ser::PropertySerializer;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = geozero::geojson::GeoJsonWriter::new(&mut buf);
     let mut sut = PropertySerializer::new(0, "my_property", &mut sink);
@@ -30,11 +27,8 @@ fn property_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "geozero")]
 #[test]
 fn feature_test() -> anyhow::Result<()> {
-    use geoserde::ser::FeatureSerializer;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = geozero::geojson::GeoJsonWriter::new(&mut buf);
     let mut sut = FeatureSerializer::new(&mut sink);
@@ -45,9 +39,11 @@ fn feature_test() -> anyhow::Result<()> {
 fn my_geometry() -> LS {
     vec![(139.691667, 35.689722), (139.7454329, 35.6585805)].into()
 }
+
 fn my_property() -> MyProperty {
     MyProperty { id: 1, length: 2.2 }
 }
+
 fn my_feature() -> MyFeature {
     let MyProperty { id, length } = my_property();
     MyFeature {
@@ -56,11 +52,13 @@ fn my_feature() -> MyFeature {
         length,
     }
 }
+
 #[derive(Serialize)]
 struct MyProperty {
     id: i32,
     length: f64,
 }
+
 #[derive(Serialize)]
 struct MyFeature {
     id: i32,

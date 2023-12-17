@@ -1,8 +1,9 @@
+#![cfg(feature = "geozero")]
+
 use geo_types::Line;
-use geoserde::ser::GeometrySerializer;
+use geoserde::GeometrySerializer;
 use serde::Serialize;
 
-#[cfg(feature = "geozero")]
 #[test]
 fn line_test() -> anyhow::Result<()> {
     let mut buf = Vec::<u8>::new();

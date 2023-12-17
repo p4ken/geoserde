@@ -1,14 +1,12 @@
-// todo
+#![cfg(feature = "geozero")]
 
 use geo_types::Point;
-use geoserde::ser::{FeatureSerializer, GeometrySerializer};
+use geoserde::{FeatureSerializer, GeometrySerializer};
+use geozero::{geojson::GeoJsonWriter, wkt::WktWriter};
 use serde::Serialize;
 
-#[cfg(feature = "geozero")]
 #[test]
 fn geometry_test() -> anyhow::Result<()> {
-    use geozero::wkt::WktWriter;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = WktWriter::new(&mut buf);
     let mut sut = GeometrySerializer::new(&mut sink);
@@ -17,11 +15,8 @@ fn geometry_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "geozero")]
 #[test]
 fn feature_test() -> anyhow::Result<()> {
-    use geozero::geojson::GeoJsonWriter;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = GeoJsonWriter::new(&mut buf);
     let mut sut = FeatureSerializer::new(&mut sink);
@@ -34,11 +29,8 @@ fn feature_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "geozero")]
 #[test]
 pub fn layer_test() -> anyhow::Result<()> {
-    use geozero::geojson::GeoJsonWriter;
-
     let mut buf = Vec::<u8>::new();
     let mut sink = GeoJsonWriter::new(&mut buf);
     let mut sut = FeatureSerializer::new(&mut sink);

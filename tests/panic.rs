@@ -1,9 +1,10 @@
+#![cfg(feature = "geozero")]
+
 use std::vec;
 
-use geoserde::ser::FeatureSerializer;
+use geoserde::FeatureSerializer;
 use serde::Serialize;
 
-#[cfg(feature = "geozero")]
 #[test]
 #[should_panic]
 fn no_geometry_test() {

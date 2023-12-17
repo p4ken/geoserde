@@ -1,8 +1,9 @@
+#![cfg(feature = "geozero")]
+
 use geo_types::{LineString, Polygon};
-use geoserde::ser::GeometrySerializer;
+use geoserde::GeometrySerializer;
 use serde::Serialize;
 
-#[cfg(feature = "geozero")]
 #[test]
 fn polygon_test() -> anyhow::Result<()> {
     let mut buf = Vec::<u8>::new();
@@ -20,7 +21,7 @@ fn polygon_test() -> anyhow::Result<()> {
 #[cfg(feature = "geozero")]
 #[test]
 fn holed_polygon_test() -> anyhow::Result<()> {
-    use geoserde::ser::GeometrySerializer;
+    use geoserde::GeometrySerializer;
 
     let mut buf = Vec::<u8>::new();
     let mut sink = geozero::wkt::WktWriter::new(&mut buf);
