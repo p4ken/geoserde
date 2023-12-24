@@ -1,8 +1,17 @@
-# geoserde
+# GeoSerde
 
-| [crates.io](https://crates.io/crates/geoserde) | [docs.rs](https://docs.rs/geoserde/latest/geoserde/) |
+| [crates.io](https://crates.io/crates/geoserde) | [docs.rs](https://docs.rs/geoserde/latest/geoserde/) | [github.com](https://github.com/p4ken/geoserde) |
 
 Serializer and deserializer for geospatial data.
+
+GeoSerde can be used as an adapter between Serde and GeoZero.
+
+| Serde       |     | GeoSerde            |     | GeoZero           |
+| ----------- | --- | ------------------- | --- | ----------------- |
+| Serialize   | --> | FeatureSerializer   | --> | FeatureProcessor  |
+| Deserialize | <-- | FeatureDeserializer | <-- | GeozeroDatasource |
+
+## Under development
 
 The serializer currently only supports Point, Line, LineString or Polygon.
 
@@ -18,7 +27,7 @@ cargo add geoserde
 
 ## Examples
 
-Serialize features (= geometry + properties) to json.
+Serialize features (= geometry + properties) to geojson.
 
 ```rust
 use geo_types::Point;
@@ -26,7 +35,6 @@ use geoserde::FeatureSerializer;
 use geozero::geojson::GeoJsonWriter;
 use serde::Serialize;
 
-// feature
 #[derive(Serialize)]
 struct Station {
     loc: Point,         // geometry
@@ -60,7 +68,7 @@ fn main() -> anyhow::Result<()> {
 
 ## Cargo features
 
-`geoserde` - Implement sink traits for geozero processors. Enabled by default.
+* `geozero` - Implements sink traits for geozero processors. Enabled by default.
 
 ## License
 
