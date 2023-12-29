@@ -30,6 +30,21 @@ impl<Z: geozero::FeatureProcessor> FeatureSink for Z {
     }
 }
 
+/// Serializer for features.
+///
+/// A feature is a struct that have a geometry and may also have properties.
+///
+/// # Geometry detection
+///
+/// Geometry is the feature's field that can be serialized with [`GeometrySerializer`].
+///
+/// By default, only the first geometry
+///
+/// # Examples
+///
+/// ```
+#[doc = include_str!("../../examples/serialize.rs")]
+/// ```
 pub struct FeatureSerializer<'a, S: FeatureSink> {
     sink: &'a mut S,
     geom_key: &'static str,
@@ -40,10 +55,11 @@ pub struct FeatureSerializer<'a, S: FeatureSink> {
 }
 
 impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
+    /// Create a new `FeatureSerializer` with a [`FeatureSink`].
     pub fn new(sink: &'a mut S) -> Self {
         Self {
             sink,
-            geom_key: "geometry",
+            geom_key: "geometry", // FIXME: make empty by default
             feat_index: 0,
             remaining_field: 0,
             has_geom: false,
