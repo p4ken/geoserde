@@ -1,6 +1,6 @@
 [package]
 name = "geoserde"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 description = "serializer and deserislizer for geospatial data"
 repository = "https://github.com/p4ken/geoserde"
