@@ -25,7 +25,7 @@ use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError}
 /// ```
 pub struct FeatureSerializer<'a, S: FeatureSink> {
     sink: &'a mut S,
-    geom_key: &'static str,
+    // geom_key: Option<&'static str>,
     feat_index: usize,
     remaining_field: usize,
     has_geom: bool,
@@ -37,17 +37,17 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
     pub fn new(sink: &'a mut S) -> Self {
         Self {
             sink,
-            geom_key: "geometry", // FIXME: make empty by default
+            // geom_key: None,
             feat_index: 0,
             remaining_field: 0,
             has_geom: false,
             prop_index: 0,
         }
     }
-    pub fn geometry_key(&mut self, key: &'static str) -> &Self {
-        self.geom_key = key;
-        self
-    }
+    // fn geometry_key(mut self, key: &'static str) -> Self {
+    //     self.geom_key = Some(key);
+    //     self
+    // }
     pub fn count(&self) -> usize {
         self.feat_index
     }
@@ -341,14 +341,13 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
                 // found the first geometry field
                 Ok(()) => {
                     self.has_geom = true;
-                    /* May have to cache geometry type */
                     return Ok(());
                 }
 
-                // the field must be a geometry
-                Err(e) if key == self.geom_key => return Err(e),
+                // failed but some junk was written
+                Err(e) if geom.is_sink_used() => return Err(e),
 
-                // ignore the error
+                // it's just a property
                 Err(_) => (),
             }
         }
