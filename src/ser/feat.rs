@@ -6,29 +6,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::{GeometrySerializer, GeometrySink, PropertySerializer, PropertySink, SerializeError};
-
-pub trait FeatureSink: GeometrySink + PropertySink<Error = <Self as GeometrySink>::Error> {
-    fn properties_start(&mut self) -> Result<(), <Self as GeometrySink>::Error>;
-    fn properties_end(&mut self) -> Result<(), <Self as GeometrySink>::Error>;
-    fn feature_start(&mut self, index: usize) -> Result<(), <Self as GeometrySink>::Error>;
-    fn feature_end(&mut self, index: usize) -> Result<(), <Self as GeometrySink>::Error>;
-}
-#[cfg(feature = "geozero")]
-impl<Z: geozero::FeatureProcessor> FeatureSink for Z {
-    fn properties_start(&mut self) -> Result<(), <Self as GeometrySink>::Error> {
-        self.properties_begin()
-    }
-    fn properties_end(&mut self) -> Result<(), <Self as GeometrySink>::Error> {
-        self.properties_end()
-    }
-    fn feature_start(&mut self, index: usize) -> Result<(), <Self as GeometrySink>::Error> {
-        self.feature_begin(index.try_into().unwrap())
-    }
-    fn feature_end(&mut self, index: usize) -> Result<(), <Self as GeometrySink>::Error> {
-        self.feature_end(index.try_into().unwrap())
-    }
-}
+use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError};
 
 /// Serializer for features.
 ///
@@ -38,7 +16,7 @@ impl<Z: geozero::FeatureProcessor> FeatureSink for Z {
 ///
 /// Geometry is the feature's field that can be serialized with [`GeometrySerializer`].
 ///
-/// By default, only the first geometry
+/// By default, the first geometry
 ///
 /// # Examples
 ///
@@ -77,7 +55,7 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
 
 impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     type SerializeSeq = Self;
     type SerializeTuple = Self;
@@ -256,7 +234,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
 
 impl<'a, S: FeatureSink> SerializeSeq for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -272,7 +250,7 @@ impl<'a, S: FeatureSink> SerializeSeq for &mut FeatureSerializer<'a, S> {
 
 impl<'a, S: FeatureSink> SerializeTuple for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -287,7 +265,7 @@ impl<'a, S: FeatureSink> SerializeTuple for &mut FeatureSerializer<'a, S> {
 }
 impl<'a, S: FeatureSink> SerializeTupleStruct for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
     where
@@ -303,7 +281,7 @@ impl<'a, S: FeatureSink> SerializeTupleStruct for &mut FeatureSerializer<'a, S> 
 
 impl<'a, S: FeatureSink> SerializeTupleVariant for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
     where
@@ -318,7 +296,7 @@ impl<'a, S: FeatureSink> SerializeTupleVariant for &mut FeatureSerializer<'a, S>
 }
 impl<'a, S: FeatureSink> SerializeMap for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_key<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
     where
@@ -341,7 +319,7 @@ impl<'a, S: FeatureSink> SerializeMap for &mut FeatureSerializer<'a, S> {
 
 impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_field<T: ?Sized>(
         &mut self,
@@ -371,7 +349,6 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
                 Err(e) if key == self.geom_key => return Err(e),
 
                 // ignore the error
-                // FIXME: some junk may have been written
                 Err(_) => (),
             }
         }
@@ -414,7 +391,7 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
 
 impl<'a, S: FeatureSink> SerializeStructVariant for &mut FeatureSerializer<'a, S> {
     type Ok = ();
-    type Error = SerializeError<<S as GeometrySink>::Error>;
+    type Error = SerializeError<S::FeatErr>;
 
     fn serialize_field<T: ?Sized>(&mut self, _: &'static str, _: &T) -> Result<(), Self::Error>
     where

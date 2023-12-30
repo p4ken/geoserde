@@ -1,7 +1,5 @@
 #![cfg(feature = "geozero")]
 
-use std::io::Cursor;
-
 use flatgeobuf::{
     geozero::ToGeo, FallibleStreamingIterator, FeatureProperties, FgbReader, FgbWriter,
     FgbWriterOptions, GeometryType,
@@ -9,6 +7,7 @@ use flatgeobuf::{
 use geo_types::LineString;
 use geoserde::FeatureSerializer;
 use serde::Serialize;
+use std::io::Cursor;
 
 #[test]
 fn serialize_to_fgb() -> anyhow::Result<()> {

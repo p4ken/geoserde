@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SerializeError<E> {
     SouceCaused(String),
     SinkCaused(E),

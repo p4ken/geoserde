@@ -11,7 +11,4 @@
 
 mod ser;
 
-pub use ser::err::SerializeError;
-pub use ser::feat::{FeatureSerializer, FeatureSink};
-pub use ser::geom::{GeometrySerializer, GeometrySink};
-pub use ser::prop::{PropertySerializer, PropertySink};
+pub use ser::*;
