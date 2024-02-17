@@ -1,9 +1,18 @@
 #![cfg_attr(all(doc, not(doctest)), feature(doc_auto_cfg))]
-#![doc = include_str!("../README.md")]
+
+//! Geoserde is an adapter between geographic feature structs and GIS file formats.
 //!
-//! ## Examples
+//! # Getting started
 //!
-//! Serialize features to geojson.
+//! ```sh
+//! cargo add geoserde
+//! ```
+//!
+//! # Cargo features
+//!
+//! * `geozero` - Implement geoserde sink for geozero processors. Enabled by default.
+//!
+//! # Examples
 //!
 //! ```
 #![doc = include_str!("../examples/serialize.rs")]
@@ -11,4 +20,4 @@
 
 mod ser;
 
-pub use ser::*;
+pub use crate::ser::*;

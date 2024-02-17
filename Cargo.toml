@@ -2,7 +2,7 @@
 name = "geoserde"
 version = "0.3.0"
 edition = "2021"
-description = "serializer and deserislizer for geospatial data"
+description = "Adapter between geographic feature and GIS files"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]

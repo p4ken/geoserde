@@ -1,34 +1,10 @@
-# GeoSerde
+# geoserde
 
-| [crates.io](https://crates.io/crates/geoserde) | [docs.rs](https://docs.rs/geoserde/latest/geoserde/) | [github](https://github.com/p4ken/geoserde) |
+[![crates.io](https://img.shields.io/crates/v/geoserde.svg?color)](https://crates.io/crates/geoserde)
+[![docs.rs](https://img.shields.io/badge/_-docs.rs-slategray?logo=docsdotrs)](https://docs.rs/geoserde/)
 
-Serializer and deserializer for geospatial data.
+Geoserde is an adapter between geographic feature structs and GIS file formats.
 
-GeoSerde can be used as an adapter between Serde and GeoZero.
+[API documantation](https://docs.rs/geoserde/latest/geoserde/) contains some sample codes.
 
-| Serde       |     | GeoSerde            |     | GeoZero           |
-| ----------- | --- | ------------------- | --- | ----------------- |
-| Serialize   | --> | FeatureSerializer   | --> | FeatureProcessor  |
-| Deserialize | <-- | FeatureDeserializer | <-- | GeozeroDatasource |
-
-## Under development
-
-The serializer currently only supports Point, Line, LineString or Polygon.
-
-Deserializer is not yet implemented.
-
-## Getting started
-
-Add the dependency.
-
-```shell
-cargo add geoserde
-```
-
-## Cargo features
-
-* `geozero` - Implements sink traits for geozero processors. Enabled by default.
-
-## License
-
-[MIT license](LICENSE)
+Licensed under the [MIT License](LICENSE.txt).

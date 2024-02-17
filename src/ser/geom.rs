@@ -56,6 +56,13 @@ impl<T> OnceSeal<T> {
     }
 }
 
+/// Serializer for geometries.
+///
+/// Currently the following types can be serialized:
+/// - [geo_types::Point]
+/// - [geo_types::Line]
+/// - [geo_types::LineString]
+/// - [geo_types::Polygon]
 #[derive(Debug)]
 pub struct GeometrySerializer<'a, S> {
     sink: OnceSeal<&'a mut S>,
