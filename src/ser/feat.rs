@@ -1,5 +1,5 @@
 use serde::{
-    ser::{Impossible, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple},
+    ser::{Impossible, SerializeSeq, SerializeStruct, SerializeTuple},
     Serialize, Serializer,
 };
 
@@ -80,7 +80,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Impossible<Self::Ok, Self::Error>;
     type SerializeStruct = Self;
-    type SerializeStructVariant = Self;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, _: bool) -> Result<Self::Ok, Self::Error> {
         Err(SerializeError::InvalidFeatureStructure)
@@ -240,12 +240,13 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         _variant_index: u32,
         _variant: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.serialize_struct(name, len)
+        // every features must have same structures
+        Err(SerializeError::InvalidFeatureStructure)
     }
 }
 
@@ -349,21 +350,5 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
         self.has_geom = false;
         self.prop_index = 0;
         Ok(())
-    }
-}
-
-impl<'a, S: FeatureSink> SerializeStructVariant for &mut FeatureSerializer<'a, S> {
-    type Ok = ();
-    type Error = SerializeError<S::FeatErr>;
-
-    fn serialize_field<T: ?Sized>(&mut self, _: &'static str, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
     }
 }
