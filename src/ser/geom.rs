@@ -56,7 +56,7 @@ impl<T> OnceSeal<T> {
     }
 }
 
-/// Serializer for geometries.
+/// Serialize geometries to GIS formats.
 ///
 /// Currently the following types can be serialized:
 /// - [geo_types::Point]

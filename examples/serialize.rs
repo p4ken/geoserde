@@ -8,8 +8,8 @@ fn main() -> anyhow::Result<()> {
     // If you want to write to a file, use BufWriter<File> instead
     let mut buf = vec![];
 
-    // Any format that has an implementation of geozero::FeatureProcessor can be used, such as
-    // geojson, wkt, shp, fgb, etc.
+    // Any format that has an implementation of geozero::FeatureProcessor can be used,
+    // such as wkt, shp, fgb, etc.
     // For more information, see https://docs.rs/geozero/latest/geozero/
     let mut geojson = GeoJsonWriter::new(&mut buf);
 

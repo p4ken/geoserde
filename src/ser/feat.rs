@@ -8,15 +8,17 @@ use serde::{
 
 use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError};
 
-/// Serializer for geographic features.
+/// Serialize geographic features to GIS formats.
 ///
 /// # Geometry detection
 ///
-/// The first geo-types field in the struct would be a geometry.
+/// The first geo-types field in the feature struct is serialized as a geometry.
 ///
-/// Rest of the fields would be properties.
+/// Rest of the fields are properties.
 ///
 /// Every features must have a geometry and may also have some properties.
+///
+/// Internally, geometry and properties are serialized with [GeometrySerializer] and [PropertySerializer].
 ///
 /// # Examples
 ///
