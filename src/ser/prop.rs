@@ -279,8 +279,8 @@ impl<S: PropertySink> SerializeSeq for &mut PropertySerializer<'_, S> {
     where
         T: Serialize,
     {
-        // to csv str
-        todo!();
+        // FIXME: to csv string
+        Err(SerializeError::UnsupportedPropertyStructure { actual: "seq" })
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -310,8 +310,8 @@ impl<S: PropertySink> SerializeTupleStruct for &mut PropertySerializer<'_, S> {
     where
         T: Serialize,
     {
-        // key_1, key_2 ...
-        todo!()
+        // FIXME: to key_1, key_2 ...
+        Err(SerializeError::UnsupportedPropertyStructure { actual: "tuple" })
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -343,14 +343,14 @@ impl<S: PropertySink> SerializeMap for &mut PropertySerializer<'_, S> {
     where
         T: Serialize,
     {
-        todo!()
+        Err(SerializeError::UnsupportedPropertyStructure { actual: "map" })
     }
 
     fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
     {
-        todo!()
+        Err(SerializeError::UnsupportedPropertyStructure { actual: "map" })
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {

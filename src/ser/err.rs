@@ -12,6 +12,9 @@ pub enum SerializeError<E> {
         expected: Option<&'static str>,
         actual: &'static str,
     },
+    UnsupportedPropertyStructure {
+        actual: &'static str,
+    },
     InvalidState,
 }
 impl<E: Error> serde::ser::Error for SerializeError<E> {
@@ -27,21 +30,16 @@ impl<E: Display> Display for SerializeError<E> {
             SinkCaused(e) => e.fmt(f),
             NoGeometryField => f.write_str("feature has no geometry field"),
             InvalidFeatureStructure => f.write_str("feature must be a struct"),
-            InvalidGeometryStructure {
-                expected: Some(expected),
-                actual,
-            } => {
-                write!(
+            InvalidGeometryStructure { expected, actual } => match expected {
+                Some(expected) => write!(
                     f,
-                    "expected container type: {}, actual: {}",
+                    "expected {} but found {} in geometry container",
                     expected, actual
-                )
-            }
-            InvalidGeometryStructure {
-                expected: None,
-                actual,
-            } => {
-                write!(f, "unexpected type: {}", actual)
+                ),
+                None => write!(f, "unexpected {} in geometry container", actual),
+            },
+            UnsupportedPropertyStructure { actual } => {
+                write!(f, "{} is not supported property", actual)
             }
             InvalidState => f.write_str("invalid internal state"),
         }
