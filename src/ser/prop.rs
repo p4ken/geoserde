@@ -8,19 +8,51 @@ use serde::{
 
 use crate::{PropertySink, SerializeError};
 
+/// Serialize properties to GIS formats.
+///
+/// # Panics
+///
+/// Multi-value types like `tuple`, `Vec`, `HashMap` are not supported yet, so panic.
 pub struct PropertySerializer<'a, S> {
     index: usize,
     key: &'static str,
     sink: &'a mut S,
 }
-impl<'a, S> PropertySerializer<'a, S> {
+
+impl<'a, S: PropertySink> PropertySerializer<'a, S> {
+    /// Create a new `PropertySerializer` with a [`PropertySink`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::PropertySerializer::new(0, "spot_name", &mut sink);
+    /// ```
     pub fn new(index: usize, key: &'static str, sink: &'a mut S) -> Self {
         Self { index, key, sink }
     }
+
+    /// Index value used in the next property serialization.
+    ///
+    /// It is also the number of properties written to the sink.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use serde::ser::Serialize;
+    ///
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::PropertySerializer::new(0, "name", &mut sink);
+    /// assert_eq!(ser.index(), 0);
+    ///
+    /// "Sydney".serialize(&mut ser);
+    /// assert_eq!(ser.index(), 1);
+    /// ```
     pub fn index(&self) -> usize {
         self.index
     }
 }
+
 impl<S: PropertySink> Serializer for &mut PropertySerializer<'_, S> {
     type Ok = ();
     type Error = SerializeError<S::Err>;

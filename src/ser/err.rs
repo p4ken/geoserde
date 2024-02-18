@@ -1,5 +1,7 @@
 use std::{error::Error, fmt::Display};
 
+/// The error in selialization by [FeatureSerializer](crate::FeatureSerializer),
+/// [GeometrySerializer](crate::GeometrySerializer) and [PropertySerializer](crate::PropertySerializer).
 #[derive(Debug, PartialEq)]
 pub enum SerializeError<E> {
     SouceCaused(String),

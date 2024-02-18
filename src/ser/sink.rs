@@ -1,3 +1,37 @@
+/// Data sink of [`FeatureSerializer`](crate::FeatureSerializer).
+///
+/// Compatible with [`geozero::FeatureProcessor`].
+
+pub trait FeatureSink:
+    GeometrySink<Err = Self::FeatErr> + PropertySink<Err = Self::FeatErr>
+{
+    type FeatErr: std::error::Error;
+    fn properties_start(&mut self) -> Result<(), Self::FeatErr>;
+    fn properties_end(&mut self) -> Result<(), Self::FeatErr>;
+    fn feature_start(&mut self, index: usize) -> Result<(), Self::FeatErr>;
+    fn feature_end(&mut self, index: usize) -> Result<(), Self::FeatErr>;
+}
+
+#[cfg(feature = "geozero")]
+impl<Z: geozero::FeatureProcessor> FeatureSink for Z {
+    type FeatErr = geozero::error::GeozeroError;
+    fn properties_start(&mut self) -> Result<(), Self::FeatErr> {
+        self.properties_begin()
+    }
+    fn properties_end(&mut self) -> Result<(), Self::FeatErr> {
+        self.properties_end()
+    }
+    fn feature_start(&mut self, index: usize) -> Result<(), Self::FeatErr> {
+        self.feature_begin(index.try_into().unwrap())
+    }
+    fn feature_end(&mut self, index: usize) -> Result<(), Self::FeatErr> {
+        self.feature_end(index.try_into().unwrap())
+    }
+}
+
+/// Data sink of [`GeometrySerializer`](crate::GeometrySerializer).
+///
+/// Compatible with [`geozero::FeatureProcessor`] (not [`geozero::GeomProcessor`]).
 pub trait GeometrySink {
     type Err: std::error::Error;
     fn coord(&mut self, index: usize, x: f64, y: f64) -> Result<(), Self::Err>;
@@ -53,6 +87,9 @@ impl<Z: geozero::FeatureProcessor> GeometrySink for Z {
     }
 }
 
+/// Data sink of [`PropertySerializer`](crate::PropertySerializer).
+///
+/// Compatible with [`geozero::PropertyProcessor`].
 pub trait PropertySink {
     type Err: std::error::Error;
     fn bool(&mut self, index: usize, key: &str, value: bool) -> Result<(), Self::Err>;
@@ -124,32 +161,5 @@ impl<Z: geozero::PropertyProcessor> PropertySink for Z {
     fn str(&mut self, index: usize, key: &str, value: &str) -> Result<(), Self::Err> {
         let _ = self.property(index, key, &geozero::ColumnValue::String(value))?;
         Ok(())
-    }
-}
-
-pub trait FeatureSink:
-    GeometrySink<Err = Self::FeatErr> + PropertySink<Err = Self::FeatErr>
-{
-    type FeatErr: std::error::Error;
-    fn properties_start(&mut self) -> Result<(), Self::FeatErr>;
-    fn properties_end(&mut self) -> Result<(), Self::FeatErr>;
-    fn feature_start(&mut self, index: usize) -> Result<(), Self::FeatErr>;
-    fn feature_end(&mut self, index: usize) -> Result<(), Self::FeatErr>;
-}
-
-#[cfg(feature = "geozero")]
-impl<Z: geozero::FeatureProcessor> FeatureSink for Z {
-    type FeatErr = geozero::error::GeozeroError;
-    fn properties_start(&mut self) -> Result<(), Self::FeatErr> {
-        self.properties_begin()
-    }
-    fn properties_end(&mut self) -> Result<(), Self::FeatErr> {
-        self.properties_end()
-    }
-    fn feature_start(&mut self, index: usize) -> Result<(), Self::FeatErr> {
-        self.feature_begin(index.try_into().unwrap())
-    }
-    fn feature_end(&mut self, index: usize) -> Result<(), Self::FeatErr> {
-        self.feature_end(index.try_into().unwrap())
     }
 }

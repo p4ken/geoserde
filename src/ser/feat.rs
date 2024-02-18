@@ -18,7 +18,7 @@ use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError}
 ///
 /// Every features must have a geometry and may also have some properties.
 ///
-/// Internally, geometry and properties are serialized with [GeometrySerializer] and [PropertySerializer].
+/// Geometry and properties are serialized with [`GeometrySerializer`] and [`PropertySerializer`].
 ///
 /// # Examples
 ///
@@ -36,6 +36,13 @@ pub struct FeatureSerializer<'a, S: FeatureSink> {
 
 impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
     /// Create a new `FeatureSerializer` with a [`FeatureSink`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::FeatureSerializer::new(&mut sink);
+    /// ```
     pub fn new(sink: &'a mut S) -> Self {
         Self {
             sink,
@@ -46,10 +53,21 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
             prop_index: 0,
         }
     }
+
     // fn geometry_key(mut self, key: &'static str) -> Self {
     //     self.geom_key = Some(key);
     //     self
     // }
+
+    /// The number of features written to the sink.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::FeatureSerializer::new(&mut sink);
+    /// println!("{} features", ser.count());  // => 0 features
+    /// ```
     pub fn count(&self) -> usize {
         self.feat_index
     }

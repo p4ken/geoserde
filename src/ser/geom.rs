@@ -39,11 +39,11 @@ impl Container {
 }
 
 #[derive(Debug)]
-struct OnceSeal<T> {
+struct Ribbon<T> {
     inner: T,
     used: bool,
 }
-impl<T> OnceSeal<T> {
+impl<T> Ribbon<T> {
     fn new(inner: T) -> Self {
         Self { inner, used: false }
     }
@@ -59,13 +59,15 @@ impl<T> OnceSeal<T> {
 /// Serialize geometries to GIS formats.
 ///
 /// Currently the following types can be serialized:
-/// - [geo_types::Point]
-/// - [geo_types::Line]
-/// - [geo_types::LineString]
-/// - [geo_types::Polygon]
+/// - [`geo_types::Point`]
+/// - [`geo_types::Line`]
+/// - [`geo_types::LineString`]
+/// - [`geo_types::Polygon`]
+///
+/// Any other type will result in an error.
 #[derive(Debug)]
 pub struct GeometrySerializer<'a, S> {
-    sink: OnceSeal<&'a mut S>,
+    sink: Ribbon<&'a mut S>,
     stack: Vec<Container>,
     x: Option<f64>,
     coord_index: usize,
@@ -75,9 +77,17 @@ pub struct GeometrySerializer<'a, S> {
 }
 
 impl<'a, S: GeometrySink> GeometrySerializer<'a, S> {
+    /// Create a new `GeometrySerializer` with a [`GeometrySink`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::PropertySerializer::new(0, "", &mut sink);
+    /// ```
     pub fn new(sink: &'a mut S) -> Self {
         Self {
-            sink: OnceSeal::new(sink),
+            sink: Ribbon::new(sink),
             stack: Vec::new(),
             x: None,
             coord_index: 0,
@@ -87,6 +97,20 @@ impl<'a, S: GeometrySink> GeometrySerializer<'a, S> {
         }
     }
 
+    /// Whether something has been written to the sink.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use serde::ser::Serialize;
+    ///
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::GeometrySerializer::new(&mut sink);
+    /// assert!(!ser.is_sink_used());
+    ///
+    /// geo_types::Point::new(51.5321, -0.1233).serialize(&mut ser);
+    /// assert!(ser.is_sink_used());
+    /// ```
     pub fn is_sink_used(&self) -> bool {
         self.sink.is_used()
     }
