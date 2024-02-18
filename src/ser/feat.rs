@@ -1,8 +1,5 @@
 use serde::{
-    ser::{
-        SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-        SerializeTupleStruct, SerializeTupleVariant,
-    },
+    ser::{Impossible, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple},
     Serialize, Serializer,
 };
 
@@ -79,9 +76,9 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
 
     type SerializeSeq = Self;
     type SerializeTuple = Self;
-    type SerializeTupleStruct = Self;
-    type SerializeTupleVariant = Self;
-    type SerializeMap = Self;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
     type SerializeStruct = Self;
     type SerializeStructVariant = Self;
 
@@ -281,59 +278,6 @@ impl<'a, S: FeatureSink> SerializeTuple for &mut FeatureSerializer<'a, S> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         SerializeSeq::end(&mut *self)
-    }
-}
-impl<'a, S: FeatureSink> SerializeTupleStruct for &mut FeatureSerializer<'a, S> {
-    type Ok = ();
-    type Error = SerializeError<S::FeatErr>;
-
-    fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-
-impl<'a, S: FeatureSink> SerializeTupleVariant for &mut FeatureSerializer<'a, S> {
-    type Ok = ();
-    type Error = SerializeError<S::FeatErr>;
-
-    fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-impl<'a, S: FeatureSink> SerializeMap for &mut FeatureSerializer<'a, S> {
-    type Ok = ();
-    type Error = SerializeError<S::FeatErr>;
-
-    fn serialize_key<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-
-    fn serialize_value<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
     }
 }
 

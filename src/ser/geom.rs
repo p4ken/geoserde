@@ -1,8 +1,5 @@
 use serde::{
-    ser::{
-        SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-        SerializeTupleStruct, SerializeTupleVariant,
-    },
+    ser::{Impossible, SerializeSeq, SerializeStruct},
     Serialize, Serializer,
 };
 
@@ -222,12 +219,12 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
     type Ok = ();
     type Error = SerializeError<S::Err>;
     type SerializeSeq = Self;
-    type SerializeTuple = Self;
-    type SerializeTupleStruct = Self;
-    type SerializeTupleVariant = Self;
-    type SerializeMap = Self;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
     type SerializeStruct = Self;
-    type SerializeStructVariant = Self;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, _: bool) -> Result<Self::Ok, Self::Error> {
         Err(SerializeError::InvalidGeometryStructure {
@@ -555,69 +552,6 @@ impl<S: GeometrySink> SerializeSeq for &mut GeometrySerializer<'_, S> {
     }
 }
 
-impl<S: GeometrySink> SerializeTuple for &mut GeometrySerializer<'_, S> {
-    type Ok = ();
-    type Error = SerializeError<S::Err>;
-    fn serialize_element<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-
-impl<S: GeometrySink> SerializeTupleStruct for &mut GeometrySerializer<'_, S> {
-    type Ok = ();
-    type Error = SerializeError<S::Err>;
-    fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-
-impl<S: GeometrySink> SerializeTupleVariant for &mut GeometrySerializer<'_, S> {
-    type Ok = ();
-    type Error = SerializeError<S::Err>;
-
-    fn serialize_field<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-
-impl<S: GeometrySink> SerializeMap for &mut GeometrySerializer<'_, S> {
-    type Ok = ();
-    type Error = SerializeError<S::Err>;
-    fn serialize_key<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn serialize_value<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
-    }
-}
-
 impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
     type Ok = ();
     type Error = SerializeError<S::Err>;
@@ -671,19 +605,5 @@ impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
             self.end_geometry()?;
         }
         Ok(())
-    }
-}
-
-impl<S: GeometrySink> SerializeStructVariant for &mut GeometrySerializer<'_, S> {
-    type Ok = ();
-    type Error = SerializeError<S::Err>;
-    fn serialize_field<T: ?Sized>(&mut self, _: &'static str, _: &T) -> Result<(), Self::Error>
-    where
-        T: Serialize,
-    {
-        unimplemented!()
-    }
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
     }
 }
