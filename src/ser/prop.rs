@@ -31,7 +31,9 @@ impl<'a, S: PropertySink> PropertySerializer<'a, S> {
     pub fn new(index: usize, key: &'static str, sink: &'a mut S) -> Self {
         Self { index, key, sink }
     }
+}
 
+impl<S> PropertySerializer<'_, S> {
     /// The number of properties written to the sink.
     ///
     /// # Examples

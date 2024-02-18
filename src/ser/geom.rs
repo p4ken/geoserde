@@ -94,24 +94,6 @@ impl<'a, S: GeometrySink> GeometrySerializer<'a, S> {
         }
     }
 
-    /// Whether something has been written to the sink.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use serde::ser::Serialize;
-    ///
-    /// let mut sink = geozero::ProcessorSink;
-    /// let mut ser = geoserde::GeometrySerializer::new(&mut sink);
-    /// assert!(!ser.is_sink_used());
-    ///
-    /// geo_types::Point::new(51.5321, -0.1233).serialize(&mut ser);
-    /// assert!(ser.is_sink_used());
-    /// ```
-    pub fn is_sink_used(&self) -> bool {
-        self.sink.is_used()
-    }
-
     fn write_coord(&mut self, x: f64, y: f64) -> Result<(), SerializeError<S::Err>> {
         self.sink
             .get()
@@ -212,6 +194,26 @@ impl<'a, S: GeometrySink> GeometrySerializer<'a, S> {
         self.linestring_index += 1;
         self.coord_index = 0;
         Ok(())
+    }
+}
+
+impl<S> GeometrySerializer<'_, S> {
+    /// Whether something has been written to the sink.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use serde::ser::Serialize;
+    ///
+    /// let mut sink = geozero::ProcessorSink;
+    /// let mut ser = geoserde::GeometrySerializer::new(&mut sink);
+    /// assert!(!ser.is_sink_used());
+    ///
+    /// geo_types::Point::new(51.5321, -0.1233).serialize(&mut ser);
+    /// assert!(ser.is_sink_used());
+    /// ```
+    pub fn is_sink_used(&self) -> bool {
+        self.sink.is_used()
     }
 }
 

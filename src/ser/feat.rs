@@ -22,7 +22,7 @@ use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError}
 /// ```
 #[doc = include_str!("../../examples/serialize.rs")]
 /// ```
-pub struct FeatureSerializer<'a, S: FeatureSink> {
+pub struct FeatureSerializer<'a, S> {
     sink: &'a mut S,
     // geom_key: Option<&'static str>,
     feat_index: usize,
@@ -50,7 +50,9 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
             prop_index: 0,
         }
     }
+}
 
+impl<S> FeatureSerializer<'_, S> {
     // fn geometry_key(mut self, key: &'static str) -> Self {
     //     self.geom_key = Some(key);
     //     self
@@ -245,7 +247,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        // every features must have same structures
+        // every features must be a same structures
         Err(SerializeError::InvalidFeatureStructure)
     }
 }
