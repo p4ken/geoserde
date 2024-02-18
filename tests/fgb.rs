@@ -29,7 +29,7 @@ fn serialize_to_fgb() -> anyhow::Result<()> {
     let mut fgb = FgbWriter::create_with_options("my_layer", GeometryType::Unknown, option)?;
     let mut sut = FeatureSerializer::new(&mut fgb);
     layer.serialize(&mut sut)?;
-    assert_eq!(sut.count(), 2);
+    assert_eq!(sut.len(), 2);
 
     fgb.write(&mut buf)?;
     let cursor = Cursor::new(buf);

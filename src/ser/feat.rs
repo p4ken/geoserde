@@ -63,9 +63,9 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
     /// ```
     /// let mut sink = geozero::ProcessorSink;
     /// let mut ser = geoserde::FeatureSerializer::new(&mut sink);
-    /// println!("{} features", ser.count());  // => 0 features
+    /// println!("{} features", ser.len());  // => 0 features
     /// ```
-    pub fn count(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.feat_index
     }
 }
@@ -325,7 +325,7 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
         // serialize as a property
         let mut prop = PropertySerializer::new(self.prop_index, key, self.sink);
         value.serialize(&mut prop)?;
-        self.prop_index = prop.index();
+        self.prop_index = prop.len();
 
         if self.remaining_field == (if self.has_geom { 0 } else { 1 }) {
             self.sink

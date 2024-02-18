@@ -32,9 +32,7 @@ impl<'a, S: PropertySink> PropertySerializer<'a, S> {
         Self { index, key, sink }
     }
 
-    /// Index value used in the next property serialization.
-    ///
-    /// It is also the number of properties written to the sink.
+    /// The number of properties written to the sink.
     ///
     /// # Examples
     ///
@@ -43,12 +41,12 @@ impl<'a, S: PropertySink> PropertySerializer<'a, S> {
     ///
     /// let mut sink = geozero::ProcessorSink;
     /// let mut ser = geoserde::PropertySerializer::new(0, "name", &mut sink);
-    /// assert_eq!(ser.index(), 0);
+    /// assert_eq!(ser.len(), 0);
     ///
     /// "Sydney".serialize(&mut ser);
-    /// assert_eq!(ser.index(), 1);
+    /// assert_eq!(ser.len(), 1);
     /// ```
-    pub fn index(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.index
     }
 }

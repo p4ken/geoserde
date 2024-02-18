@@ -21,7 +21,7 @@ fn feature_test() -> anyhow::Result<()> {
     let mut sink = GeoJsonWriter::new(&mut buf);
     let mut sut = FeatureSerializer::new(&mut sink);
     feature_0().serialize(&mut sut)?;
-    assert_eq!(1, sut.count());
+    assert_eq!(1, sut.len());
     assert_eq!(
         r#"{"type": "Feature", "properties": {"id": "ID0"}, "geometry": {"type": "Point", "coordinates": [139.5860139,35.4813408]}}"#,
         String::from_utf8(buf)?
@@ -36,7 +36,7 @@ pub fn layer_test() -> anyhow::Result<()> {
     let mut sut = FeatureSerializer::new(&mut sink);
     let layer = vec![feature_0(), feature_1()];
     layer.serialize(&mut sut)?;
-    assert_eq!(2, sut.count());
+    assert_eq!(2, sut.len());
     assert_eq!(
         r#"{"type": "Feature", "properties": {"id": "ID0"}, "geometry": {"type": "Point", "coordinates": [139.5860139,35.4813408]}},
 {"type": "Feature", "properties": {"id": "ID1"}, "geometry": {"type": "Point", "coordinates": [139.7454329,35.6585805]}}"#,
