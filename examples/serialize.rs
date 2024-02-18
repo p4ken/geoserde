@@ -10,10 +10,10 @@ fn main() -> anyhow::Result<()> {
 
     // Any format that has an implementation of geozero::FeatureProcessor can be used,
     // such as wkt, shp, fgb, etc.
-    // For more information, see https://docs.rs/geozero/latest/geozero/
+    // See also https://docs.rs/geozero/latest/geozero/
     let mut geojson = GeoJsonWriter::new(&mut buf);
 
-    // Serialize features into GeoJson format
+    // Serialize features to GeoJson format
     let mut ser = FeatureSerializer::new(&mut geojson);
     my_features().serialize(&mut ser)?;
 
