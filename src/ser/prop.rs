@@ -15,7 +15,7 @@ use crate::{PropertySink, SerializeError};
 /// Multi-value types like `tuple`, `Vec`, `HashMap` are not supported yet, so panic.
 pub struct PropertySerializer<'a, S> {
     index: usize,
-    key: &'static str,
+    key: &'a str,
     sink: &'a mut S,
 }
 
@@ -28,7 +28,7 @@ impl<'a, S: PropertySink> PropertySerializer<'a, S> {
     /// let mut sink = geozero::ProcessorSink;
     /// let mut ser = geoserde::PropertySerializer::new(0, "spot_name", &mut sink);
     /// ```
-    pub fn new(index: usize, key: &'static str, sink: &'a mut S) -> Self {
+    pub fn new(index: usize, key: &'a str, sink: &'a mut S) -> Self {
         Self { index, key, sink }
     }
 }
@@ -280,7 +280,7 @@ impl<S: PropertySink> SerializeSeq for &mut PropertySerializer<'_, S> {
         T: Serialize,
     {
         // FIXME: to csv string
-        Err(SerializeError::UnsupportedPropertyStructure { actual: "seq" })
+        Err(SerializeError::UnsupportedPropertyStructure("seq"))
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -311,7 +311,7 @@ impl<S: PropertySink> SerializeTupleStruct for &mut PropertySerializer<'_, S> {
         T: Serialize,
     {
         // FIXME: to key_1, key_2 ...
-        Err(SerializeError::UnsupportedPropertyStructure { actual: "tuple" })
+        Err(SerializeError::UnsupportedPropertyStructure("tuple"))
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -343,14 +343,14 @@ impl<S: PropertySink> SerializeMap for &mut PropertySerializer<'_, S> {
     where
         T: Serialize,
     {
-        Err(SerializeError::UnsupportedPropertyStructure { actual: "map" })
+        Err(SerializeError::UnsupportedPropertyStructure("map"))
     }
 
     fn serialize_value<T: ?Sized>(&mut self, _value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
     {
-        Err(SerializeError::UnsupportedPropertyStructure { actual: "map" })
+        Err(SerializeError::UnsupportedPropertyStructure("map"))
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {

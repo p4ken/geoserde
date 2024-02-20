@@ -1,5 +1,5 @@
 use serde::{
-    ser::{Impossible, SerializeSeq, SerializeStruct, SerializeTuple},
+    ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple},
     Serialize, Serializer,
 };
 
@@ -50,6 +50,54 @@ impl<'a, S: FeatureSink> FeatureSerializer<'a, S> {
             prop_index: 0,
         }
     }
+
+    fn write_field(
+        &mut self,
+        key: &str,
+        value: &(impl Serialize + ?Sized),
+    ) -> Result<(), SerializeError<<S as FeatureSink>::FeatErr>> {
+        self.remaining_field = self
+            .remaining_field
+            .checked_sub(1)
+            .ok_or(SerializeError::InvalidState)?;
+
+        if !self.has_geom {
+            // try to serialize as a geometry
+            let mut geom = GeometrySerializer::new(self.sink);
+            match value.serialize(&mut geom) {
+                // found the first geometry field
+                Ok(()) => {
+                    self.has_geom = true;
+                    return Ok(());
+                }
+
+                // failed but some junk was written
+                Err(e) if geom.is_sink_used() => return Err(e),
+
+                // it's just a property
+                Err(_) => (),
+            }
+        }
+
+        if self.prop_index == 0 {
+            self.sink
+                .properties_start()
+                .map_err(SerializeError::SinkCaused)?;
+        }
+
+        // serialize as a property
+        let mut prop = PropertySerializer::new(self.prop_index, key, self.sink);
+        value.serialize(&mut prop)?;
+        self.prop_index = prop.len();
+
+        if self.remaining_field == (if self.has_geom { 0 } else { 1 }) {
+            self.sink
+                .properties_end()
+                .map_err(SerializeError::SinkCaused)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl<S> FeatureSerializer<'_, S> {
@@ -80,64 +128,64 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
     type SerializeTuple = Self;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Self;
     type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, _: bool) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("bool"))
     }
 
     fn serialize_i8(self, _: i8) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("i8"))
     }
 
     fn serialize_i16(self, _: i16) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("i16"))
     }
 
     fn serialize_i32(self, _: i32) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("i32"))
     }
 
     fn serialize_i64(self, _: i64) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("i64"))
     }
 
     fn serialize_u8(self, _: u8) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("u8"))
     }
 
     fn serialize_u16(self, _: u16) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("u16"))
     }
 
     fn serialize_u32(self, _: u32) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("u32"))
     }
 
     fn serialize_u64(self, _: u64) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("u64"))
     }
 
     fn serialize_f32(self, _: f32) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("f32"))
     }
 
     fn serialize_f64(self, _: f64) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("f64"))
     }
 
     fn serialize_char(self, _: char) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("char"))
     }
 
     fn serialize_str(self, _: &str) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("str"))
     }
 
     fn serialize_bytes(self, _: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("bytes"))
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
@@ -153,11 +201,11 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("unit"))
     }
 
     fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("unit struct"))
     }
 
     fn serialize_unit_variant(
@@ -166,7 +214,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _: u32,
         _: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("variant"))
     }
 
     fn serialize_newtype_struct<T: ?Sized>(
@@ -209,7 +257,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         // field key is required
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("tuple struct"))
     }
 
     fn serialize_tuple_variant(
@@ -220,12 +268,17 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         // field key is required
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("tuple variant"))
     }
 
-    fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        // field key is required
-        Err(SerializeError::InvalidFeatureStructure)
+    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        self.remaining_field = len.ok_or(SerializeError::InvalidFeatureStructure(
+            "unknown length fields",
+        ))?;
+        self.sink
+            .feature_start(self.feat_index)
+            .map_err(SerializeError::SinkCaused)?;
+        Ok(self)
     }
 
     fn serialize_struct(
@@ -233,11 +286,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        self.remaining_field = len;
-        self.sink
-            .feature_start(self.feat_index)
-            .map_err(SerializeError::SinkCaused)?;
-        Ok(self)
+        self.serialize_map(Some(len))
     }
 
     fn serialize_struct_variant(
@@ -248,7 +297,7 @@ impl<'a, S: FeatureSink> Serializer for &mut FeatureSerializer<'a, S> {
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         // every features must be a same structures
-        Err(SerializeError::InvalidFeatureStructure)
+        Err(SerializeError::InvalidFeatureStructure("struct variant"))
     }
 }
 
@@ -284,6 +333,44 @@ impl<'a, S: FeatureSink> SerializeTuple for &mut FeatureSerializer<'a, S> {
     }
 }
 
+impl<'a, S: FeatureSink> SerializeMap for &mut FeatureSerializer<'a, S> {
+    type Ok = ();
+    type Error = SerializeError<S::FeatErr>;
+
+    fn serialize_key<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        Err(SerializeError::InvalidFeatureStructure("separated k/v map"))
+    }
+
+    fn serialize_value<T: ?Sized>(&mut self, _: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize,
+    {
+        Err(SerializeError::InvalidState)
+    }
+
+    fn serialize_entry<K: ?Sized, V: ?Sized>(
+        &mut self,
+        key: &K,
+        value: &V,
+    ) -> Result<(), Self::Error>
+    where
+        K: Serialize,
+        V: Serialize,
+    {
+        let key_str = key
+            .serialize(serde_plain::Serializer)
+            .map_err(|_| SerializeError::InvalidFeatureStructure("non str map"))?;
+        self.write_field(&key_str, value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        SerializeStruct::end(self)
+    }
+}
+
 impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
     type Ok = ();
     type Error = SerializeError<S::FeatErr>;
@@ -296,47 +383,7 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
     where
         T: Serialize,
     {
-        self.remaining_field = self
-            .remaining_field
-            .checked_sub(1)
-            .ok_or(SerializeError::InvalidState)?;
-
-        if !self.has_geom {
-            // try to serialize as a geometry
-            let mut geom = GeometrySerializer::new(self.sink);
-            match value.serialize(&mut geom) {
-                // found the first geometry field
-                Ok(()) => {
-                    self.has_geom = true;
-                    return Ok(());
-                }
-
-                // failed but some junk was written
-                Err(e) if geom.is_sink_used() => return Err(e),
-
-                // it's just a property
-                Err(_) => (),
-            }
-        }
-
-        if self.prop_index == 0 {
-            self.sink
-                .properties_start()
-                .map_err(SerializeError::SinkCaused)?;
-        }
-
-        // serialize as a property
-        let mut prop = PropertySerializer::new(self.prop_index, key, self.sink);
-        value.serialize(&mut prop)?;
-        self.prop_index = prop.len();
-
-        if self.remaining_field == (if self.has_geom { 0 } else { 1 }) {
-            self.sink
-                .properties_end()
-                .map_err(SerializeError::SinkCaused)?;
-        }
-
-        Ok(())
+        self.write_field(key, value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
