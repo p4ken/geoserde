@@ -398,3 +398,7 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
         self.end_feature()
     }
 }
+
+struct GeometryTrap<'a, S> {
+    sink: &'a mut S,
+}
