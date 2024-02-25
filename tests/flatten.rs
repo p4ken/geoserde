@@ -9,15 +9,18 @@ fn serialize_flattened_feature() -> anyhow::Result<()> {
     let mut geojson = GeoJsonWriter::new(&mut buf);
     let mut ser = FeatureSerializer::new(&mut geojson);
     my_features().serialize(&mut ser)?;
-    println!("{}", std::str::from_utf8(&buf)?);
+    assert_eq!(
+        r#"{"type": "Feature", "geometry": {"type": "Point", "coordinates": [1,2]}, "properties": {"count": 3}}"#,
+        std::str::from_utf8(&buf)?
+    );
     Ok(())
 }
 
 fn my_features() -> impl Serialize {
     [MyFeature {
         nest1: NestedGeometry {
-            geom: Point::default(),
-            count: 0,
+            geom: (1, 2).into(),
+            count: 3,
         },
     }]
 }
@@ -30,6 +33,6 @@ struct MyFeature {
 
 #[derive(Serialize)]
 struct NestedGeometry {
-    geom: Point,
+    geom: Point<i32>,
     count: i32,
 }
