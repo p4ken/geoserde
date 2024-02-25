@@ -18,7 +18,7 @@ serde = { version = "1.0.188" }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
-flatgeobuf = { version = "4.0.0", default-features = false }
+flatgeobuf = { version = "=4.0.0", default-features = false }
 geo-types = { version = "0.7.11", features = ["serde"] }
 geozero = { version = "0.11.0" }
 serde = { version = "1.0.188", features = ["derive"] }
