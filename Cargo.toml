@@ -13,13 +13,13 @@ geozero = ["dep:geozero"]
 
 [dependencies]
 geo-types = { version = "0.7.11" }
-geozero = { version = "0.11.0", optional = true }
+geozero = { version = "0.12.0", optional = true }
 serde = { version = "1.0.188" }
 serde_plain = "1.0.2"
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
-flatgeobuf = { version = "4.0.0", default-features = false }
+flatgeobuf = { version = "=4.1.0", default-features = false }
 geo-types = { version = "0.7.11", features = ["serde"] }
-geozero = { version = "0.11.0" }
+geozero = { version = "0.12.0" }
 serde = { version = "1.0.188", features = ["derive"] }
