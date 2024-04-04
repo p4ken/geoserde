@@ -5,6 +5,6 @@
 
 Geoserde is an adapter between geographic feature structs and GIS file formats.
 
-[API documantation](https://docs.rs/geoserde) contains some sample codes.
+See [API documantation](https://docs.rs/geoserde) with some examples.
 
 Licensed under the [MIT License](LICENSE.txt).
