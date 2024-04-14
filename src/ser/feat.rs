@@ -399,6 +399,8 @@ impl<'a, S: FeatureSink> SerializeStruct for &mut FeatureSerializer<'a, S> {
     }
 }
 
+// derive_geoserde の方が良いかも？
+// serialize が serde だけで可能か、それとも derive_geoserde が必要かどうか次第。
 struct GeometryTrap<'a, S> {
     sink: &'a mut S,
 }
