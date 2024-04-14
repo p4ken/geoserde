@@ -19,5 +19,6 @@
 //! ```
 
 mod ser;
+mod de;
 
 pub use crate::ser::*;
