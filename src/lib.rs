@@ -18,7 +18,10 @@
 #![doc = include_str!("../examples/serialize.rs")]
 //! ```
 
-mod ser;
 mod de;
+mod geom;
+mod ser;
 
+pub use crate::de::*;
 pub use crate::ser::*;
+use geom::Container;
