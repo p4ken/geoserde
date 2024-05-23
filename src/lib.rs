@@ -20,6 +20,7 @@
 
 mod de;
 mod geom;
+mod geoserde;
 mod ser;
 
 pub use crate::de::*;
