@@ -296,7 +296,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
 
         if self.coord_index == 0 {
             match &self.stack[..] {
-                [Container::Point, ..] => {
+                [Container::Coord | Container::Point, ..] => {
                     self.start_point_geometry()?;
                 }
                 [Container::Line, ..] => {
@@ -601,6 +601,7 @@ impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
                         actual: "Coord end",
                     });
                 }
+                self.end_point_geometry()?;
             }
             Some(Container::Line) => {
                 if self.coord_index != 2 {
