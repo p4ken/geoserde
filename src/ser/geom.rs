@@ -20,7 +20,7 @@ enum Container {
     Rect { start: Option<(f64, f64)> },
 }
 impl Container {
-    fn as_str(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         match self {
             Self::Coord => "Coord",
             Self::Point => "Point",
@@ -282,7 +282,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
                 return Err(SerializeError::InvalidGeometryStructure {
                     expected: Some("Coord"),
                     actual: match arm {
-                        Some(container) => container.as_str(),
+                        Some(container) => container.name(),
                         None => "None",
                     },
                 })
@@ -310,23 +310,33 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
                 }
                 [Container::Rect { .. }, ..] => {
                     self.start_linestring_geometry(5)?;
-                    self.stack[0] = Container::Rect {
-                        start: Some((x, y)),
-                    };
                 }
                 [containers @ ..] => todo!("{:?}", containers),
             }
         }
 
         match &self.stack.first() {
-            Some(Container::Rect { start }) if self.coord_index == 1 => {
-                // FIXME check if coord_index > 2
-                let (x0, y0) = start.unwrap();
-                self.write_coord(x0, y)?;
-                self.write_coord(x, y)?;
-                self.write_coord(x, y0)?;
-                self.write_coord(x0, y0)?;
-            }
+            Some(Container::Rect { start }) => match self.coord_index {
+                0 => {
+                    self.stack[0] = Container::Rect {
+                        start: Some((x, y)),
+                    };
+                    self.write_coord(x, y)?;
+                }
+                1 => {
+                    let (x0, y0) = start.ok_or(SerializeError::InvalidState)?;
+                    self.write_coord(x0, y)?;
+                    self.write_coord(x, y)?;
+                    self.write_coord(x, y0)?;
+                    self.write_coord(x0, y0)?;
+                }
+                _ => {
+                    return Err(SerializeError::InvalidGeometryStructure {
+                        expected: Some("2 coords"),
+                        actual: "more than 2",
+                    })
+                }
+            },
             _ => self.write_coord(x, y)?,
         }
 
@@ -471,7 +481,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
                 })?;
             }
             Some(Container::Polygon) => (),
-            Some(container) => todo!("{}", container.as_str()),
+            Some(container) => todo!("{}", container.name()),
             None => {
                 return Err(SerializeError::InvalidGeometryStructure {
                     expected: Some("sequene in container"),
@@ -614,7 +624,7 @@ impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
             Some(Container::Rect { .. }) => {
                 if self.coord_index != 5 {
                     return Err(SerializeError::InvalidGeometryStructure {
-                        expected: Some("5 coords"),
+                        expected: Some("2 coords"),
                         actual: "Rect end",
                     });
                 }
@@ -629,7 +639,7 @@ impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
                 }
                 self.end_polygon_geometry()?;
             }
-            Some(container) => todo!("{}", container.as_str()),
+            Some(container) => todo!("{}", container.name()),
             None => return Err(Self::Error::InvalidState),
         }
 
