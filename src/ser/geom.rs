@@ -309,7 +309,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
                     self.start_polygon_linestring(*len)?;
                 }
                 [Container::Rect { .. }, ..] => {
-                    self.start_linestring_geometry(5)?;
+                    self.start_polygon_linestring(5)?;
                 }
                 [containers @ ..] => todo!("{:?}", containers),
             }
@@ -628,7 +628,8 @@ impl<S: GeometrySink> SerializeStruct for &mut GeometrySerializer<'_, S> {
                         actual: "Rect end",
                     });
                 }
-                self.end_linestring_geometry()?;
+                self.end_polygon_linestring()?;
+                self.end_polygon_geometry()?;
             }
             Some(Container::Polygon) => {
                 if self.linestring_index == 0 {
