@@ -11,17 +11,11 @@ use crate::{FeatureSink, GeometrySerializer, PropertySerializer, SerializeError}
 ///
 /// The first geo-types field in the feature struct is serialized as a geometry.
 ///
-/// Rest of the fields are properties.
+/// Any other fields are properties.
 ///
 /// Every features must have a geometry and may also have some properties.
 ///
 /// Geometry and properties are serialized with [`GeometrySerializer`] and [`PropertySerializer`].
-///
-/// # Examples
-///
-/// ```
-#[doc = include_str!("../../examples/serialize.rs")]
-/// ```
 pub struct FeatureSerializer<'a, S> {
     sink: &'a mut S,
     // geom_key: Option<&'static str>,

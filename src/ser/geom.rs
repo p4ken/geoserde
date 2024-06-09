@@ -62,6 +62,7 @@ impl<T> Ribbon<T> {
 /// - [`geo_types::Line`]
 /// - [`geo_types::LineString`]
 /// - [`geo_types::Polygon`]
+/// - [`geo_types::Rect`]
 ///
 /// Any other type will result in an error.
 #[derive(Debug)]
