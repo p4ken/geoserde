@@ -1,3 +1,6 @@
+[workspace]
+members = ["macros"]
+
 [package]
 name = "geoserde"
 version = "0.5.2"
