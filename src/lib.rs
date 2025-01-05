@@ -67,6 +67,10 @@
 //! }
 //! ```
 
+pub mod feature;
+pub mod geometry;
 mod ser;
 
 pub use crate::ser::*;
+/// re-export
+pub use geoserde_derive::Feature;
