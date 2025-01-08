@@ -15,8 +15,11 @@ impl<T: geozero::GeomProcessor> GeometryFormat for T {
         todo!()
     }
 }
-pub trait Geometry {
+pub trait Geometry: Sized {
     fn serialize(&self, fmt: &mut impl GeometryFormat);
+    fn deserialize(fmt: &impl GeometryFormat) -> Self {
+        todo!()
+    }
 }
 impl Geometry for geo_types::Point {
     fn serialize(&self, fmt: &mut impl GeometryFormat) {
@@ -28,8 +31,11 @@ pub trait ProperyFormat {
     fn format_i32(&self, key: &'static str, value: i32);
     fn format_str(&self, key: &'static str, value: &str);
 }
-pub trait Properties {
+pub trait Properties: Sized {
     fn serialize(&self, key: &'static str, fmt: &impl ProperyFormat);
+    fn deserialize(key: &'static str, fmt: &impl ProperyFormat) -> Option<Self> {
+        todo!()
+    }
 }
 impl Properties for i32 {
     fn serialize(&self, key: &'static str, fmt: &impl ProperyFormat) {
@@ -45,7 +51,7 @@ impl Properties for geo_types::Point {
     fn serialize(&self, _: &'static str, _: &impl ProperyFormat) {}
 }
 pub trait Feature: Geometry + Properties {
-    fn deserialize(fmt: impl GeometryFormat + ProperyFormat) -> Self;
+    fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat)) -> Self;
 }
 
 #[derive(geoserde::Feature)]
@@ -66,16 +72,18 @@ impl Properties for Child2 {
     }
 }
 impl Feature for Child2 {
-    fn deserialize(fmt: impl GeometryFormat + ProperyFormat) -> Self {
+    fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat)) -> Self {
         Self {
-            loc: todo!(),
-            count: todo!(),
+            loc: <geo_types::Point as Properties>::deserialize("count", fmt)
+                .unwrap_or_else(|| <geo_types::Point as Geometry>::deserialize(fmt)),
+            count: <i32 as Properties>::deserialize("count", fmt).unwrap(),
         }
     }
 }
 
 #[derive(geoserde::Feature)]
 pub struct MyFeature2 {
+    // デシリアライズには必須ではない。シリアライズに必須かどうかもデータ形式次第。
     #[geometry]
     child: Child2,
     title: String,
@@ -92,12 +100,16 @@ impl Properties for MyFeature2 {
     }
 }
 impl Feature for MyFeature2 {
-    // シリアライズと違って、ジオメトリとプロパティのどちらが先かはデータ形式の側が決める。
+    // プロパティ内の順序はデータ形式とデータ構造の間で同一とする。（暫定仕様）・・・serdeを使えば良いのでは？
+    // serdeのhelperが全て使えるわけではない・・・serdeを使えば良いのでは？
     // データ構造の都合で、ジオメトリとプロパティが一度に揃う必要がある。
-    fn deserialize(fmt: impl GeometryFormat + ProperyFormat) -> Self {
+    fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat)) -> Self {
+        // child = Some(fmt.parse_property::<Child>("child") || fmt.parse_geometry::<Child>());
         Self {
-            child: Properties::deserialize("child", fmt) || Geometry::deserialize(fmt),
-            title: Properties::deserialize("title", fmt),
+            // TODO: シリアライズと同じで、ジオメトリとプロパティのどちらが先かはデータ形式の側が決める。
+            child: <Child2 as Properties>::deserialize("child", fmt)
+                .unwrap_or_else(|| <Child2 as Geometry>::deserialize(fmt)),
+            title: <String as Properties>::deserialize("title", fmt).unwrap(),
         }
     }
 }
