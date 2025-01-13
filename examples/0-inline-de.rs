@@ -8,8 +8,18 @@ pub struct Child1a {
     count: i32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
+pub struct Child1b(
+    ///
+    #[serde(rename = "geometry")]
+    geo_types::Point,
+    ///
+    i32,
+);
+
+#[derive(Serialize, Feature)]
 pub struct MyFeature1a {
+    // #[serde(flatten)] // <- エラー
     child: Child1a,
     title: String,
 }
@@ -25,9 +35,14 @@ impl MyFeature1a {
         _serde::ser::SerializeStruct::serialize_field(&mut __serde_state,"title", &self.title).unwrap();
         _serde::ser::SerializeStruct::end(__serde_state).unwrap();
     }
+}
 
-    #[rustfmt::skip]
-    fn _de<'a>(&self, deserializer: impl serde::Deserializer<'a>) {
+#[rustfmt::skip]
+impl<'de> Deserialize<'de> for MyFeature1a {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
         use serde as _serde;
 
         let __deserializer = deserializer;
@@ -147,8 +162,11 @@ impl MyFeature1a {
         const FIELDS: &'static[&'static str] =  &["child","title"];
         _serde::Deserializer::deserialize_struct(__deserializer,"MyFeature1a",FIELDS,__Visitor {
             marker:_serde::__private::PhantomData:: <MyFeature1a> ,lifetime:_serde::__private::PhantomData,
-        }).unwrap();
+        })
     }
 }
 
-fn main() {}
+fn main() {
+    let _: MyFeature1a =
+        serde_json::from_str(r#"{"title":"foo", "child":{"geometry":[1,2],"count":3}}"#).unwrap();
+}

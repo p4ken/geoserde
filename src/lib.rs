@@ -67,8 +67,6 @@
 //! }
 //! ```
 
-pub mod feature;
-pub mod geometry;
 mod ser;
 
 pub use crate::ser::*;

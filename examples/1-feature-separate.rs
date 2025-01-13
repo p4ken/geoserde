@@ -63,10 +63,6 @@ pub struct Child2 {
     count: i32,
 }
 impl Geometry for Child2 {
-    // fn geometry(&self) -> GeometryRef {
-    //     // マクロでこれを導出するのは難しい
-    //     GeometryRef::Point(&self.loc)
-    // }
     fn serialize(&self, fmt: &impl GeometryFormat) {
         Geometry::serialize(&self.loc, fmt);
     }

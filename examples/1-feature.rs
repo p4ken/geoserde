@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 pub trait GeometryFormat {
     fn format_point(&mut self, point: &geo_types::Point);
     fn parse_point(&self) -> geo_types::Point;
@@ -17,7 +15,7 @@ impl<T: geozero::GeomProcessor> GeometryFormat for T {
 }
 pub trait Geometry: Sized {
     fn serialize(&self, fmt: &mut impl GeometryFormat);
-    fn deserialize(fmt: &impl GeometryFormat) -> Self {
+    fn deserialize(_fmt: &impl GeometryFormat) -> Self {
         todo!()
     }
 }
@@ -33,7 +31,7 @@ pub trait ProperyFormat {
 }
 pub trait Properties: Sized {
     fn serialize(&self, key: &'static str, fmt: &impl ProperyFormat);
-    fn deserialize(key: &'static str, fmt: &impl ProperyFormat) -> Option<Self> {
+    fn deserialize(_key: &'static str, _fmt: &impl ProperyFormat) -> Option<Self> {
         todo!()
     }
 }
@@ -56,6 +54,7 @@ pub trait Feature: Geometry + Properties {
 
 #[derive(geoserde::Feature)]
 pub struct Child2 {
+    // デシリアライズには必須ではない。シリアライズに必須かどうかもデータ形式次第。データ形式によっては2個以上でも良いかも
     #[geometry]
     loc: geo_types::Point,
     count: i32,
@@ -83,8 +82,6 @@ impl Feature for Child2 {
 
 #[derive(geoserde::Feature)]
 pub struct MyFeature2 {
-    // デシリアライズには必須ではない。シリアライズに必須かどうかもデータ形式次第。
-    #[geometry]
     child: Child2,
     title: String,
 }
@@ -101,9 +98,12 @@ impl Properties for MyFeature2 {
 }
 impl Feature for MyFeature2 {
     // プロパティ内の順序はデータ形式とデータ構造の間で同一とする。（暫定仕様）・・・serdeを使えば良いのでは？
-    // serdeのhelperが全て使えるわけではない・・・serdeを使えば良いのでは？
+    // serdeのhelperが全て使えるわけではない・・・serdeを使いたいが、しかしジオメトリをスキップする方法がない
     // データ構造の都合で、ジオメトリとプロパティが一度に揃う必要がある。
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat)) -> Self {
+        // let mut geometry = None;
+        // fmt.parse_point()
+
         // child = Some(fmt.parse_property::<Child>("child") || fmt.parse_geometry::<Child>());
         Self {
             // TODO: シリアライズと同じで、ジオメトリとプロパティのどちらが先かはデータ形式の側が決める。
