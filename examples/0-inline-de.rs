@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Feature)]
 pub struct Child1a {
-    #[serde(rename = "geometry")]
     loc: geo_types::Point,
     count: i32,
 }
@@ -11,7 +10,6 @@ pub struct Child1a {
 #[derive(Serialize)]
 pub struct Child1b(
     ///
-    #[serde(rename = "geometry")]
     geo_types::Point,
     ///
     i32,
@@ -168,5 +166,5 @@ impl<'de> Deserialize<'de> for MyFeature1a {
 
 fn main() {
     let _: MyFeature1a =
-        serde_json::from_str(r#"{"title":"foo", "child":{"geometry":[1,2],"count":3}}"#).unwrap();
+        serde_json::from_str(r#"{"title":"foo", "child":{"loc":[1,2],"count":3}}"#).unwrap();
 }

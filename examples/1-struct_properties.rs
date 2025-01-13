@@ -2,7 +2,6 @@ use geo_types::Point;
 use geoserde::Feature;
 use serde::Serialize;
 
-fn main() {}
 pub trait SerializeFeature {
     fn serialize_geometry<S, C>(&self, ser: S) -> Result<(), S::Error>
     where
@@ -133,3 +132,5 @@ impl SerializeFeature for MyFeature2 {
         // .serialize(ser)
     }
 }
+
+fn main() {}

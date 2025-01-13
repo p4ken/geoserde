@@ -10,8 +10,6 @@ use serde::{ser::SerializeStruct, Serialize};
 // use geozero::FeatureProcessor as LayerFormat;
 // use geozero::GeomProcessor as GeometryFormat;
 
-fn main() {}
-
 #[derive(Serialize, Feature)]
 pub struct Child2 {
     #[geometry]
@@ -63,3 +61,5 @@ impl MyFeature2 {
         pro.property(0, "count", &geozero::ColumnValue::Int(self.child.count))
     }
 }
+
+fn main() {}
