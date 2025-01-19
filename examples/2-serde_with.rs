@@ -34,7 +34,7 @@ pub mod geometry {
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("map")
             }
-            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            fn visit_map<A>(self, _map: A) -> Result<Self::Value, A::Error>
             where
                 A: serde::de::MapAccess<'b>,
             {

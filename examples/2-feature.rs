@@ -44,6 +44,9 @@ impl Geometry for Child2 {
         Geometry::serialize(&self.loc, fmt);
     }
 }
+impl Geometry for i32 {
+    fn serialize(&self, _: &mut impl GeometryFormat) {}
+}
 impl Geometry for String {
     fn serialize(&self, _: &mut impl GeometryFormat) {}
 }
@@ -57,6 +60,7 @@ impl Geometry for MyFeature2 {
 pub trait ProperyFormat {
     fn format_i32(&self, key: &'static str, value: i32);
     fn format_str(&self, key: &'static str, value: &str);
+    fn parse_i32(&self, key: &'static str) -> i32;
     fn parse_str(&self, key: &'static str) -> String;
 }
 pub trait Properties: Sized {
@@ -75,6 +79,7 @@ impl Properties for String {
         fmt.format_str(key, self);
     }
 }
+// TODO: ser/deの分離が必須
 impl Properties for geo_types::Point {
     fn serialize(&self, _: &'static str, _: &impl ProperyFormat) {}
 }
@@ -100,12 +105,17 @@ impl Feature for String {
         ProperyFormat::parse_str(fmt, key)
     }
 }
+impl Feature for i32 {
+    fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), key: &'static str) -> Self {
+        ProperyFormat::parse_i32(fmt, key)
+    }
+}
 impl Feature for Child2 {
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), _: &'static str) -> Self {
         Self {
-            loc: <geo_types::Point as Properties>::deserialize("count", fmt)
-                .unwrap_or_else(|| <geo_types::Point as Geometry>::deserialize(fmt)),
-            count: <i32 as Properties>::deserialize("count", fmt).unwrap(),
+            // TODO: ジオメトリとプロパティのどちらが先かはデータ形式の側が決める
+            loc: Geometry::deserialize(fmt),
+            count: Feature::deserialize(fmt, "count"),
         }
     }
 }
@@ -114,14 +124,14 @@ impl Feature for MyFeature2 {
     // serdeのhelperが全て使えるわけではない・・・serdeを使いたいが、しかしジオメトリをスキップする方法がない
     // データ構造の都合で、ジオメトリとプロパティが一度に揃う必要がある。
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), _: &'static str) -> Self {
-        // ジオメトリとプロパティのどちらが先かはデータ形式の側が決めたいが・・・
-        // Self {
-        //     child: <Child2 as Properties>::deserialize("child", fmt)
-        //         .unwrap_or_else(|| <Child2 as Geometry>::deserialize(fmt)),
-        //     title: <String as Properties>::deserialize("title", fmt).unwrap(),
-        // }
+        struct _Visitor; // だったらserdeで良くないか Option型なども面倒
 
-        // let visitor =
+        // let mut loc = None;
+        // {
+        //     fn set_point(incoming: geo_types::Point) {
+        //         loc = Some(geo_types::Point::new(1., 2.));
+        //     }
+        // }
 
         Self {
             child: Feature::deserialize(fmt, "child"),
