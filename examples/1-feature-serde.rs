@@ -1,15 +1,13 @@
 use geoserde::Feature;
 use serde::{Deserialize, Serialize};
 
-#[derive(Feature, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Child2 {
-    #[geometry]
     pub loc: geo_types::Point,
     pub count: i32,
     pub count2: i32,
 }
 
-#[derive(Feature)]
 pub struct MyFeature2 {
     pub child: Child2,
     pub title: String,

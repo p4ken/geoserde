@@ -1,7 +1,7 @@
 use geoserde::Feature;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Feature)]
+#[derive(Serialize, Deserialize)]
 pub struct Child1a {
     loc: geo_types::Point,
     count: i32,
@@ -15,7 +15,7 @@ pub struct Child1b(
     i32,
 );
 
-#[derive(Serialize, Feature)]
+#[derive(Serialize)]
 pub struct MyFeature1a {
     // #[serde(flatten)] // <- エラー
     child: Child1a,

@@ -1,7 +1,6 @@
-use geoserde::Feature;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Feature)]
+#[derive(Serialize, Deserialize)]
 pub struct Child1 {
     #[serde(with = "geometry")]
     loc: geo_types::Point,

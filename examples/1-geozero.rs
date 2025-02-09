@@ -10,9 +10,8 @@ use serde::{ser::SerializeStruct, Serialize};
 // use geozero::FeatureProcessor as LayerFormat;
 // use geozero::GeomProcessor as GeometryFormat;
 
-#[derive(Serialize, Feature)]
+#[derive(Serialize)]
 pub struct Child2 {
-    #[geometry]
     loc: Point, // ←これはプロパティにならない
     count: i32, // ←これはプロパティ
 }
@@ -31,7 +30,7 @@ impl geozero::GeozeroDatasource for Child2 {
     }
 }
 
-#[derive(Serialize, Feature)]
+#[derive(Serialize)]
 pub struct MyFeature2 {
     // #[serde(flatten)]
     // #[serde(skip)]

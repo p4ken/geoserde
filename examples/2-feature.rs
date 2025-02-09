@@ -5,8 +5,13 @@ pub struct Child2 {
     loc: geo_types::Point,
     count: i32,
 }
+impl Child2 {
+    fn b() {
+        B::b();
+    }
+}
 
-#[derive(geoserde::Feature)]
+// #[derive(geoserde::Feature)]
 pub struct MyFeature2 {
     child: Child2,
     title: String,
@@ -65,9 +70,6 @@ pub trait ProperyFormat {
 }
 pub trait Properties: Sized {
     fn serialize(&self, key: &'static str, fmt: &impl ProperyFormat);
-    fn deserialize(_key: &'static str, _fmt: &impl ProperyFormat) -> Option<Self> {
-        todo!()
-    }
 }
 impl Properties for i32 {
     fn serialize(&self, key: &'static str, fmt: &impl ProperyFormat) {
@@ -79,13 +81,14 @@ impl Properties for String {
         fmt.format_str(key, self);
     }
 }
+// なぜ実装しなきゃならんのだ・・・
 // TODO: ser/deの分離が必須
-impl Properties for geo_types::Point {
-    fn serialize(&self, _: &'static str, _: &impl ProperyFormat) {}
-}
+// impl Properties for geo_types::Point {
+//     fn serialize(&self, _: &'static str, _: &impl ProperyFormat) {}
+// }
 impl Properties for Child2 {
     fn serialize(&self, _key: &'static str, fmt: &impl ProperyFormat) {
-        Properties::serialize(&self.loc, "loc", fmt);
+        // Properties::serialize(&self.loc, "loc", fmt); // 自動実装想定 geometry なのでスキップ
         Properties::serialize(&self.count, "count", fmt);
     }
 }
@@ -95,6 +98,22 @@ impl Properties for MyFeature2 {
         Properties::serialize(&self.title, "title", fmt);
     }
 }
+
+// pub trait Serialize {
+//     fn serialize_geometry(&self, fmt: &mut impl GeometryFormat) {
+//         let _ = fmt;
+//     }
+//     fn serialize_property(&self, key: &'static str, fmt: &mut impl ProperyFormat) {
+//         let _ = key;
+//         let _ = fmt;
+//     }
+// }
+// impl Serialize for Child2 {
+//     fn serialize_property(&self, key: &'static str, fmt: &mut impl ProperyFormat) {
+//         self.loc.serialize_property(), "loc", fmt);
+//         Properties::serialize(&self.count, "count", fmt);
+//     }
+// }
 
 pub trait Feature: Geometry + Properties {
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), key: &'static str) -> Self;
@@ -120,7 +139,7 @@ impl Feature for Child2 {
     }
 }
 impl Feature for MyFeature2 {
-    // プロパティ内の順序はデータ形式とデータ構造の間で同一とする。（暫定仕様）・・・serdeを使えば良いのでは？
+    // プロパティ内の順序はデータ形式とデータ構造の間で同一とする。(暫定仕様)・・・serdeを使えば良いのでは
     // serdeのhelperが全て使えるわけではない・・・serdeを使いたいが、しかしジオメトリをスキップする方法がない
     // データ構造の都合で、ジオメトリとプロパティが一度に揃う必要がある。
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), _: &'static str) -> Self {
