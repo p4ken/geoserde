@@ -70,5 +70,4 @@
 mod ser;
 
 pub use crate::ser::*;
-/// re-export
-pub use geoserde_derive::Feature;
+pub use geoserde_derive::Deserialize;

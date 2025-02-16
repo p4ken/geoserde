@@ -1,5 +1,4 @@
 use geo_types::Point;
-use geoserde::Feature;
 use serde::{ser::SerializeStruct, Serialize};
 
 // use geozero::FeatureAccess as FeatureType;

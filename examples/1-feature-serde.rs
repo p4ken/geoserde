@@ -1,4 +1,3 @@
-use geoserde::Feature;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

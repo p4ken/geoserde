@@ -1,14 +1,9 @@
-#[derive(geoserde::Feature)]
+#[derive(geoserde::Deserialize)]
 pub struct Child2 {
     // デシリアライズには必須ではない。シリアライズに必須かどうかもデータ形式次第。データ形式によっては2個以上でも良いかも
     #[geometry]
     loc: geo_types::Point,
     count: i32,
-}
-impl Child2 {
-    fn b() {
-        B::b();
-    }
 }
 
 // #[derive(geoserde::Feature)]
