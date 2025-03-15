@@ -11,16 +11,16 @@ pub struct MyFeature2 {
     title: String,
 }
 
-pub trait Deserialize: Sized {
-    fn deserialize<'de>(
+pub trait GeoDeserialize: Sized {
+    fn geo_deserialize<'de>(
         geom_fmt: &mut impl geo_traits::GeometryTrait<T = f64>,
-        prop_fmt: &impl serde::de::Deserializer<'de>,
+        prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
     ) -> Self;
 }
-impl Deserialize for Child2 {
-    fn deserialize<'de>(
+impl GeoDeserialize for Child2 {
+    fn geo_deserialize<'de>(
         geom_fmt: &mut impl geo_traits::GeometryTrait<T = f64>,
-        prop_fmt: &impl serde::de::Deserializer<'de>,
+        prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
     ) -> Self {
         use geo_traits::to_geo::ToGeoGeometry;
         let geometry = geom_fmt.try_to_geometry().unwrap().try_into().unwrap();
@@ -28,30 +28,33 @@ impl Deserialize for Child2 {
         struct Properties {
             count: i32,
         }
-        let properties = <Properties as serde::Deserialize>::deserialize(prop_fmt).unwrap();
+        let properties =
+            <Properties as serde::Deserialize>::deserialize(prop_fmt.take().unwrap()).unwrap();
         Self {
             loc: geometry,
             count: properties.count,
         }
     }
 }
-impl Deserialize for MyFeature2 {
-    fn deserialize<'de>(
+impl GeoDeserialize for MyFeature2 {
+    fn geo_deserialize<'de>(
         geom_fmt: &mut impl geo_traits::GeometryTrait<T = f64>,
-        prop_fmt: &impl serde::de::Deserializer<'de>,
+        prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
     ) -> Self {
         Self {
-            child: Child2::deserialize(&mut geom_fmt, &mut prop_fmt),
-            title: String::deserialize(&mut geom_fmt, &mut prop_fmt),
+            child: Child2::geo_deserialize(geom_fmt, prop_fmt),
+            title: String::geo_deserialize(geom_fmt, prop_fmt),
         }
     }
 }
-impl Deserialize for String {
-    fn deserialize<'de>(
+impl GeoDeserialize for String {
+    fn geo_deserialize<'de>(
         _: &mut impl geo_traits::GeometryTrait<T = f64>,
-        prop_fmt: &impl serde::de::Deserializer<'de>,
+        prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
     ) -> Self {
-        <String as serde::Deserialize>::deserialize(prop_fmt).unwrap()
+        // TODO: 入れ子になったとき、Deserializerでは無理。
+        todo!()
+        // <String as serde::Deserialize>::deserialize(prop_fmt).unwrap()
     }
 }
 
