@@ -72,4 +72,9 @@ impl<T: ParseProperty> ParseProperty for &mut T {
 }
 pub trait FormatProperty {}
 
+pub enum Property {
+    I32(i32),
+    Str,
+}
+
 fn main() {}

@@ -140,13 +140,6 @@ impl Feature for MyFeature2 {
     fn deserialize(fmt: &(impl GeometryFormat + ProperyFormat), _: &'static str) -> Self {
         struct _Visitor; // だったらserdeで良くないか Option型なども面倒
 
-        // let mut loc = None;
-        // {
-        //     fn set_point(incoming: geo_types::Point) {
-        //         loc = Some(geo_types::Point::new(1., 2.));
-        //     }
-        // }
-
         Self {
             child: Feature::deserialize(fmt, "child"),
             title: Feature::deserialize(fmt, "title"),

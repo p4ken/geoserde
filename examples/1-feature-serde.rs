@@ -57,7 +57,7 @@ impl Feature for Child2 {
 
     fn serialize_properties(&self, _ser: impl serde::Serializer) {
         // self.count.serialize(ser).unwrap();
-        // self.count2.serialize(ser).unwrap(); // 所有権エラー だから 1d
+        // self.count2.serialize(ser).unwrap(); // 所有権エラー。serは親子で使いまわせない。
     }
 }
 impl Feature for String {

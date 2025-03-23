@@ -68,6 +68,7 @@
 //! ```
 
 mod ser;
+pub mod v2;
 
 pub use crate::ser::*;
-pub use geoserde_derive::Deserialize;
+pub use geoserde_derive::*;
