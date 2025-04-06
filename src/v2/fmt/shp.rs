@@ -1,27 +1,32 @@
 use dbase::Record;
 use geo_traits::{GeometryTrait, MultiLineStringTrait};
 use geo_types::Geometry;
-use serde::de::DeserializeOwned;
-use shapefile::{ReadableShape, Shape};
+use serde::{de::DeserializeOwned, Deserializer};
+use shapefile::{ReadableShape, Shape, ShapeReader};
 
-use crate::v2::de::{DeserializeGeometry, ParseFeature};
+use crate::v2::de::{DeserializeGeometry, DeserializeProperties, ParseFeature};
+
+// impl<R0, R1> ParseLayer for shapefile::Reader<R0, R1> {}
 
 // もはや deserialize もない
 impl ParseFeature for (Shape, Record) {
-    fn parse_feature<G: DeserializeGeometry, P: DeserializeOwned>(self) -> (G, P) {
-        let geom = match self.0 {
+    // 1コピー
+    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(self) -> (G, P) {
+        let geo = match self.0 {
+            // 2コピー
             Shape::Polyline(x) => Geometry::MultiLineString(x.into()),
             _ => todo!(),
         };
-        // 2コピー
-        let geom = G::deserialize_geometry(geom);
-        let prop = todo!();
-        (geom, prop)
+        let g = G::deserialize_geometry(geo);
+        let p = todo!();
+        (g, p)
     }
 }
 
-// どうしてもゼロコピーな貴方へ
+// ゼロコピー だけど2dオンリー
 // struct Geometry0(geo_types::Geometry);
+// ゼロコピー 理想形
+// struct Geometry0<FromGeometryTrait>(FromGeometryTrait);
 // impl ReadableShape for Geometry0 {
 //     fn read_from<T: std::io::Read>(
 //         source: &mut T,
@@ -32,10 +37,11 @@ impl ParseFeature for (Shape, Record) {
 //     }
 // }
 
-// 1コピー
+// Shape の時点で1コピー
+// geo_types は unstable なところが不安
 // struct Shape0(Shape);
 // impl MultiLineStringTrait for Shape0 {
-//     type T;
+//     type T = f64;
 
 //     type LineStringType<'a>
 //     where
@@ -53,3 +59,6 @@ impl ParseFeature for (Shape, Record) {
 //         todo!()
 //     }
 // }
+
+// 要するに、形式への参照 → geo_types::Geometry および、 geo_typesの型への参照 → 形式 の双方向変換ができればよい
+// しかし geo_types は 2d である

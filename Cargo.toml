@@ -11,28 +11,29 @@ license = "MIT"
 exclude = [".*"]
 
 [features]
-default = ["geozero"]
-shapefile = ["dep:shapefile"]
+default = []
+shp = ["shapefile"]
+fgb = ["geozero", "flatgeobuf"]
 
 [dependencies]
 geo-types = { version = "0.7.11" }
-geozero = { version = "0.12.0", optional = true }
+geozero = { version = "0.14.0", optional = true }
 serde = { version = "1.0.188" }
 geoserde_derive = { version = "0.1.0", path = "derive" }
 geojson = { version = "0.24.2", optional = true }
 shapefile = { version = "0.6.0", features = ["geo-types"], optional = true }
 dbase = { version = "0.5.0", features = ["serde"] }
 geo-traits = { version = "0.2.0" }
-flatgeobuf = { version = "=4.1.0", default-features = false, optional = true }
+flatgeobuf = { version = "=4.6.0", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 dbase = { version = "0.5.0", features = ["serde"] }
-flatgeobuf = { version = "=4.1.0", default-features = false }
+flatgeobuf = { version = "=4.6.0", default-features = false }
 geo-traits = { version = "0.2.0" }
 geo-types = { version = "0.7.11", features = ["serde"] }
 geojson = { version = "0.24.2" }
-geozero = { version = "0.12.0" }
+geozero = { version = "0.14.0" }
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.135"
 shapefile = { version = "0.6.0", features = ["geo-types"] }

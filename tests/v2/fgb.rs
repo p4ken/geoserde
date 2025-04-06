@@ -2,8 +2,8 @@ use flatgeobuf::{FallibleStreamingIterator, FeatureProperties};
 use geozero::ToGeo;
 
 #[test]
-fn fgb_test() {
-    let mut fgb = std::io::Cursor::new("");
+fn fgb_manual() {
+    let mut fgb = std::io::Cursor::new(include_bytes!("sample/a.fgb"));
     let mut reader = flatgeobuf::FgbReader::open(&mut fgb)
         .unwrap()
         .select_all()
@@ -11,7 +11,7 @@ fn fgb_test() {
     while let Some(feat) = reader.next().unwrap() {
         // ゼロコピー
         let _geom = feat.to_geo().unwrap();
-        let _prop = feat.property::<i32>("").unwrap();
+        let _prop = feat.property::<i32>("number").unwrap();
     }
 }
 
@@ -22,3 +22,6 @@ fn fgb_test() {
 // - プロパティを強制flattenすると子structのジオメトリが検出できない
 // - 手動でflattenを付けさせると (悪くない)
 // - 2D以外が非サポート
+
+#[test]
+fn fgb() {}

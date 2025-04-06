@@ -1,9 +1,8 @@
-use crate::v2::de::{DeserializeGeometry, ParseFeature};
+use crate::v2::de::{DeserializeGeometry, DeserializeProperties, ParseFeature};
 use geojson::Value;
-use serde::Deserialize;
 
 impl ParseFeature for geojson::Feature {
-    fn parse_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(self) -> (G, P) {
+    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(self) -> (G, P) {
         // 1コピー
         // #[derive(Deserialize)]
         // struct Feature<PP: serde::de::DeserializeOwned> {
