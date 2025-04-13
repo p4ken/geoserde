@@ -11,6 +11,7 @@ license = "MIT"
 exclude = [".*"]
 
 [features]
+# FIXME: docs in `ser` mod depend on geozero
 default = ["geozero"]
 shp = ["shapefile"]
 fgb = ["geozero", "flatgeobuf"]
