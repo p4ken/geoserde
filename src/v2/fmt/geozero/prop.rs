@@ -1,15 +1,17 @@
-use geozero::{FeatureProperties, PropertyProcessor};
+use geozero::FeatureProperties;
 use serde::Deserializer;
 
 /// Adapter between geozero and serde
-pub struct GeozeroDeserializer<T>(T);
-impl<'a, P: FeatureProperties> GeozeroDeserializer<&'a P> {
+pub struct PropertiesAdapter<P> {
+    geozero: P,
+}
+impl<'a, P: FeatureProperties> PropertiesAdapter<&'a P> {
     pub fn new(p: &'a P) -> Self {
-        Self(p)
+        Self { geozero: p }
     }
 }
 
-impl<'de, T: FeatureProperties> Deserializer<'de> for GeozeroDeserializer<&'de T> {
+impl<'de, P: FeatureProperties> Deserializer<'de> for &mut PropertiesAdapter<&'de P> {
     type Error = serde::de::value::Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -202,37 +204,20 @@ impl<'de, T: FeatureProperties> Deserializer<'de> for GeozeroDeserializer<&'de T
 
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_map(map);
-        // struct Processor<V>(V);
-        // impl<'de, V: serde::de::Visitor<'de>> PropertyProcessor for Processor<V> {
-        //     fn property(
-        //         &mut self,
-        //         idx: usize,
-        //         name: &str,
-        //         value: &geozero::ColumnValue,
-        //     ) -> geozero::error::Result<bool> {
-        //         match value {
-        //             geozero::ColumnValue::Int(x) => {
-        //                 self.0.visit_i32::<serde::de::value::Error>(*x).unwrap()
-        //             }
-        //             geozero::ColumnValue::String(x) => {
-        //                 self.0.visit_str::<serde::de::value::Error>(x).unwrap()
-        //             }
-        //             _ => todo!(),
-        //         };
-        //         Ok(false)
-        //     }
-        // }
-        // let processor = Processor(visitor);
-        // self.0.process_properties(processor);
-        todo!()
+        // 構造体にデシリアライズするには map か seq の visitor を通すことが必須である
+        // Error("invalid type: integer `3`, expected struct MyObj")
+        let map = super::MapAdapter {
+            geozero: self.geozero,
+            keys: fields,
+        };
+        visitor.visit_map(map)
     }
 
     fn deserialize_enum<V>(
@@ -267,7 +252,7 @@ mod tests {
     use geozero::FeatureProperties;
     use serde::Deserialize;
 
-    use super::GeozeroDeserializer;
+    use super::PropertiesAdapter;
 
     #[derive(Deserialize)]
     struct MyObj {
@@ -293,8 +278,8 @@ mod tests {
 
     #[test]
     fn geozero_deserializer_test() {
-        let sut = GeozeroDeserializer(&MyFmt);
-        let obj = MyObj::deserialize(sut).unwrap();
+        let mut sut = PropertiesAdapter::new(&MyFmt);
+        let obj = MyObj::deserialize(&mut sut).unwrap();
         assert_eq!(obj.number, 9);
         assert_eq!(obj.text, "b");
     }
