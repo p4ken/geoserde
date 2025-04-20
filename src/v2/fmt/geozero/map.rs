@@ -21,6 +21,7 @@ impl<'de, P: FeatureProperties> serde::de::MapAccess<'de> for MapAdapter<&'de P>
         // keys は不要となり HashMap にデシリアライズするといったことも可能になる
         // FIXME: いずれにしても指数関数的に処理量が増えているので
         // geozero なしで直接バイナリのパーサなどを書いた方がいい
+        // パフォーマンスは後回し & 実際どれくらい早くなるか計測することが最重要
         if self.keys.is_empty() {
             return Ok(None);
         }

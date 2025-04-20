@@ -25,7 +25,7 @@ pub fn derive_ser_feature(_item: TokenStream) -> TokenStream {
     TokenStream::new()
 }
 
-#[proc_macro_derive(Deserialize, attributes(serde, geoserde, geometry))]
+#[proc_macro_derive(GeoDeserialize, attributes(serde, geoserde, geometry))]
 pub fn derive_de_feature(_item: TokenStream) -> TokenStream {
     TokenStream::new()
 }

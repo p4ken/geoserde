@@ -6,6 +6,7 @@ pub trait DeserializeFeature: Sized {
 }
 
 pub trait DeserializeGeometry: Sized {
+    // TODO: Result<Self>
     fn deserialize_geometry(fmt: impl GeometryTrait<T = f64>) -> Self;
 }
 

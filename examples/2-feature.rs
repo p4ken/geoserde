@@ -1,4 +1,4 @@
-#[derive(geoserde::Deserialize)]
+#[derive(geoserde::GeoDeserialize)]
 pub struct Child2 {
     // デシリアライズには必須ではない。シリアライズに必須かどうかもデータ形式次第。データ形式によっては2個以上でも良いかも
     #[geometry]

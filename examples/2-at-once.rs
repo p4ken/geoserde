@@ -1,4 +1,4 @@
-#[derive(geoserde::Deserialize)]
+#[derive(geoserde::GeoDeserialize)]
 pub struct Child2 {
     #[geoserde(geometry)]
     loc: geo_types::Point,

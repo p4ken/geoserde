@@ -27,7 +27,7 @@ impl ParseFeature for (Shape, Record) {
 // struct Geometry0(geo_types::Geometry);
 // ゼロコピー 理想形
 // struct Geometry0<FromGeometryTrait>(FromGeometryTrait);
-// impl ReadableShape for Geometry0 {
+// impl ReadableShape for Geometry0< {
 //     fn read_from<T: std::io::Read>(
 //         source: &mut T,
 //         record_size: i32,
