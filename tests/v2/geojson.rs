@@ -19,7 +19,7 @@ fn geojson_test() {
         .collect::<Vec<_>>();
 }
 
-#[derive(serde::Deserialize, geoserde::Feature)]
+#[derive(serde::Deserialize, geoserde::GeoDeserialize)]
 struct MyStruct {
     #[geometry] // に変わるだけ
     #[serde(deserialize_with = "geojson::de::deserialize_geometry")]

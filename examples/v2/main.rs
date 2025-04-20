@@ -1,3 +1,0 @@
-mod de;
-
-fn main() {}

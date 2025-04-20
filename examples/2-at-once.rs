@@ -5,7 +5,6 @@ pub struct Child2 {
     count: i32,
 }
 
-// #[derive(geoserde::Feature)]
 pub struct MyFeature2 {
     child: Child2,
     title: String,
