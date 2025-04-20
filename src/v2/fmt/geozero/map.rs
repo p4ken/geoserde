@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use geozero::FeatureProperties;
 
 pub struct MapAdapter<P> {

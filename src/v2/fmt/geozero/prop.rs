@@ -144,7 +144,7 @@ impl<'de, P: FeatureProperties> Deserializer<'de> for &mut PropertiesAdapter<&'d
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        visitor.visit_unit()
     }
 
     fn deserialize_unit_struct<V>(

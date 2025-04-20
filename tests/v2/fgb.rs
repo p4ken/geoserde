@@ -3,7 +3,7 @@ use geoserde::v2::de::{DeserializeFeature, ParseFeature};
 use geozero::ToGeo;
 
 #[test]
-fn fgb_test() {
+fn test_parse_fgb() {
     let mut fgb = std::io::Cursor::new(include_bytes!("sample/a.fgb"));
     let mut reader = flatgeobuf::FgbReader::open(&mut fgb)
         .unwrap()
@@ -14,6 +14,19 @@ fn fgb_test() {
         dbg!(point);
         // let _geom = feat.to_geo().unwrap();
         // let _prop = feat.property::<i32>("number").unwrap();
+    }
+}
+
+#[test]
+fn test_parse_fgb_only_geom() {
+    let mut fgb = std::io::Cursor::new(include_bytes!("sample/a.fgb"));
+    let mut reader = flatgeobuf::FgbReader::open(&mut fgb)
+        .unwrap()
+        .select_all()
+        .unwrap();
+    while let Some(feat) = reader.next().unwrap() {
+        let point = geo_types::Point::deserialize_feature(feat);
+        dbg!(point);
     }
 }
 

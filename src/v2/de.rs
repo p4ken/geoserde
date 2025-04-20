@@ -9,6 +9,11 @@ pub trait DeserializeGeometry: Sized {
     // TODO: Result<Self>
     fn deserialize_geometry(fmt: impl GeometryTrait<T = f64>) -> Self;
 }
+impl DeserializeGeometry for () {
+    fn deserialize_geometry(_: impl GeometryTrait<T = f64>) -> Self {
+        ()
+    }
+}
 
 pub trait DeserializeProperties: Sized {
     fn deserialize_properties<'de>(fmt: impl Deserializer<'de>) -> Self;

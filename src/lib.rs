@@ -71,4 +71,6 @@ mod ser;
 pub mod v2;
 
 pub use crate::ser::*;
+pub use crate::v2::de::{DeserializeFeature, ParseFeature};
 pub use geoserde_derive::*;
+pub use serde;

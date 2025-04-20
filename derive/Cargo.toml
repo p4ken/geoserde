@@ -11,4 +11,6 @@ default = ["global_attribute"]
 global_attribute = []
 
 [dependencies]
+proc-macro2 = "1.0.95"
 quote = "1.0.38"
+syn = "2.0.100"
