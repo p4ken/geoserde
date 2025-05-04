@@ -42,14 +42,6 @@ mod tests {
     use super::*;
     use geo_types::{Geometry, Point};
 
-    #[derive(serde::Deserialize)]
-    struct Properties {
-        name: String,
-        count: i32,
-    }
-
-    // TODO: ネストしたクラス。geojsonはany objectだから明示的にflattenが必要。
-
     #[test]
     fn test_deserialize_geometry() {
         let geom = Geometry::Point(Point::new(1.0, 2.0));
