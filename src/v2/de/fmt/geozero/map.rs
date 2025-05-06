@@ -22,6 +22,9 @@ impl<'de, P: FeatureProperties> serde::de::MapAccess<'de> for MapAdapter<&'de P>
         // 指数関数的に処理量が増えているので
         // geozero なしで直接バイナリのパーサなどを書いた方がいい
         // -> flatgeobuf側でイテレータを提供すべき
+
+        // GWの結論: 公式で deserialize を実装してくれ！
+        // Issue 出して問題なければ実装しちゃおう
         if self.keys.is_empty() {
             return Ok(None);
         }
