@@ -17,9 +17,11 @@ impl<'de, P: FeatureProperties> serde::de::MapAccess<'de> for MapAdapter<&'de P>
         // NOTE: property_n だと値しか取得できず キーの文字列が分からずじまい。
         // FIXME: process_properties とカスタムの PropertyReaderIdx を用意すれば
         // keys は不要となり HashMap にデシリアライズするといったことも可能になる
-        // FIXME: いずれにしても指数関数的に処理量が増えているので
+        // (HashMapは当然ながらキー名を知らない)
+        //
+        // 指数関数的に処理量が増えているので
         // geozero なしで直接バイナリのパーサなどを書いた方がいい
-        // パフォーマンスは後回し & 実際どれくらい早くなるか計測することが最重要
+        // -> flatgeobuf側でイテレータを提供すべき
         if self.keys.is_empty() {
             return Ok(None);
         }

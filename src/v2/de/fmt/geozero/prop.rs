@@ -211,12 +211,11 @@ impl<'de, P: FeatureProperties> Deserializer<'de> for &mut PropertiesAdapter<&'d
     where
         V: serde::de::Visitor<'de>,
     {
-        // 構造体にデシリアライズするには map か seq の visitor を通すことが必須である
-        // Error("invalid type: integer `3`, expected struct MyObj")
         let map = super::MapAdapter {
             geozero: self.geozero,
             keys: fields,
         };
+        // A struct deriving Deserialize expects `visit_map` or `visit_seq` only.
         visitor.visit_map(map)
     }
 
