@@ -1,16 +1,16 @@
 use flatgeobuf::{FallibleStreamingIterator, FeatureProperties};
-use geoserde::v2::de::{DeserializeFeature, ParseFeature};
+use geoserde::v2::de::{fmt::fgb::FeatureParser, DeserializeFeature, ParseFeature};
 use geozero::ToGeo;
 
 #[test]
 fn test_parse_fgb() {
-    let mut fgb = std::io::Cursor::new(include_bytes!("sample/a.fgb"));
-    let mut reader = flatgeobuf::FgbReader::open(&mut fgb)
-        .unwrap()
-        .select_all()
-        .unwrap();
-    while let Some(feat) = reader.next().unwrap() {
-        let point = MyFeature::deserialize_feature(feat);
+    let mut fgb_file = std::io::Cursor::new(include_bytes!("sample/a.fgb"));
+    let fgb = flatgeobuf::FgbReader::open(&mut fgb_file).unwrap();
+    let mut feat_iter = fgb.select_all().unwrap();
+    let head = feat_iter.header().columns().unwrap().into_iter().map(|x| (x.type_(), x.name())).collect::<Vec<_>>();
+    // 所有権エラー
+    while let Some(feat) = feat_iter.next().unwrap() {
+        let point = MyFeature::deserialize_feature(FeatureParser::new(head, feat));
         dbg!(point);
         // let _geom = feat.to_geo().unwrap();
         // let _prop = feat.property::<i32>("number").unwrap();
