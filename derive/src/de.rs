@@ -2,13 +2,13 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Data;
 
-pub fn derive_geo_deserialize_2(input: TokenStream) -> TokenStream {
+pub fn derive_geo_deserialize(input: TokenStream) -> TokenStream {
     let input = syn::parse2::<syn::DeriveInput>(input).unwrap();
     let struct_name = &input.ident;
 
     let data = match &input.data {
         Data::Struct(data) => data,
-        _ => panic!("Feature can only be derived for structs"),
+        _ => panic!("supported structs only"),
     };
 
     let mut geometry_field = None;
@@ -18,6 +18,9 @@ pub fn derive_geo_deserialize_2(input: TokenStream) -> TokenStream {
     for field in &data.fields {
         let ident = field.ident.as_ref().expect("Expected named field");
         let ty = &field.ty;
+        // TODO: Search for "geometry" field if "geometry" attribute does not exists
+        // では serde(rename) で geometry にされている時もサポートするのか？
+        // ごく稀に geometry という名前のプロパティがあったらどうするのか問題も残る
         let has_geometry = field
             .attrs
             .iter()
@@ -25,7 +28,7 @@ pub fn derive_geo_deserialize_2(input: TokenStream) -> TokenStream {
 
         if has_geometry {
             if geometry_field.is_some() {
-                panic!("Only one field can have #[geometry]");
+                panic!("multiple geometry attribute");
             }
             geometry_field = Some(ident.clone());
         } else {
@@ -93,7 +96,7 @@ mod tests {
         }
             };
 
-        let actial = derive_geo_deserialize_2(input);
+        let actial = derive_geo_deserialize(input);
         assert_eq!(actial.to_string(), expected.to_string());
     }
 
@@ -121,7 +124,7 @@ mod tests {
         }
             };
 
-        let actial = derive_geo_deserialize_2(input);
+        let actial = derive_geo_deserialize(input);
         assert_eq!(actial.to_string(), expected.to_string());
     }
 }

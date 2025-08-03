@@ -1,4 +1,6 @@
-use crate::v2::de::{DeserializeGeometry, DeserializeProperties, ParseFeature};
+#![cfg(feature = "geojson")]
+
+use crate::v0_6::{DeserializeGeometry, DeserializeProperties, ParseFeature};
 use geojson::Value;
 
 // ゼロコピー

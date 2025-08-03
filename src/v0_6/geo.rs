@@ -4,7 +4,7 @@ use geo_traits::{
 };
 use serde::de::IgnoredAny;
 
-use crate::v2::de::{DeserializeFeature, DeserializeGeometry, ParseFeature};
+use crate::v0_6::{DeserializeFeature, DeserializeGeometry, ParseFeature};
 
 // プロパティなしでジオメトリのみ
 impl DeserializeFeature for geo_types::Point {

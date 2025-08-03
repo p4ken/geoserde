@@ -67,10 +67,10 @@
 //! }
 //! ```
 
-mod ser;
-pub mod v2;
+mod v0_5;
+pub mod v0_6;
 
-pub use crate::ser::*;
-pub use crate::v2::de::{DeserializeFeature, ParseFeature};
+pub use crate::v0_5::*;
+pub use crate::v0_6::{DeserializeFeature, ParseFeature};
 pub use geoserde_derive::*;
 pub use serde;

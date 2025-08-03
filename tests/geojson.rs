@@ -1,3 +1,5 @@
+#![cfg(feature="geojson")]
+
 #[test]
 fn geojson_test() {
     const GEOJSON: &str = r#"

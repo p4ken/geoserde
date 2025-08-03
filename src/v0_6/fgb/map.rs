@@ -1,4 +1,4 @@
-use geozero::FeatureProperties;
+use flatgeobuf::geozero::FeatureProperties;
 
 pub struct MapAdapter<P> {
     // pub de: &'a mut super::PropertiesAdapter<P>,
@@ -24,7 +24,8 @@ impl<'de, P: FeatureProperties> serde::de::MapAccess<'de> for MapAdapter<&'de P>
         // -> flatgeobuf側でイテレータを提供すべき
 
         // GWの結論: 公式で deserialize を実装してくれ！
-        // Issue 出して問題なければ実装しちゃおう
+        // しかし外から指定された順序でランダムアクセスしたいとなると、
+        // 結局、指数関数的に処理量が増えてしまい、解決にならない...
         if self.keys.is_empty() {
             return Ok(None);
         }

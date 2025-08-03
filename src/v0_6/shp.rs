@@ -1,3 +1,5 @@
+#![cfg(feature = "shp")]
+
 use dbase::Record;
 use geo_traits::{GeometryTrait, MultiLineStringTrait};
 use geo_types::Geometry;

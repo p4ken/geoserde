@@ -1,5 +1,10 @@
-pub mod fmt;
-pub mod obj;
+#[cfg(feature = "flatgeobuf")]
+pub mod fgb;
+pub mod geo;
+#[cfg(feature = "geojson")]
+pub mod json;
+#[cfg(feature = "shapefile")]
+pub mod shp;
 
 use geo_traits::GeometryTrait;
 use serde::{de::DeserializeOwned, Deserializer};
@@ -9,7 +14,7 @@ pub trait DeserializeFeature: Sized {
 }
 
 pub trait DeserializeGeometry: Sized {
-    // TODO: Result<Self>
+    // FIXME: Result<Self>
     fn deserialize_geometry(fmt: impl GeometryTrait<T = f64>) -> Self;
 }
 impl DeserializeGeometry for () {
@@ -35,6 +40,12 @@ pub trait ParseFeature {
 // pub trait ParseProperty {
 //     // 同じキーで複数回呼ばれるかもしれない（入れ子で同名フィールド）
 //     fn parse_i32(&self, key: &str) -> i32;
+// }
+
+// pub trait FormatProperty {
+//     // geoserdeはRust構造体寄りだから、integerとかではなくi32
+//     // 同じキーで複数回呼ばれるかもしれない（入れ子で同名フィールド）
+//     fn format_i32(&self, key: &str, value: i32);
 // }
 
 #[cfg(test)]

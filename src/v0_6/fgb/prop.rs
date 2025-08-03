@@ -1,4 +1,4 @@
-use geozero::FeatureProperties;
+use flatgeobuf::geozero::FeatureProperties;
 use serde::Deserializer;
 
 /// Adapter between geozero and serde
@@ -211,7 +211,7 @@ impl<'de, P: FeatureProperties> Deserializer<'de> for &mut PropertiesAdapter<&'d
     where
         V: serde::de::Visitor<'de>,
     {
-        let map = super::MapAdapter {
+        let map = super::map::MapAdapter {
             geozero: self.geozero,
             keys: fields,
         };

@@ -15,5 +15,5 @@ pub fn derive_geo_serialize(_item: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(GeoDeserialize, attributes(serde, geoserde, geometry))]
 pub fn derive_geo_deserialize(input: TokenStream) -> TokenStream {
-    de::derive_geo_deserialize_2(input.into()).into()
+    de::derive_geo_deserialize(input.into()).into()
 }
