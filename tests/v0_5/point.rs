@@ -1,5 +1,3 @@
-#![cfg(feature = "geozero")]
-
 use geo_types::Point;
 use geoserde::{FeatureSerializer, GeometrySerializer};
 use geozero::{geojson::GeoJsonWriter, wkt::WktWriter};

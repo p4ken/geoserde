@@ -1,5 +1,3 @@
-#![cfg(feature = "geozero")]
-
 use geoserde::PropertySerializer;
 use serde::Serialize;
 
