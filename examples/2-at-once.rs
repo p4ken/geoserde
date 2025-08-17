@@ -1,4 +1,3 @@
-
 #[allow(unused)]
 #[derive(geoserde::GeoDeserialize)]
 pub struct Child2 {

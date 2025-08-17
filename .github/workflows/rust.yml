@@ -7,15 +7,15 @@ on:
     - cron:  '0 0 * * *'
 env:
   CARGO_TERM_COLOR: always
+  CARGO_TERM_VERBOSE: true
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     - name: Build
-      run: cargo build --verbose
+      run: make build
     - name: Run tests
-      run: cargo test --verbose
+      run: make test

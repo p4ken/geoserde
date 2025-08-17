@@ -11,19 +11,23 @@ license = "MIT"
 exclude = [".*"]
 
 [features]
-default = ["flatgeobuf", "geojson", "shapefile", "geozero", "macros"]
+default = ["shapefile", "geojson", "flatgeobuf", "geozero", "macros"]
+shapefile = ["dep:shapefile", "dbase"]
 macros = ["dep:geoserde-macros"]
 
 [dependencies]
-geo-types = { version = "0.7.11" }
 serde = { version = "1.0.188" }
-geoserde-macros = { version = "0.1.0", path = "macros", optional = true}
-geojson = { version = "0.24.2", optional = true }
-geozero = { version = "0.14.0", optional = true } # for v0_5
-shapefile = { version = "0.6.0", features = ["geo-types"], optional = true }
-dbase = { version = "0.5.0", features = ["serde"] }
+geoserde-macros = { version = "0.1.0", path = "macros", optional = true }
+# TODO: to optional
+geo-types = { version = "0.7.11" }
 geo-traits = { version = "0.2.0" }
+# Only the way to enable serde for shapefile
+dbase = { version = "0.5.0", features = ["serde"], optional = true }
+shapefile = { version = "0.6.0", features = ["geo-types"], optional = true }
+geojson = { version = "0.24.2", optional = true }
 flatgeobuf = { version = "=4.6.0", default-features = false, optional = true }
+# TODO: Remove with v0_5
+geozero = { version = "0.14.0", optional = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
