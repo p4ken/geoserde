@@ -54,21 +54,30 @@ impl<'de, P: FeatureProperties> serde::Deserializer<'de> for &mut MapAdapter<&'d
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_bool(n)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_i8(n)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_i16(n)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -85,49 +94,70 @@ impl<'de, P: FeatureProperties> serde::Deserializer<'de> for &mut MapAdapter<&'d
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_i64(n)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_u8(n)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_u16(n)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_u32(n)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_u64(n)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_f32(n)
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        let (first, rest) = self.keys.split_first().unwrap();
+        let n = self.geozero.property(first).unwrap();
+        self.keys = rest;
+        visitor.visit_f64(n)
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
