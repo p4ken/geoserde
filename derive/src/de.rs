@@ -21,6 +21,7 @@ pub fn derive_geo_deserialize(input: TokenStream) -> TokenStream {
         // TODO: Search for "geometry" field if "geometry" attribute does not exists
         // では serde(rename) で geometry にされている時もサポートするのか？
         // ごく稀に geometry という名前のプロパティがあったらどうするのか問題も残る
+        // さらに、geometry属性をなくしてもderive geoserde自体は残るから構成はシンプルにならない
         let has_geometry = field
             .attrs
             .iter()

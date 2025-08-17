@@ -1,15 +1,17 @@
-#![cfg(feature="shapefile")]
+#![cfg(feature = "shapefile")]
 
 use std::{io::Cursor, vec};
 
 use geoserde::GeoDeserialize;
 use serde::{Deserialize, Serialize};
 
+mod testing;
+
 #[test]
 fn de() -> anyhow::Result<()> {
-    // Create in-memory shapefile
     let mut shp_buf = vec![];
     let mut dbf_buf = vec![];
+    // Create in-memory shapefile
     {
         let shp_w = shapefile::ShapeWriter::new(Cursor::new(&mut shp_buf));
         let dbf_w = shapefile::dbase::TableWriterBuilder::new()
@@ -17,8 +19,14 @@ fn de() -> anyhow::Result<()> {
             .add_character_field("text".try_into().unwrap(), 50)
             .build_with_dest(Cursor::new(&mut dbf_buf));
         let mut w = shapefile::Writer::new(shp_w, dbf_w);
-        w.write_shape_and_record(&polyline(1), &MyProperty::one())?;
-        w.write_shape_and_record(&polyline(2), &MyProperty::two())?;
+        w.write_shape_and_record(
+            &shapefile::Polyline::from(testing::line(1)),
+            &MyProperty::one(),
+        )?;
+        w.write_shape_and_record(
+            &shapefile::Polyline::from(testing::line(2)),
+            &MyProperty::two(),
+        )?;
     }
 
     // Initialize reader
@@ -36,11 +44,6 @@ fn de() -> anyhow::Result<()> {
             .unwrap();
     }
     Ok(())
-}
-
-fn polyline(i: i32) -> shapefile::Polyline {
-    let org = i as f64;
-    geo_types::LineString::from(vec![[org, org + 0.1], [org + 0.2, org + 0.3]]).into()
 }
 
 #[derive(Serialize, Deserialize)]
