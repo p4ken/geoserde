@@ -1,3 +1,5 @@
+
+#[allow(unused)]
 #[derive(geoserde::GeoDeserialize)]
 pub struct Child2 {
     #[geoserde(geometry)]
@@ -5,6 +7,7 @@ pub struct Child2 {
     count: i32,
 }
 
+#[allow(unused)]
 pub struct MyFeature2 {
     child: Child2,
     title: String,
@@ -49,7 +52,7 @@ impl GeoDeserialize for MyFeature2 {
 impl GeoDeserialize for String {
     fn geo_deserialize<'de>(
         _: &mut impl geo_traits::GeometryTrait<T = f64>,
-        prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
+        _prop_fmt: &mut Option<impl serde::Deserializer<'de>>,
     ) -> Self {
         // TODO: 入れ子になったとき、Deserializerでは無理。
         todo!()

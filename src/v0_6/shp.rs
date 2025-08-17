@@ -1,12 +1,8 @@
-#![cfg(feature = "shp")]
+#![cfg(feature = "shapefile")]
 
-use dbase::Record;
-use geo_traits::{GeometryTrait, MultiLineStringTrait};
-use geo_types::Geometry;
-use serde::{de::DeserializeOwned, Deserializer};
-use shapefile::{ReadableShape, Shape, ShapeReader};
+use shapefile::ReadableShape;
 
-use crate::v2::de::{DeserializeGeometry, DeserializeProperties, ParseFeature};
+use crate::v0_6::DeserializeGeometry;
 
 // impl<R0, R1> ParseLayer for shapefile::Reader<R0, R1> {}
 

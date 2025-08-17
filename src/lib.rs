@@ -68,7 +68,6 @@
 //! ```
 
 mod v0_5;
-// FIXME: experimental
 pub mod v0_6;
 
 pub use crate::v0_5::*;
