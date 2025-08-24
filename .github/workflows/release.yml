@@ -13,8 +13,10 @@ on:
           - --package geoserde
           - --workspace
       dry-run:
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - --dry-run
+          - " "
 permissions:
   contents: write
 env:
@@ -29,5 +31,5 @@ jobs:
     - run: cargo set-version --bump ${{ inputs.bump }} ${{ inputs.package }}
     - run: git commit --all --message "v$(make version)"
     - run: git tag "v$(make version)"
-    - run: git push --tags origin HEAD ${{ inputs.dry-run && '--dry-run' || '' }}
-    - run: cargo publish ${{ inputs.package }} ${{ inputs.dry-run && '--dry-run' || '' }}
+    - run: git push --tags origin HEAD ${{ inputs.dry-run }}
+    - run: cargo publish ${{ inputs.package }} ${{ inputs.dry-run }}
