@@ -1,5 +1,3 @@
-#![cfg(feature = "geozero")]
-
 use geo_types::LineString as LS;
 use geoserde::{FeatureSerializer, GeometrySerializer, PropertySerializer};
 use serde::Serialize;

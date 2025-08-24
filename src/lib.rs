@@ -67,6 +67,11 @@
 //! }
 //! ```
 
-mod ser;
+mod v0_5;
+pub mod v0_6;
 
-pub use crate::ser::*;
+pub use crate::v0_5::*;
+pub use crate::v0_6::{DeserializeFeature, ParseFeature};
+#[cfg(feature="macros")]
+pub use geoserde_macros::*;
+pub use serde;

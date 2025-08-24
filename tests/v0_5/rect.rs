@@ -1,5 +1,3 @@
-#![cfg(feature = "geozero")]
-
 use geo_types::Rect;
 use geoserde::GeometrySerializer;
 use serde::Serialize;

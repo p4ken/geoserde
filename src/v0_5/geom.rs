@@ -466,7 +466,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
     where
         T: Serialize,
     {
-        // TODO Geometry
+        // TODO: geo_type::Geometry
         Err(SerializeError::InvalidGeometryStructure {
             expected: Some("Geometry variant"),
             actual: name,
@@ -505,7 +505,7 @@ impl<S: GeometrySink> Serializer for &mut GeometrySerializer<'_, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        // TODO Triangle
+        // TODO: geo_type::Triangle
         Err(SerializeError::InvalidGeometryStructure {
             expected: None,
             actual: "tuple struct",

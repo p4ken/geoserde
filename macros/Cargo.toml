@@ -1,0 +1,20 @@
+[package]
+name = "geoserde-macros"
+version = "0.1.0"
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+exclude.workspace = true
+
+[lib]
+proc-macro = true
+
+[features]
+default = ["global_attribute"]
+global_attribute = []
+
+[dependencies]
+proc-macro2 = "1.0.95"
+quote = "1.0.38"
+syn = "2.0.100"

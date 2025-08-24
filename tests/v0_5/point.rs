@@ -1,5 +1,3 @@
-#![cfg(feature = "geozero")]
-
 use geo_types::Point;
 use geoserde::{FeatureSerializer, GeometrySerializer};
 use geozero::{geojson::GeoJsonWriter, wkt::WktWriter};
@@ -66,5 +64,5 @@ fn feature_1() -> MyFeature {
 #[derive(Serialize)]
 struct MyFeature {
     id: &'static str,
-    pos: Point,
+    pos: geo_types::Point,
 }

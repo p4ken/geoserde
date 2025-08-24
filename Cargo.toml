@@ -1,24 +1,48 @@
-[package]
-name = "geoserde"
-version = "0.5.2"
+[workspace]
+members = ["macros"]
+
+[workspace.package]
 edition = "2021"
 description = "Adapter between geographic features and GIS files"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]
 
+[package]
+name = "geoserde"
+version = "0.5.2"
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+exclude.workspace = true
+
 [features]
-default = ["geozero"]
-geozero = ["dep:geozero"]
+default = ["shapefile", "geojson", "flatgeobuf", "geozero", "macros"]
+shapefile = ["dep:shapefile", "dbase"]
+macros = ["dep:geoserde-macros"]
 
 [dependencies]
-geo-types = { version = "0.7.11" }
-geozero = { version = "0.12.0", optional = true }
 serde = { version = "1.0.188" }
+geoserde-macros = { version = "0.1.0", path = "macros", optional = true }
+# TODO: to optional
+geo-types = { version = "0.7.11" }
+geo-traits = { version = "0.2.0" }
+# Only the way to enable serde for shapefile
+dbase = { version = "0.5.0", features = ["serde"], optional = true }
+shapefile = { version = "0.6.0", features = ["geo-types"], optional = true }
+geojson = { version = "0.24.2", optional = true }
+flatgeobuf = { version = "=4.6.0", default-features = false, optional = true }
+# TODO: Remove with v0_5
+geozero = { version = "0.14.0", optional = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
-flatgeobuf = { version = "=4.1.0", default-features = false }
+flatgeobuf = { version = "=4.6.0", default-features = false }
+geo-traits = { version = "0.2.0" }
 geo-types = { version = "0.7.11", features = ["serde"] }
-geozero = { version = "0.12.0" }
+geojson = { version = "0.24.2" }
+geozero = { version = "0.14.0" }
 serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.135"
+shapefile = { version = "0.6.0", features = ["geo-types"] }
