@@ -1,7 +1,11 @@
 [package]
 name = "geoserde-macros"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+exclude.workspace = true
 
 [lib]
 proc-macro = true

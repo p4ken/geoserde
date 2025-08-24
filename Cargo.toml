@@ -1,14 +1,16 @@
 [workspace]
 members = ["macros"]
 
-[package]
-name = "geoserde"
-version = "0.5.2"
+[workspace.package]
 edition = "2021"
 description = "Adapter between geographic features and GIS files"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]
+
+[package]
+name = "geoserde"
+version = "0.5.2"
 
 [features]
 default = ["shapefile", "geojson", "flatgeobuf", "geozero", "macros"]
