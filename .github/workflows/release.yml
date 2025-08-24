@@ -7,8 +7,14 @@ on:
         options:
           - patch
           - minor
-      dry_run:
+      package:
+        type: choice
+        options:
+          - --package geoserde
+          - --workspace
+      dry-run:
         type: boolean
+        default: true
 permissions:
   contents: write
 env:
@@ -22,9 +28,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: cargo install cargo-edit
-    # - run: cargo bump --package jgd ${{ inputs.bump }}
-    # - uses: fregante/setup-git-user@v2
-    # - run: git commit --all --message "v$(make version)"
-    # - run: git tag "v$(make version)" --message ""
-    # - run: git push --follow-tags
-    # - run: cargo publish
+    - run: cargo set-version --bump ${{ inputs.bump }} ${{ inputs.package }}
+    - run: git commit --all --message "v$(make version)"
+    - run: git tag "v$(make version)"
+    - run: git push --tags origin HEAD ${{ inputs.dry-run && '--dry-run' || '' }}
+    - run: cargo publish ${{ inputs.package }} ${{ inputs.dry-run && '--dry-run' || '' }}

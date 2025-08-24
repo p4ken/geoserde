@@ -8,5 +8,8 @@ test: FORCE
 doc: FORCE
 	cargo +nightly doc --all-features
 
+version: FORCE
+	@grep '^version =' Cargo.toml | cut -d '"' -f 2
+
 .PHONY: FORCE
 FORCE:

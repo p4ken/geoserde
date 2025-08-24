@@ -11,6 +11,11 @@ exclude = [".*"]
 [package]
 name = "geoserde"
 version = "0.5.2"
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+exclude.workspace = true
 
 [features]
 default = ["shapefile", "geojson", "flatgeobuf", "geozero", "macros"]
