@@ -3,7 +3,7 @@ members = ["macros"]
 
 [workspace.package]
 edition = "2021"
-description = "Adapter between geographic features and GIS files"
+description = "Adapter for geospatial data"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]

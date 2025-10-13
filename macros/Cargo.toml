@@ -1,8 +1,8 @@
 [package]
 name = "geoserde-macros"
 version = "0.1.0"
+description = "A proc-macro part of GeoSerde"
 edition.workspace = true
-description.workspace = true
 repository.workspace = true
 license.workspace = true
 exclude.workspace = true
