@@ -3,7 +3,7 @@ members = ["macros", "prototype-v0_6"]
 
 [workspace.package]
 edition = "2021"
-description = "Adapter for geospatial data"
+description = "Adapter between Rust data structures and geospatial file formats"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]
