@@ -162,8 +162,3 @@ impl<'de> Deserialize<'de> for MyFeature1a {
         })
     }
 }
-
-fn main() {
-    let _: MyFeature1a =
-        serde_json::from_str(r#"{"title":"foo", "child":{"loc":[1,2],"count":3}}"#).unwrap();
-}

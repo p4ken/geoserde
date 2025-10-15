@@ -1,0 +1,11 @@
+[package]
+name = "v0_6-prototype"
+edition = "2024"
+publish = false
+
+[dev-dependencies]
+geo-traits = { version = "0.2.0" }
+geo-types = { version = "0.7.11", features = ["serde"] }
+geoserde = { path = ".." }
+geozero = { version = "0.14.0" }
+serde = { version = "=1.0.188", features = ["derive"] }
