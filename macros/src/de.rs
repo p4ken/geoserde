@@ -49,19 +49,19 @@ pub fn derive_geo_deserialize(input: TokenStream) -> TokenStream {
     };
 
     let output = quote! {
-        impl geoserde::DeserializeFeature for #struct_name {
-            fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
-                #[derive(geoserde::serde::Deserialize)]
-                struct __Properties {
-                    #(#props_fields,)*
-                }
-                let (__geom, __props) = fmt.parse_feature::<#geom_type, __Properties>();
-                Self {
-                    #geom_binding
-                    #(#props_inits,)*
-                }
-            }
+impl geoserde::DeserializeFeature for #struct_name {
+    fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
+        #[derive(geoserde::serde::Deserialize)]
+        struct __Properties {
+            #(#props_fields,)*
         }
+        let (__geom, __props) = fmt.parse_feature::<#geom_type, __Properties>();
+        Self {
+            #geom_binding
+            #(#props_inits,)*
+        }
+    }
+}
     };
     output
 }
@@ -73,28 +73,28 @@ mod tests {
     #[test]
     fn test_basic() {
         let input = quote! {
-            #[derive(Feature)]
-            struct MyStruct {
-                #[geometry]
-                my_geom: geo_types::Point,
-                my_prop: i32,
-            }
+#[derive(Feature)]
+struct MyStruct {
+    #[geometry]
+    my_geom: geo_types::Point,
+    my_prop: i32,
+}
         };
 
         let expected = quote! {
-        impl geoserde::DeserializeFeature for MyStruct {
-            fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
-                #[derive(geoserde::serde::Deserialize)]
-                struct __Properties {
-                    my_prop: i32,
-                }
-                let (__geom, __props) = fmt.parse_feature::<_, __Properties>();
-                Self {
-                    my_geom: __geom,
-                    my_prop: __props.my_prop,
-                }
-            }
+impl geoserde::DeserializeFeature for MyStruct {
+    fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
+        #[derive(geoserde::serde::Deserialize)]
+        struct __Properties {
+            my_prop: i32,
         }
+        let (__geom, __props) = fmt.parse_feature::<_, __Properties>();
+        Self {
+            my_geom: __geom,
+            my_prop: __props.my_prop,
+        }
+    }
+}
             };
 
         let actial = derive_geo_deserialize(input);
@@ -104,25 +104,25 @@ mod tests {
     #[test]
     fn test_no_geom() {
         let input = quote! {
-            #[derive(Feature)]
-            struct MyStruct {
-                my_prop: i32,
-            }
+#[derive(Feature)]
+struct MyStruct {
+    my_prop: i32,
+}
         };
 
         let expected = quote! {
-        impl geoserde::DeserializeFeature for MyStruct {
-            fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
-                #[derive(geoserde::serde::Deserialize)]
-                struct __Properties {
-                    my_prop: i32,
-                }
-                let (__geom, __props) = fmt.parse_feature::<(), __Properties>();
-                Self {
-                    my_prop: __props.my_prop,
-                }
-            }
+impl geoserde::DeserializeFeature for MyStruct {
+    fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
+        #[derive(geoserde::serde::Deserialize)]
+        struct __Properties {
+            my_prop: i32,
         }
+        let (__geom, __props) = fmt.parse_feature::<(), __Properties>();
+        Self {
+            my_prop: __props.my_prop,
+        }
+    }
+}
             };
 
         let actial = derive_geo_deserialize(input);
