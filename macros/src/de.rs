@@ -73,7 +73,6 @@ mod tests {
     #[test]
     fn test_basic() {
         let input = quote! {
-#[derive(Feature)]
 struct MyStruct {
     #[geometry]
     my_geom: geo_types::Point,
@@ -104,7 +103,6 @@ impl geoserde::DeserializeFeature for MyStruct {
     #[test]
     fn test_no_geom() {
         let input = quote! {
-#[derive(Feature)]
 struct MyStruct {
     my_prop: i32,
 }
@@ -120,6 +118,34 @@ impl geoserde::DeserializeFeature for MyStruct {
         let (__geom, __props) = fmt.parse_feature::<(), __Properties>();
         Self {
             my_prop: __props.my_prop,
+        }
+    }
+}
+            };
+
+        let actial = derive_geo_deserialize(input);
+        assert_eq!(actial.to_string(), expected.to_string());
+    }
+
+    #[test]
+    fn test_flatten() {
+        let input = quote! {
+struct MyStruct {
+    child: Child,
+}
+        };
+
+        let expected = quote! {
+impl geoserde::DeserializeFeature for MyStruct {
+    fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
+        #[derive(geoserde::serde::Deserialize)]
+        struct __Properties {
+            // この中にジオメトリがある！！
+            child: Child,
+        }
+        let (__geom, __props) = fmt.parse_feature::<(), __Properties>();
+        Self {
+            child: __props.child,
         }
     }
 }
