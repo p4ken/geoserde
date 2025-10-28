@@ -11,6 +11,7 @@ struct Parent {
 impl DeserializeFeature for Parent {
     fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
         let wrapped_geometry = Child::deserialize_feature(fmt);
+        todo!();
         let ((), p) = fmt.parse_feature();
         Self {
             wrapped_geometry,
@@ -18,7 +19,6 @@ impl DeserializeFeature for Parent {
         }
     }
 }
-
 
 #[derive(GeoDeserialize)]
 struct Child {

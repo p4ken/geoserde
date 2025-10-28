@@ -15,11 +15,12 @@ pub struct MyFeature1 {
 
 pub mod geometry {
     pub fn serialize<S: serde::Serializer>(
-        point: &geo_types::Point,
+        point: &impl Into<geo_types::Geometry>,
         ser: S,
     ) -> Result<S::Ok, S::Error> {
-        // 普通のフィールド名と被らない名前
-        ser.serialize_newtype_struct("__geoserde_geometry", point)
+        // 普通の構造体名と被らない名前
+        let geom: geo_types::Geometry = point.into();
+        ser.serialize_newtype_struct("__geoserde_geometry", geom)
     }
     pub fn deserialize<'a, D: serde::Deserializer<'a>, G>(_de: D) -> Result<G, D::Error> {
         // de -> reader // これができない
