@@ -68,6 +68,7 @@
 //! ```
 
 mod v0_5;
+#[allow(warnings)]
 pub mod v0_6;
 pub mod v0_6_1;
 
