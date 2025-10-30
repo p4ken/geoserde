@@ -1,5 +1,5 @@
 [package]
-name = "v0_6-prototype"
+name = "prototype-v0_6"
 edition = "2024"
 publish = false
 
