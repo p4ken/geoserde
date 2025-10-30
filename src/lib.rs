@@ -69,6 +69,7 @@
 
 mod v0_5;
 pub mod v0_6;
+pub mod v0_6_1;
 
 pub use crate::v0_5::*;
 pub use crate::v0_6::{DeserializeFeature, ParseFeature};

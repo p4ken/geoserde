@@ -1,26 +1,23 @@
-use std::marker::PhantomData;
-
 use serde::{
-    de::{DeserializeOwned, MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
+    de::DeserializeOwned,
+    Deserialize, Serialize,
 };
 
 #[derive(Serialize, Deserialize)]
-struct Child1 {
+pub struct Child1 {
     #[serde(with = "geometry")]
     loc: geo_types::Point,
     count: i32,
 }
 
 #[derive(Serialize)]
-struct MyFeature1 {
+pub struct MyFeature1 {
     child: Child1,
     title: String,
 }
 
 pub mod geometry {
-    use geo_traits::{CoordTrait, PointTrait};
-    use serde::{ser::SerializeStruct, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
 
     pub fn serialize<S: serde::Serializer>(
         geom: impl super::SerializeGeometry,
@@ -35,12 +32,12 @@ pub mod geometry {
     }
 }
 
-pub trait SerializeGeometry : Serialize {}
+pub trait SerializeGeometry: Serialize {}
 impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
 // TODO: sealed
-pub trait DeserializeGeometry : DeserializeOwned {}
+pub trait DeserializeGeometry: DeserializeOwned {}
 impl DeserializeGeometry for geo_types::Point {}
 
 // Wrapper to tell "this is the geometry" for data formats.
