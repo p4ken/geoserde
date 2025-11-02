@@ -10,8 +10,6 @@ use geoserde::{
 };
 use geozero::{ColumnValue, GeozeroGeometry};
 
-mod testing;
-
 #[test]
 fn test_parse_fgb() -> anyhow::Result<()> {
     let mut fgb_buf = vec![];

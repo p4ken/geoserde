@@ -1,3 +1,4 @@
+mod testing;
 mod v0_5;
 #[allow(warnings)]
 mod v0_6;

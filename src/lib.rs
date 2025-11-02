@@ -74,6 +74,6 @@ pub mod v0_6_1;
 
 pub use crate::v0_5::*;
 pub use crate::v0_6::{DeserializeFeature, ParseFeature};
-#[cfg(feature="macros")]
+#[cfg(feature = "macros")]
 pub use geoserde_macros::*;
 pub use serde;
