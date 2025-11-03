@@ -192,6 +192,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        // FIXME: Split off to GeometryDeserializer
         if name == "__GeoSerdeGeometry" {
             return visitor.visit_newtype_struct(self);
         }
@@ -281,6 +282,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
+        // FIXME: Unknown field might be a geometry, so append it to last
         let col_index = match self.properties_buf.split_off(..2) {
             Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
             None => return Ok(None),

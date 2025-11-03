@@ -12,6 +12,7 @@ use crate::testing;
 #[derive(Debug, Deserialize)]
 struct MyFeature {
     number: i32,
+    // FIXME: missing field `geom`
     #[serde(with = "geoserde::v0_6_1")]
     geom: geo_types::Point,
 }
