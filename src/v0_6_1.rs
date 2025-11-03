@@ -14,7 +14,7 @@ pub fn serialize<S: serde::Serializer>(
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     de: D,
 ) -> Result<G, D::Error> {
-    Ok(__GeoSerdeGeometry::deserialize(de)?.0)
+    G::deserialize_geometry(de)
 }
 
 // pub fn deserialize<'de, D: serde::Deserializer<'de>, G: DeserializeGeometry + 'de>(
@@ -28,7 +28,11 @@ impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
 // TODO: sealed
-pub trait DeserializeGeometry: DeserializeOwned {}
+pub trait DeserializeGeometry: DeserializeOwned {
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        Ok(__GeoSerdeGeometry::deserialize(de)?.0)
+    }
+}
 impl DeserializeGeometry for geo_types::Point {}
 // FIXME: data formats directly depend on geo_types structures.
 // e.g. "Polygon" must have "exterior" field dispite it is private
