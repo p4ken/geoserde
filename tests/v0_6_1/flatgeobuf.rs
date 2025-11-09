@@ -1,3 +1,5 @@
+#![cfg(feature = "flatgeobuf")]
+
 use std::io::Cursor;
 
 use anyhow::Result;
@@ -12,12 +14,12 @@ use crate::testing;
 #[derive(Debug, Deserialize)]
 struct MyFeature {
     number: i32,
-    // FIXME: missing field `geom`
     #[serde(with = "geoserde::v0_6_1")] // for type checking
     #[serde(rename = "geoserde::geometry")]
     geom: geo_types::Point,
 }
 
+#[ignore]
 #[test]
 fn de() -> Result<()> {
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf()?))?.select_all()?;

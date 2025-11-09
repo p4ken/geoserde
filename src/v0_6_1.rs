@@ -2,13 +2,14 @@ use std::marker::PhantomData;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+#[cfg(feature = "flatgeobuf")]
 pub mod fgb;
 
 pub fn serialize<S: serde::Serializer>(
     geom: impl SerializeGeometry,
     ser: S,
 ) -> Result<S::Ok, S::Error> {
-    __GeoSerdeGeometry(geom).serialize(ser)
+    geom.serialize(ser)
 }
 
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
@@ -30,7 +31,7 @@ impl<T: SerializeGeometry> SerializeGeometry for &T {}
 // TODO: sealed
 pub trait DeserializeGeometry: DeserializeOwned {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        Ok(__GeoSerdeGeometry::deserialize(de)?.0)
+        Ok(Self::deserialize(de)?)
     }
 }
 impl DeserializeGeometry for geo_types::Point {}
@@ -39,10 +40,6 @@ impl DeserializeGeometry for geo_types::Point {}
 // pub trait DeserializeGeometry: Sized {
 //     fn deserialize_geometry(src: impl GeometryTrait<T = f64>) -> Self;
 // }
-
-// Wrapper to tell "this is the geometry" for data formats.
-#[derive(Serialize, Deserialize)]
-struct __GeoSerdeGeometry<T>(T);
 
 struct GeometryVisitor<G>(PhantomData<G>);
 impl<'de, G: DeserializeGeometry + 'de> serde::de::Visitor<'de> for GeometryVisitor<G> {

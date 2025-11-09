@@ -15,6 +15,7 @@ pub struct FeatureDeserializer<'de> {
     cols: &'de [(String, ColumnType)],
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
+    has_geometry: bool,
 }
 impl<'de> FeatureDeserializer<'de> {
     pub fn new(cols: &'de [(String, ColumnType)], feat: &'de FgbFeature) -> Self {
@@ -25,6 +26,7 @@ impl<'de> FeatureDeserializer<'de> {
                 Some(fbs) => fbs.bytes(),
                 None => &[],
             },
+            has_geometry: true,
         }
     }
 }
@@ -193,10 +195,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         // FIXME: Split off to GeometryDeserializer
-        if name == "__GeoSerdeGeometry" {
-            return visitor.visit_newtype_struct(self);
+        match name {
+            "geoserde::geometry" => visitor.visit_newtype_struct(self),
+            "Point" => todo!(),
+            _ => todo!(),
         }
-        todo!()
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -282,6 +285,12 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
+        if self.has_geometry {
+            self.has_geometry = false;
+            return Ok(Some(
+                seed.deserialize(StrDeserializer::new("geoserde::geometry"))?,
+            ));
+        }
         // FIXME: Unknown field might be a geometry, so append it to last
         let col_index = match self.properties_buf.split_off(..2) {
             Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
