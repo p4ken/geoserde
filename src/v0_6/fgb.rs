@@ -17,7 +17,7 @@ impl<'a> FeatureParser<'a> {
 }
 
 impl ParseFeature for FeatureParser<'_> {
-    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(&self) -> (G, P) {
+    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(self) -> (G, P) {
         let g_fmt = self.feature.geometry_trait().unwrap().unwrap();
         let p_fmt = &mut PropertiesAdapter::new(self.feature);
         let g = G::deserialize_geometry(g_fmt);

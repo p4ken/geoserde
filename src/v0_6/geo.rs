@@ -8,12 +8,12 @@ use crate::v0_6::{DeserializeFeature, DeserializeGeometry, ParseFeature};
 
 // プロパティなしでジオメトリのみ
 impl DeserializeFeature for geo_types::Point {
-    fn deserialize_feature(fmt: &impl ParseFeature) -> Self {
+    fn deserialize_feature(fmt: impl ParseFeature) -> Self {
         fmt.parse_feature::<_, IgnoredAny>().0
     }
 }
 impl DeserializeFeature for geo_types::LineString {
-    fn deserialize_feature(fmt: &impl ParseFeature) -> Self {
+    fn deserialize_feature(fmt: impl ParseFeature) -> Self {
         fmt.parse_feature::<_, IgnoredAny>().0
     }
 }

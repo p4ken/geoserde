@@ -10,7 +10,7 @@ use geo_traits::GeometryTrait;
 use serde::{de::DeserializeOwned, Deserializer};
 
 pub trait DeserializeFeature: Sized {
-    fn deserialize_feature(fmt: &impl ParseFeature) -> Self;
+    fn deserialize_feature(fmt: impl ParseFeature) -> Self;
 }
 
 pub trait DeserializeGeometry: Sized {
@@ -34,7 +34,7 @@ impl<T: DeserializeOwned> DeserializeProperties for T {
 
 pub trait ParseFeature {
     // P は serde::DeserializeOwned でも同じだが geometry との一貫性のため。
-    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(&self) -> (G, P);
+    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(self) -> (G, P);
 }
 
 // pub trait ParseProperty {

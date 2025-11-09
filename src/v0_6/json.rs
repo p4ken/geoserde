@@ -8,7 +8,7 @@ use geojson::Value;
 
 // Featureの時点で1コピー
 impl ParseFeature for geojson::Feature {
-    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(&self) -> (G, P) {
+    fn parse_feature<G: DeserializeGeometry, P: DeserializeProperties>(self) -> (G, P) {
         // +1コピー
         // #[derive(Deserialize)]
         // struct Feature<PP: serde::de::DeserializeOwned> {
