@@ -13,7 +13,8 @@ use crate::testing;
 struct MyFeature {
     number: i32,
     // FIXME: missing field `geom`
-    #[serde(with = "geoserde::v0_6_1")]
+    #[serde(with = "geoserde::v0_6_1")] // for type checking
+    #[serde(rename = "geoserde::geometry")]
     geom: geo_types::Point,
 }
 
