@@ -1,4 +1,4 @@
-#![cfg(feature="geojson")]
+#![cfg(feature = "geojson")]
 
 #[test]
 fn geojson_test() {
