@@ -30,11 +30,28 @@ impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
 // TODO: sealed
 pub trait DeserializeGeometry: DeserializeOwned {
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
+}
+impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         Ok(Self::deserialize(de)?)
     }
 }
-impl DeserializeGeometry for geo_types::Point {}
+impl DeserializeGeometry for geo_types::Polygon {
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(rename = "geoserde::Polygon")]
+        struct Polygon {
+            // newtype LineString の vec でなければならない
+            // この構造に限定するのは geo_types に依存しすぎである
+            inner: Vec<geo_types::LineString>,
+            outer: geo_types::LineString,
+        }
+        let sink = Polygon::deserialize(de)?;
+        let dest = geo_types::Polygon::new(sink.outer, sink.inner);
+        Ok(dest)
+    }
+}
 // FIXME: data formats directly depend on geo_types structures.
 // e.g. "Polygon" must have "exterior" field dispite it is private
 // pub trait DeserializeGeometry: Sized {
