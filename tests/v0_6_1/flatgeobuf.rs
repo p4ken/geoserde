@@ -14,7 +14,10 @@ use crate::testing;
 #[derive(Debug, Deserialize)]
 struct MyFeature {
     number: i32,
-    #[serde(with = "geoserde::v0_6_1")] // for type checking
+    // for type checking.
+    // Rename is ok but general Deserializer is not acceptable.
+    // geoserde::geometry field must be deserialized by GeoDeserializer.
+    #[serde(with = "geoserde::v0_6_1")]
     #[serde(rename = "geoserde::geometry")]
     geom: geo_types::Point,
 }

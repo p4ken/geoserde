@@ -39,11 +39,16 @@ impl DeserializeGeometry for geo_types::Point {
 }
 impl DeserializeGeometry for geo_types::Polygon {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        // TODO: ここを FgbFeature とか serde_json::Value とかに特化させる
+        // DeserializeFlatgeobufGeometry とか DeserializeGeojsonGeometry になる
+        // ただし #[geometry] だけでは不十分になる
+
         #[derive(Deserialize)]
         #[serde(rename = "geoserde::Polygon")]
         struct Polygon {
             // newtype LineString の vec でなければならない
             // この構造に限定するのは geo_types に依存しすぎである
+            // geo_types はデファクトだが、Z座標がないのは致命的
             inner: Vec<geo_types::LineString>,
             outer: geo_types::LineString,
         }
