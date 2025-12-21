@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[cfg(feature = "flatgeobuf")]
@@ -18,24 +16,52 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     G::deserialize_geometry(de)
 }
 
-// pub fn deserialize<'de, D: serde::Deserializer<'de>, G: DeserializeGeometry + 'de>(
-//     de: D,
-// ) -> Result<G, D::Error> {
-//     de.deserialize_newtype_struct("geoserde::Geometry", GeometryVisitor(PhantomData))
-// }
-
 pub trait SerializeGeometry: Serialize {}
 impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
-// TODO: sealed
 pub trait DeserializeGeometry: DeserializeOwned {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        todo!()
+    }
+    fn deserialize_geometry_2<'a, D: GeometryDeserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        todo!()
+    }
 }
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         Ok(Self::deserialize(de)?)
     }
+}
+impl DeserializeGeometry for geo_types::LineString {
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = Vec<geo_types::Coord>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a sequence of Point")
+            }
+            fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
+            where
+                S: serde::de::SeqAccess<'de>,
+            {
+                let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+                while let Some(point) = seq.next_element::<Point>()? {
+                    vec.push(geo_types::Coord::from(point));
+                }
+                Ok(vec)
+            }
+        }
+
+        // TODO: [Point]ではなくLineString([Point])に見せかけたい
+        de.deserialize_seq(Visitor).map(geo_types::LineString)
+    }
+    // fn deserialize_geometry_2<'a, D: GeometryDeserializer<'a>>(de: D) -> Result<Self, D::Error> {
+    //     struct Visitor;
+    //     let visitor = Visitor;
+    //     de.deserialize_line_string(visitor)
+    // }
 }
 impl DeserializeGeometry for geo_types::Polygon {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
@@ -63,25 +89,28 @@ impl DeserializeGeometry for geo_types::Polygon {
 //     fn deserialize_geometry(src: impl GeometryTrait<T = f64>) -> Self;
 // }
 
-struct GeometryVisitor<G>(PhantomData<G>);
-impl<'de, G: DeserializeGeometry + 'de> serde::de::Visitor<'de> for GeometryVisitor<G> {
-    type Value = G;
+pub trait GeometryDeserializer<'de> {
+    type Error;
+}
 
-    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str("enum of geometry")
-    }
-    // fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    // where
-    //     A: serde::de::MapAccess<'de>,
-    // {
-    //     // Error: This G must be concrete type which implements Deserialize
-    //     let (k, v): (&'static str, G) = map.next_entry().unwrap().unwrap();
-    //     todo!()
-    // }
-    fn visit_newtype_struct<D>(self, de: D) -> Result<Self::Value, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        todo!()
+#[derive(Deserialize)]
+#[serde(rename = "geoserde::Point")]
+struct Point {
+    #[serde(rename = "geoserde::X")]
+    x: f64,
+    #[serde(rename = "geoserde::Y")]
+    y: f64,
+    #[serde(rename = "geoserde::Z")]
+    z: Option<f64>,
+    #[serde(rename = "geoserde::M")]
+    m: Option<f64>,
+}
+impl From<Point> for geo_types::Coord {
+    fn from(src: Point) -> Self {
+        Self { x: src.x, y: src.y }
     }
 }
+
+#[derive(Deserialize)]
+#[serde(rename = "geoserde::LineString")]
+struct LineString<T>(T);
