@@ -24,7 +24,7 @@ struct MyFeature {
 
 #[ignore]
 #[test]
-fn de() -> Result<()> {
+fn fgb_de_test() -> Result<()> {
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf()?))?.select_all()?;
     // FgbFeature itself should implement Deserialize because it has header in private field
     let fgb_header = fgb_iter

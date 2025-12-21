@@ -1,1 +1,1 @@
-mod flatgeobuf;
+mod fgb_de;
