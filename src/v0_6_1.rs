@@ -30,7 +30,8 @@ pub trait DeserializeGeometry: DeserializeOwned {
 }
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        Ok(Self::deserialize(de)?)
+        let p = Point::deserialize(de)?;
+        Ok(geo_types::Point::new(p.x, p.y))
     }
 }
 impl DeserializeGeometry for geo_types::LineString {
@@ -47,15 +48,15 @@ impl DeserializeGeometry for geo_types::LineString {
                 S: serde::de::SeqAccess<'de>,
             {
                 let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or(0));
-                while let Some(point) = seq.next_element::<Point>()? {
-                    vec.push(geo_types::Coord::from(point));
+                while let Some(Point { x, y, .. }) = seq.next_element()? {
+                    vec.push(geo_types::Coord { x, y });
                 }
                 Ok(vec)
             }
         }
 
-        // TODO: [Point]ではなくLineString([Point])に見せかけたい
-        de.deserialize_seq(Visitor).map(geo_types::LineString)
+        de.deserialize_newtype_struct("geoserde::LineString", Visitor)
+            .map(geo_types::LineString)
     }
     // fn deserialize_geometry_2<'a, D: GeometryDeserializer<'a>>(de: D) -> Result<Self, D::Error> {
     //     struct Visitor;
@@ -94,23 +95,13 @@ pub trait GeometryDeserializer<'de> {
 }
 
 #[derive(Deserialize)]
-#[serde(rename = "geoserde::Point")]
-struct Point {
-    #[serde(rename = "geoserde::X")]
-    x: f64,
-    #[serde(rename = "geoserde::Y")]
-    y: f64,
-    #[serde(rename = "geoserde::Z")]
-    z: Option<f64>,
-    #[serde(rename = "geoserde::M")]
-    m: Option<f64>,
-}
-impl From<Point> for geo_types::Coord {
-    fn from(src: Point) -> Self {
-        Self { x: src.x, y: src.y }
-    }
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+    pub z: Option<f64>,
+    pub m: Option<f64>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename = "geoserde::LineString")]
-struct LineString<T>(T);
+// #[derive(Deserialize)]
+// #[serde(rename = "geoserde::LineString")]
+// struct LineString<I: Iterator<Item = Point>>(I);

@@ -12,21 +12,21 @@ use serde::{
 // }
 
 pub struct FeatureDeserializer<'de> {
+    geom: Option<flatgeobuf::Geometry<'de>>,
     cols: &'de [(String, ColumnType)],
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
-    has_geometry: bool,
 }
 impl<'de> FeatureDeserializer<'de> {
     pub fn new(cols: &'de [(String, ColumnType)], feat: &'de FgbFeature) -> Self {
         Self {
+            geom: feat.geometry(),
             cols,
             col_type: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
                 None => &[],
             },
-            has_geometry: true,
         }
     }
 }
@@ -194,12 +194,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        // FIXME: Split off to GeometryDeserializer
-        match name {
-            "geoserde::geometry" => visitor.visit_newtype_struct(self),
-            "Point" => todo!(),
-            _ => todo!(),
-        }
+        todo!()
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -285,8 +280,11 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        if self.has_geometry {
-            self.has_geometry = false;
+        // Deserialize geometry before any property
+        if self.geom.is_some() {
+            // The geometry field must be renamed to "geoserde::geometry".
+            // This is because "geometry" may be used as a property name
+            // and "::" is not used in normal property names.
             return Ok(Some(
                 seed.deserialize(StrDeserializer::new("geoserde::geometry"))?,
             ));
@@ -309,6 +307,10 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
+        if let Some(geom) = self.geom.take() {
+            return seed.deserialize(super::geom::GeometryDeserializer::new(geom));
+        }
+
         seed.deserialize(self)
 
         // let column = &columns_meta.get(column_idx);

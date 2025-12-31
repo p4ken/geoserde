@@ -40,7 +40,8 @@ fn fgb_de_test() -> Result<()> {
         my_features.push(my_feat);
     }
     assert_eq!(my_features[0].number, 1);
-    // assert_eq!(my_features[1].number, 2);
+    assert_eq!(my_features[0].geom.x(), 1.0);
+    assert_eq!(my_features[0].geom.y(), 2.0);
     Ok(())
 }
 
