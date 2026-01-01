@@ -25,15 +25,9 @@ struct MyFeature {
 #[ignore]
 #[test]
 fn fgb_de_test() -> Result<()> {
-    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf()?))?.select_all()?;
-    // FgbFeature itself should implement Deserialize because it has header in private field
-    let fgb_header = fgb_iter
-        .header()
-        .columns()
-        .unwrap()
-        .iter()
-        .map(|col| (col.name().to_owned(), col.type_()))
-        .collect::<Vec<_>>();
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf()?))?;
+    let mut fgb_iter = fgb_reader.select_all()?;
+    let fgb_header = fgb_iter.header().into();
     let mut my_features = vec![];
     while let Some(fgb_feat) = fgb_iter.next()? {
         let my_feat = MyFeature::deserialize(&mut FeatureDeserializer::new(&fgb_header, fgb_feat))?;

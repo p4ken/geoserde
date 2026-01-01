@@ -4,24 +4,19 @@ use serde::{
     Deserializer,
 };
 
-// pub struct LayerDeserializer {}
-// impl LayerDeserializer {
-//     pub fn new<R, S>(layer: FeatureIter<R, S>) -> Self {
-//         Self {}
-//     }
-// }
+use super::OwnedHeader;
 
 pub struct FeatureDeserializer<'de> {
+    header: &'de OwnedHeader,
     geom: Option<flatgeobuf::Geometry<'de>>,
-    cols: &'de [(String, ColumnType)],
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
 }
 impl<'de> FeatureDeserializer<'de> {
-    pub fn new(cols: &'de [(String, ColumnType)], feat: &'de FgbFeature) -> Self {
+    pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
+            header,
             geom: feat.geometry(),
-            cols,
             col_type: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
@@ -294,12 +289,12 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
             None => return Ok(None),
         };
-        let (col_name, col_type) = match self.cols.get(col_index) {
-            Some(col) => col,
+        let col = match self.header.cols.get(col_index) {
+            Some(c) => c,
             None => return Ok(None),
         };
-        let value = seed.deserialize(StrDeserializer::new(col_name))?;
-        self.col_type = Some(*col_type);
+        let value = seed.deserialize(StrDeserializer::new(&col.name))?;
+        self.col_type = Some(col.type_);
         Ok(Some(value))
     }
 
@@ -308,7 +303,8 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         V: serde::de::DeserializeSeed<'de>,
     {
         if let Some(geom) = self.geom.take() {
-            return seed.deserialize(super::geom::GeometryDeserializer::new(geom));
+            let de = super::geom::GeometryDeserializer::new(geom, self.header.geom_type);
+            return seed.deserialize(de);
         }
 
         seed.deserialize(self)

@@ -5,16 +5,31 @@ use serde::de::{
 
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
+    geom_type: flatgeobuf::GeometryType,
     next_key: &'static str,
     next_coord_index: usize,
 }
 impl<'de> GeometryDeserializer<'de> {
-    pub fn new(geom: flatgeobuf::Geometry<'de>) -> Self {
+    pub fn new(geom: flatgeobuf::Geometry<'de>, geom_type: flatgeobuf::GeometryType) -> Self {
         Self {
             geom,
+            geom_type,
             next_key: "x",
             next_coord_index: 0,
         }
+    }
+
+    fn deserilize_point<V>(self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        if self.geom_type != flatgeobuf::GeometryType::Point {
+            // TODO: display real geom_type
+            return Err(serde::de::Error::custom("fgb geometry is not Point"));
+        }
+        visitor.visit_map(serde::de::value::MapDeserializer::new(
+            [("x", 1), ("y", 2)].into_iter(),
+        ))
     }
 }
 impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
@@ -218,9 +233,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match name {
-            "Point" => visitor.visit_map(serde::de::value::MapDeserializer::new(
-                [("x", 1), ("y", 2)].into_iter(),
-            )),
+            "Point" => self.deserilize_point(visitor),
             _ => todo!(),
         }
     }
