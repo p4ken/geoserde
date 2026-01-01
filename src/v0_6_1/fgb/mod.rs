@@ -1,3 +1,4 @@
+mod coord;
 mod feat;
 mod geom;
 

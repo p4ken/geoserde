@@ -1,20 +1,24 @@
+use serde::de::value::MapAccessDeserializer;
+
+use crate::v0_6_1::fgb::coord::CoordIter;
+
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
     geom_type: flatgeobuf::GeometryType,
-    next_key: &'static str,
-    next_coord_index: usize,
 }
+// impl<'de> Iterator for GeometryDeserializer<'de> {
+//     type Item = serde::de::value::MapDeserializer<'de, >;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         //
+//     }
+// }
 impl<'de> GeometryDeserializer<'de> {
     pub fn new(geom: flatgeobuf::Geometry<'de>, geom_type: flatgeobuf::GeometryType) -> Self {
-        Self {
-            geom,
-            geom_type,
-            next_key: "x",
-            next_coord_index: 0,
-        }
+        Self { geom, geom_type }
     }
 
-    fn deserilize_point<V>(self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    fn deserilize_point<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -31,7 +35,7 @@ impl<'de> GeometryDeserializer<'de> {
         ))
     }
 
-    fn deserialize_line_string<V>(self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    fn deserialize_line_string<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -39,9 +43,9 @@ impl<'de> GeometryDeserializer<'de> {
             return Err(serde::de::Error::custom("fgb geometry is not LineString"));
         }
 
-        let map = serde::de::value::MapDeserializer::new([("x", 0.0), ("y", 0.1)].into_iter());
-        let iter = [map].into_iter();
-        let de = serde::de::value::SeqDeserializer::new(iter);
+        let de = serde::de::value::SeqDeserializer::new(
+            CoordIter::new(self.geom).map(MapAccessDeserializer::new),
+        );
         visitor.visit_seq(de)
     }
 }
@@ -280,48 +284,3 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         visitor.visit_unit()
     }
 }
-// impl<'de> serde::de::MapAccess<'de> for GeometryDeserializer<'de> {
-//     type Error = serde::de::value::Error;
-
-//     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
-//     where
-//         K: DeserializeSeed<'de>,
-//     {
-//         let key = match self.next_key {
-//             "" => return Ok(None),
-//             _ => self.next_key,
-//         };
-//         seed.deserialize(StrDeserializer::new(key)).map(Some)
-//     }
-
-//     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
-//     where
-//         V: serde::de::DeserializeSeed<'de>,
-//     {
-//         let value = match self.next_key {
-//             "x" => {
-//                 self.next_key = "y";
-//                 self.geom
-//                     .xy()
-//                     .ok_or(serde::de::Error::custom("geom has no xy"))?
-//                     .iter()
-//                     .nth(self.next_coord_index * 2)
-//             }
-//             "y" => {
-//                 self.next_key = "";
-//                 self.geom
-//                     .xy()
-//                     .ok_or(serde::de::Error::custom("geom has no xy"))?
-//                     .iter()
-//                     .nth(self.next_coord_index * 2 + 1)
-//             }
-//             _ => None,
-//         };
-
-//         self.next_coord_index += 1;
-//         match value {
-//             Some(v) => seed.deserialize(F64Deserializer::new(v)),
-//             None => Ok(None),
-//         }
-//     }
-// }

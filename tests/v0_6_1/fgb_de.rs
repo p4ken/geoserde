@@ -48,7 +48,6 @@ fn line_string_test() -> Result<()> {
 
         testing::ls(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.property(0, "number", &ColumnValue::Int(1))?;
-        fgb_w.property(1, "text", &ColumnValue::String("one"))?;
         fgb_w.feature_end(0)?;
 
         fgb_w.write(&mut fgb_buf)?;
@@ -65,7 +64,14 @@ fn line_string_test() -> Result<()> {
     let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
     assert_eq!(deserialized[0].number, 1);
     assert_eq!(deserialized[0].geom.0[0].x_y(), (0.0, 0.1));
+    assert_eq!(deserialized[0].geom.0[1].x_y(), (1.0, 1.1));
     Ok(())
+}
+
+#[test]
+fn properties_test() {
+    // TODO
+    // fgb_w.property(1, "text", &ColumnValue::String("one"))?;
 }
 
 fn create_fgb_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {

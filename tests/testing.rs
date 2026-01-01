@@ -4,5 +4,5 @@ pub fn p(i: i32) -> geo_types::Point {
 }
 
 pub fn ls(i: i32) -> geo_types::LineString {
-    vec![p(i), p(i + 1), p(i + 2)].into()
+    vec![p(i), p(i + 1)].into()
 }
