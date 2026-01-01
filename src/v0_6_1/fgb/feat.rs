@@ -4,11 +4,14 @@ use serde::{
     Deserializer,
 };
 
-use super::OwnedHeader;
+use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
 
 pub struct FeatureDeserializer<'de> {
     header: &'de OwnedHeader,
-    geom: Option<flatgeobuf::Geometry<'de>>,
+    // This field is None if...
+    // - fgb feature has no geometry
+    // - geometry has been deserialized once
+    geom: Option<GeometryDeserializer<'de>>,
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
 }
@@ -16,7 +19,9 @@ impl<'de> FeatureDeserializer<'de> {
     pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
             header,
-            geom: feat.geometry(),
+            geom: feat
+                .geometry()
+                .map(|g| GeometryDeserializer::new(g, header.geom_type)),
             col_type: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
@@ -260,7 +265,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        visitor.visit_unit()
     }
 }
 
@@ -303,8 +308,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         V: serde::de::DeserializeSeed<'de>,
     {
         if let Some(geom) = self.geom.take() {
-            let de = super::geom::GeometryDeserializer::new(geom, self.header.geom_type);
-            return seed.deserialize(de);
+            return seed.deserialize(geom);
         }
 
         seed.deserialize(self)

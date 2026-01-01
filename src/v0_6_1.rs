@@ -21,12 +21,7 @@ impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
 pub trait DeserializeGeometry: DeserializeOwned {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        todo!()
-    }
-    fn deserialize_geometry_2<'a, D: GeometryDeserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        todo!()
-    }
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
@@ -58,11 +53,6 @@ impl DeserializeGeometry for geo_types::LineString {
         de.deserialize_newtype_struct("geoserde::LineString", Visitor)
             .map(geo_types::LineString)
     }
-    // fn deserialize_geometry_2<'a, D: GeometryDeserializer<'a>>(de: D) -> Result<Self, D::Error> {
-    //     struct Visitor;
-    //     let visitor = Visitor;
-    //     de.deserialize_line_string(visitor)
-    // }
 }
 impl DeserializeGeometry for geo_types::Polygon {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
@@ -89,10 +79,6 @@ impl DeserializeGeometry for geo_types::Polygon {
 // pub trait DeserializeGeometry: Sized {
 //     fn deserialize_geometry(src: impl GeometryTrait<T = f64>) -> Self;
 // }
-
-pub trait GeometryDeserializer<'de> {
-    type Error;
-}
 
 #[derive(Deserialize)]
 #[serde(rename = "geoserde::Point")]

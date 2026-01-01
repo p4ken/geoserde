@@ -28,7 +28,7 @@ impl<'de> GeometryDeserializer<'de> {
             return Err(serde::de::Error::custom("fgb geometry is not Point"));
         }
         visitor.visit_map(serde::de::value::MapDeserializer::new(
-            [("x", 1), ("y", 2)].into_iter(),
+            [("x", 0.0), ("y", 0.1)].into_iter(),
         ))
     }
 
@@ -40,7 +40,7 @@ impl<'de> GeometryDeserializer<'de> {
             return Err(serde::de::Error::custom("fgb geometry is not LineString"));
         }
 
-        let map = serde::de::value::MapDeserializer::new([("x", 1.0), ("y", 1.1)].into_iter());
+        let map = serde::de::value::MapDeserializer::new([("x", 0.0), ("y", 0.1)].into_iter());
         let iter = [map].into_iter();
         let de = serde::de::value::SeqDeserializer::new(iter);
         visitor.visit_seq(de)
@@ -278,7 +278,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        visitor.visit_unit()
     }
 }
 // impl<'de> serde::de::MapAccess<'de> for GeometryDeserializer<'de> {
