@@ -5,7 +5,7 @@ use std::io::Cursor;
 use anyhow::Result;
 use flatgeobuf::{FallibleStreamingIterator, FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
-use geoserde::v0_6_1::fgb::FeatureDeserializer;
+use geoserde::v0_6_1::fgb::{FeatureDeserializer, GeometryDeserializer};
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -15,7 +15,7 @@ use crate::testing;
 fn point_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
-        let mut fgb_w = create_fgb_writer(GeometryType::Point);
+        let mut fgb_w = new_writer(GeometryType::Point);
 
         testing::p(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.property(0, "number", &ColumnValue::Int(1))?;
@@ -28,15 +28,15 @@ fn point_test() -> Result<()> {
         fgb_w.write(&mut fgb_buf)?;
     }
 
-    #[derive(Debug, Deserialize)]
-    struct MyFeature {
-        #[serde(with = "geoserde::v0_6_1")]
-        #[serde(rename = "geoserde::geometry")]
-        geom: geo_types::Point,
+    let mut deserialized = vec![];
+    let mut fgb_iter = FgbReader::open(Cursor::new(&fgb_buf))?.select_all()?;
+    while let Some(fgb_feat) = fgb_iter.next()? {
+        deserialized.push(geoserde::v0_6_1::deserialize::<_, geo_types::Point>(
+            GeometryDeserializer::new(fgb_feat.geometry().unwrap()),
+        )?);
     }
-    let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
-    assert_eq!(deserialized[0].geom.x_y(), (0.0, 0.1));
-    assert_eq!(deserialized[1].geom.x_y(), (1.0, 1.1));
+    assert_eq!(deserialized[0].x_y(), (0.0, 0.1));
+    assert_eq!(deserialized[1].x_y(), (1.0, 1.1));
     Ok(())
 }
 
@@ -44,7 +44,7 @@ fn point_test() -> Result<()> {
 fn line_string_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
-        let mut fgb_w = create_fgb_writer(GeometryType::LineString);
+        let mut fgb_w = new_writer(GeometryType::LineString);
 
         testing::ls(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.property(0, "number", &ColumnValue::Int(1))?;
@@ -74,7 +74,7 @@ fn properties_test() {
     // fgb_w.property(1, "text", &ColumnValue::String("one"))?;
 }
 
-fn create_fgb_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
+fn new_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
     let fgb_opt = flatgeobuf::FgbWriterOptions {
         write_index: false, // To keep the order of features
         ..Default::default()
