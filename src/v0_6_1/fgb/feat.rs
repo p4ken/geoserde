@@ -8,10 +8,10 @@ use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
 
 pub struct FeatureDeserializer<'de> {
     header: &'de OwnedHeader,
-    // This field is None if...
+    // This field is None in cases:
     // - fgb feature has no geometry
     // - geometry has been deserialized once
-    geom: Option<GeometryDeserializer<'de>>,
+    geom_de: Option<GeometryDeserializer<'de>>,
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
 }
@@ -19,7 +19,7 @@ impl<'de> FeatureDeserializer<'de> {
     pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
             header,
-            geom: feat
+            geom_de: feat
                 .geometry()
                 .map(|g| GeometryDeserializer::new(g, header.geom_type)),
             col_type: None,
@@ -281,7 +281,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         K: serde::de::DeserializeSeed<'de>,
     {
         // Deserialize geometry before any property
-        if self.geom.is_some() {
+        if self.geom_de.is_some() {
             // The geometry field must be renamed to "geoserde::geometry".
             // This is because "geometry" may be used as a property name
             // and "::" is not used in normal property names.
@@ -307,7 +307,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        if let Some(geom) = self.geom.take() {
+        if let Some(geom) = self.geom_de.take() {
             return seed.deserialize(geom);
         }
 

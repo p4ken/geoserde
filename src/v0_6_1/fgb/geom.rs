@@ -1,8 +1,3 @@
-use serde::de::{
-    value::{F64Deserializer, StrDeserializer},
-    DeserializeSeed,
-};
-
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
     geom_type: flatgeobuf::GeometryType,
@@ -27,8 +22,12 @@ impl<'de> GeometryDeserializer<'de> {
             // TODO: display real geom_type
             return Err(serde::de::Error::custom("fgb geometry is not Point"));
         }
+        let (x, y) = match self.geom.xy() {
+            Some(xy) if xy.len() >= 2 => (xy.get(0), xy.get(1)),
+            _ => return Err(serde::de::Error::custom("fgb geometry has no xy")),
+        };
         visitor.visit_map(serde::de::value::MapDeserializer::new(
-            [("x", 0.0), ("y", 0.1)].into_iter(),
+            [("x", x), ("y", y)].into_iter(),
         ))
     }
 

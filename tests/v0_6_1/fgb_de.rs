@@ -3,9 +3,9 @@
 use std::io::Cursor;
 
 use anyhow::Result;
-use flatgeobuf::{FallibleStreamingIterator, FgbReader, FgbWriter, GeometryType};
+use flatgeobuf::{FallibleStreamingIterator, FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
-use geoserde::v0_6_1::{fgb::FeatureDeserializer, DeserializeGeometry};
+use geoserde::v0_6_1::fgb::FeatureDeserializer;
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -15,7 +15,7 @@ use crate::testing;
 fn point_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
-        let mut fgb_w = FgbWriter::create("my_features", GeometryType::Point)?;
+        let mut fgb_w = create_fgb_writer(GeometryType::Point);
 
         testing::p(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.property(0, "number", &ColumnValue::Int(1))?;
@@ -36,7 +36,7 @@ fn point_test() -> Result<()> {
     }
     let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
     assert_eq!(deserialized[0].geom.x_y(), (0.0, 0.1));
-    // assert_eq!(deserialized[1].geom.x_y(), (1.0, 1.1));
+    assert_eq!(deserialized[1].geom.x_y(), (1.0, 1.1));
     Ok(())
 }
 
@@ -44,17 +44,12 @@ fn point_test() -> Result<()> {
 fn line_string_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
-        let mut fgb_w = FgbWriter::create("my_features", GeometryType::LineString)?;
+        let mut fgb_w = create_fgb_writer(GeometryType::LineString);
 
         testing::ls(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.property(0, "number", &ColumnValue::Int(1))?;
-        // fgb_w.property(1, "text", &ColumnValue::String("one"))?;
+        fgb_w.property(1, "text", &ColumnValue::String("one"))?;
         fgb_w.feature_end(0)?;
-
-        // testing::line(1).to_geometry().process_geom(&mut fgb_w)?;
-        // fgb_w.property(1, "number", &ColumnValue::Int(2))?;
-        // // fgb_w.property(1, "text", &ColumnValue::String("two"))?;
-        // fgb_w.feature_end(1)?;
 
         fgb_w.write(&mut fgb_buf)?;
     }
@@ -69,9 +64,16 @@ fn line_string_test() -> Result<()> {
 
     let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
     assert_eq!(deserialized[0].number, 1);
-    // assert_eq!(my_features[0].geom.0.len(), 2);
     assert_eq!(deserialized[0].geom.0[0].x_y(), (0.0, 0.1));
     Ok(())
+}
+
+fn create_fgb_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
+    let fgb_opt = flatgeobuf::FgbWriterOptions {
+        write_index: false, // To keep the order of features
+        ..Default::default()
+    };
+    flatgeobuf::FgbWriter::create_with_options("my_fgb", geom_type, fgb_opt).unwrap()
 }
 
 fn deserialize_features<T: DeserializeOwned>(fgb_buf: &[u8]) -> Result<Vec<T>> {
