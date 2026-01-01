@@ -4,20 +4,16 @@ use crate::v0_6_1::fgb::coord::CoordIter;
 
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
-    geom_type: flatgeobuf::GeometryType,
 }
 impl<'de> GeometryDeserializer<'de> {
-    pub fn new(geom: flatgeobuf::Geometry<'de>, geom_type: flatgeobuf::GeometryType) -> Self {
-        Self { geom, geom_type }
+    pub fn new(geom: flatgeobuf::Geometry<'de>) -> Self {
+        Self { geom }
     }
 
     fn deserilize_point<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        if self.geom_type != flatgeobuf::GeometryType::Point {
-            return Err(serde::de::Error::custom("fgb geometry is not Point"));
-        }
         match CoordIter::new(self.geom).next() {
             Some(xy) => visitor.visit_map(xy),
             None => Err(serde::de::Error::custom("fgb geometry has no xy")),
@@ -28,10 +24,6 @@ impl<'de> GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        if self.geom_type != flatgeobuf::GeometryType::LineString {
-            return Err(serde::de::Error::custom("fgb geometry is not LineString"));
-        }
-
         let de = SeqDeserializer::new(CoordIter::new(self.geom));
         visitor.visit_seq(de)
     }

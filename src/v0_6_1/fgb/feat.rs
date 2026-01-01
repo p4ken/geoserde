@@ -19,9 +19,7 @@ impl<'de> FeatureDeserializer<'de> {
     pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
             header,
-            geom_de: feat
-                .geometry()
-                .map(|g| GeometryDeserializer::new(g, header.geom_type)),
+            geom_de: feat.geometry().map(GeometryDeserializer::new),
             col_type: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
@@ -31,7 +29,7 @@ impl<'de> FeatureDeserializer<'de> {
     }
 }
 impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
-    type Error = serde::de::value::Error; // TODO
+    type Error = serde::de::value::Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
