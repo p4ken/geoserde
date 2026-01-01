@@ -1,6 +1,6 @@
 use serde::de::{
-    value::{F64Deserializer, StrDeserializer},
-    MapAccess,
+    value::{F64Deserializer, MapAccessDeserializer, StrDeserializer},
+    IntoDeserializer, MapAccess,
 };
 
 pub struct CoordIter<'de> {
@@ -90,7 +90,14 @@ impl<'de> MapAccess<'de> for CoordMap {
             "y" => seed.deserialize(F64Deserializer::new(self.y)),
             "z" => seed.deserialize(F64Deserializer::new(self.z.unwrap())),
             "m" => seed.deserialize(F64Deserializer::new(self.m.unwrap())),
-            _ => panic!("no more key"),
+            _ => panic!("no key"),
         }
+    }
+}
+impl<'de> IntoDeserializer<'de> for CoordMap {
+    type Deserializer = MapAccessDeserializer<CoordMap>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        MapAccessDeserializer::new(self)
     }
 }
