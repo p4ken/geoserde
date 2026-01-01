@@ -19,7 +19,7 @@ struct MyFeature {
     // geoserde::geometry field must be deserialized by GeoDeserializer.
     #[serde(with = "geoserde::v0_6_1")]
     #[serde(rename = "geoserde::geometry")]
-    geom: geo_types::Point,
+    geom: geo_types::LineString,
 }
 
 #[ignore]
@@ -34,8 +34,8 @@ fn fgb_de_test() -> Result<()> {
         my_features.push(my_feat);
     }
     assert_eq!(my_features[0].number, 1);
-    assert_eq!(my_features[0].geom.x(), 1.0);
-    assert_eq!(my_features[0].geom.y(), 2.0);
+    assert_eq!(my_features[0].geom.0[0].x, 1.0);
+    assert_eq!(my_features[0].geom.0[0].y, 1.1);
     Ok(())
 }
 

@@ -31,6 +31,20 @@ impl<'de> GeometryDeserializer<'de> {
             [("x", 1), ("y", 2)].into_iter(),
         ))
     }
+
+    fn deserialize_line_string<V>(self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        if self.geom_type != flatgeobuf::GeometryType::LineString {
+            return Err(serde::de::Error::custom("fgb geometry is not LineString"));
+        }
+
+        let map = serde::de::value::MapDeserializer::new([("x", 1.0), ("y", 1.1)].into_iter());
+        let iter = [map].into_iter();
+        let de = serde::de::value::SeqDeserializer::new(iter);
+        visitor.visit_seq(de)
+    }
 }
 impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     type Error = serde::de::value::Error;
@@ -187,7 +201,10 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        todo!()
+        match name {
+            "geoserde::LineString" => self.deserialize_line_string(visitor),
+            _ => todo!(),
+        }
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -233,7 +250,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match name {
-            "Point" => self.deserilize_point(visitor),
+            "geoserde::Point" => self.deserilize_point(visitor),
             _ => todo!(),
         }
     }

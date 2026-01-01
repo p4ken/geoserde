@@ -3,9 +3,6 @@ mod geom;
 
 pub use feat::FeatureDeserializer;
 
-// pub fn from_selected<R: std::io::Read + std::io::Seek>(selected: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>) {
-// }
-
 // pub struct DeserializerIter<'a, R> {
 //     fgb_iter: &'a mut flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
 //     header: OwnedHeader,
