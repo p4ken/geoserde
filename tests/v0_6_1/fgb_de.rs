@@ -12,7 +12,7 @@ use serde::{de::DeserializeOwned, Deserialize};
 use crate::testing;
 
 #[test]
-fn point_test() -> Result<()> {
+fn points_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
         let mut fgb_w = new_writer(GeometryType::Point);
@@ -35,7 +35,32 @@ fn point_test() -> Result<()> {
 }
 
 #[test]
-fn line_string_test() -> Result<()> {
+fn properties_test() -> Result<()> {
+    let mut fgb_buf = vec![];
+    {
+        let mut fgb_w = new_writer(GeometryType::LineString);
+
+        fgb_w.property(0, "number", &ColumnValue::Int(1))?;
+        fgb_w.property(1, "text", &ColumnValue::String("one"))?;
+        fgb_w.feature_end(0)?;
+
+        fgb_w.write(&mut fgb_buf)?;
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct MyFeature {
+        number: i32,
+        text: String,
+    }
+
+    let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
+    assert_eq!(deserialized[0].number, 1);
+    assert_eq!(deserialized[0].text, "one");
+    Ok(())
+}
+
+#[test]
+fn line_string_with_property_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
         let mut fgb_w = new_writer(GeometryType::LineString);
@@ -60,12 +85,6 @@ fn line_string_test() -> Result<()> {
     assert_eq!(deserialized[0].geom.0[0].x_y(), (0.0, 0.1));
     assert_eq!(deserialized[0].geom.0[1].x_y(), (1.0, 1.1));
     Ok(())
-}
-
-#[test]
-fn properties_test() {
-    // TODO
-    // fgb_w.property(1, "text", &ColumnValue::String("one"))?;
 }
 
 fn new_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {

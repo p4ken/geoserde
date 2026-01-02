@@ -16,10 +16,12 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     G::deserialize(de)
 }
 
+/// Feature to deserialize a geometry with no properties
 #[derive(Debug, Deserialize)]
 pub struct GeometrySink<G: DeserializeGeometry> {
     #[serde(deserialize_with = "deserialize")]
     #[serde(rename = "geoserde::geometry")]
+    /// Deserialized geometry
     pub g: G,
 }
 

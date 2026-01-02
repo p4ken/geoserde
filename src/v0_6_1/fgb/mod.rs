@@ -3,7 +3,6 @@ mod feat;
 mod geom;
 
 pub use feat::FeatureDeserializer;
-pub use geom::GeometryDeserializer;
 
 // pub struct DeserializerIter<'a, R> {
 //     fgb_iter: &'a mut flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
@@ -34,30 +33,26 @@ pub use geom::GeometryDeserializer;
 /// - `flatgeobuf::FgbFeature::header()` is private.
 pub struct OwnedHeader {
     cols: Vec<OwnedColumn>,
-    geom_type: flatgeobuf::GeometryType,
 }
 impl From<flatgeobuf::Header<'_>> for OwnedHeader {
-    fn from(header: flatgeobuf::Header<'_>) -> Self {
-        let cols = match header.columns() {
-            Some(cols) => cols.into_iter().map(OwnedColumn::from).collect(),
+    fn from(fbs: flatgeobuf::Header<'_>) -> Self {
+        let cols = match fbs.columns() {
+            Some(vec) => vec.into_iter().map(OwnedColumn::from).collect(),
             None => vec![],
         };
-        Self {
-            cols,
-            geom_type: header.geometry_type(),
-        }
+        Self { cols }
     }
 }
 
 struct OwnedColumn {
     name: String,
-    type_: flatgeobuf::ColumnType,
+    col_type: flatgeobuf::ColumnType,
 }
 impl From<flatgeobuf::Column<'_>> for OwnedColumn {
     fn from(col: flatgeobuf::Column<'_>) -> Self {
         Self {
             name: col.name().to_owned(),
-            type_: col.type_(),
+            col_type: col.type_(),
         }
     }
 }

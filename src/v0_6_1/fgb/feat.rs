@@ -183,11 +183,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
         visitor.visit_unit()
     }
 }
-
-// struct PropertyAccess<'a, 'de: 'a> {
-//     feat: &'a FeatureDeserializer<'de>,
-//     col_idx: usize,
-// }
 impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     type Error = serde::de::value::Error;
 
@@ -204,7 +199,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
                 seed.deserialize(StrDeserializer::new("geoserde::geometry"))?,
             ));
         }
-        // FIXME: Unknown field might be a geometry, so append it to last
+
         let col_index = match self.properties_buf.split_off(..2) {
             Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
             None => return Ok(None),
@@ -214,7 +209,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             None => return Ok(None),
         };
         let value = seed.deserialize(StrDeserializer::new(&col.name))?;
-        self.col_type = Some(col.type_);
+        self.col_type = Some(col.col_type);
         Ok(Some(value))
     }
 
