@@ -66,16 +66,13 @@ impl<'de> MapAccess<'de> for CoordMap {
             "x" => "y",
             "y" => "z",
             "z" => "m",
-            "m" => "",
+            "m" => return Ok(None),
             _ => unreachable!(),
         };
         if self.key == "z" && self.z.is_none() {
-            self.key = "m"
+            self.key = "m";
         }
         if self.key == "m" && self.m.is_none() {
-            self.key = ""
-        }
-        if self.key == "" {
             return Ok(None);
         }
         seed.deserialize(StrDeserializer::new(self.key)).map(Some)

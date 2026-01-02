@@ -1,7 +1,7 @@
 use flatgeobuf::{ColumnType, FgbFeature};
-use serde::{
-    de::{value::StrDeserializer, MapAccess, Visitor},
-    Deserializer,
+use serde::de::{
+    value::{I32Deserializer, StrDeserializer},
+    Error, MapAccess,
 };
 
 use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
@@ -28,159 +28,12 @@ impl<'de> FeatureDeserializer<'de> {
         }
     }
 }
-impl<'de, 'a> Deserializer<'de> for &'a mut FeatureDeserializer<'de> {
-    type Error = serde::de::value::Error;
-
-    fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_i8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_i16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_i32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        match self.col_type {
-            Some(ColumnType::Int) => visitor.visit_i32(i32::from_le_bytes(
-                self.properties_buf
-                    .split_off(..4)
-                    .expect("i32 requires 4 bits")
-                    .try_into()
-                    .unwrap(),
-            )),
-            _ => todo!(),
+impl FeatureDeserializer<'_> {
+    fn take_prop(&mut self, n: usize) -> Result<&[u8], serde::de::value::Error> {
+        match self.properties_buf.split_off(..n) {
+            Some(slice) => Ok(slice),
+            None => Err(Error::custom("properties buffer out of bounds")),
         }
-    }
-
-    fn deserialize_i64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_u8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_u16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_u32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_u64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_f32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_f64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_str<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_string<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_bytes<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_byte_buf<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_unit<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_unit_struct<V: Visitor<'de>>(
-        self,
-        name: &'static str,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_newtype_struct<V: Visitor<'de>>(
-        self,
-        name: &'static str,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_tuple<V: Visitor<'de>>(
-        self,
-        len: usize,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_tuple_struct<V: Visitor<'de>>(
-        self,
-        name: &'static str,
-        len: usize,
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_map<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_struct<V: Visitor<'de>>(
-        self,
-        name: &'static str,
-        fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        visitor.visit_map(self)
-    }
-
-    fn deserialize_enum<V: Visitor<'de>>(
-        self,
-        name: &'static str,
-        variants: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        todo!()
-    }
-
-    fn deserialize_ignored_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        visitor.visit_unit()
     }
 }
 impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
@@ -221,7 +74,17 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             return seed.deserialize(geom);
         }
 
-        seed.deserialize(self)
+        match self.col_type.unwrap() {
+            ColumnType::Int => seed.deserialize(I32Deserializer::new(i32::from_le_bytes(
+                self.take_prop(4)?.try_into().unwrap(),
+            ))),
+            ColumnType::String => {
+                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let s = std::str::from_utf8(self.take_prop(len)?).map_err(Error::custom)?;
+                seed.deserialize(StrDeserializer::new(s))
+            }
+            x => panic!("{}", x.0),
+        }
 
         // let column = &columns_meta.get(column_idx);
         // match column.type_() {
