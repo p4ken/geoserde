@@ -90,6 +90,39 @@ fn line_string_with_property_test() -> Result<()> {
 }
 
 #[test]
+fn flatten_test() -> Result<()> {
+    let mut fgb_buf = vec![];
+    {
+        let mut fgb_w = new_writer(GeometryType::Point);
+
+        testing::p(0).to_geometry().process_geom(&mut fgb_w)?;
+        fgb_w.property(0, "number", &ColumnValue::Int(1))?;
+        fgb_w.feature_end(0)?;
+
+        fgb_w.write(&mut fgb_buf)?;
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Child {
+        number: i32,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct MyFeature {
+        #[serde(flatten)]
+        child: Child,
+        #[serde(with = "geoserde::v0_6_1")]
+        #[serde(rename = "geoserde::geometry")]
+        geom: geo_types::Point,
+    }
+
+    let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
+    assert_eq!(deserialized[0].geom, testing::p(0));
+    assert_eq!(deserialized[0].child.number, 1);
+    Ok(())
+}
+
+#[test]
 fn lines_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
