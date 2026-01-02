@@ -18,6 +18,7 @@ impl DeserializeGeometry for geo_types::LineString {
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("sequence of Points")
             }
+
             fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
             where
                 S: serde::de::SeqAccess<'de>,
@@ -45,6 +46,13 @@ impl DeserializeGeometry for geo_types::Rect {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         let [c1, _, c2, _, _] = super::LineString::deserialize(de)?.0.map(parse_coord);
         Ok(geo_types::Rect::new(c1, c2))
+    }
+}
+
+impl DeserializeGeometry for geo_types::Triangle {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        let [v1, v2, v3] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        Ok(geo_types::Triangle::new(v1, v2, v3))
     }
 }
 

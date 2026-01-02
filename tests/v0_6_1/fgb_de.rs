@@ -95,18 +95,18 @@ fn lines_test() -> Result<()> {
     {
         let mut fgb_w = new_writer(GeometryType::LineString);
 
-        testing::l(0).to_geometry().process_geom(&mut fgb_w)?;
+        testing::line(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.feature_end(0)?;
 
-        testing::l(1).to_geometry().process_geom(&mut fgb_w)?;
+        testing::line(1).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.feature_end(1)?;
 
         fgb_w.write(&mut fgb_buf)?;
     }
 
     let deserialized = deserialize_features::<GeometrySink<geo_types::Line>>(&fgb_buf)?;
-    assert_eq!(deserialized[0].g, testing::l(0));
-    assert_eq!(deserialized[1].g, testing::l(1));
+    assert_eq!(deserialized[0].g, testing::line(0));
+    assert_eq!(deserialized[1].g, testing::line(1));
     Ok(())
 }
 
@@ -124,6 +124,25 @@ fn rect_test() -> Result<()> {
 
     let deserialized = deserialize_features::<GeometrySink<geo_types::Rect>>(&fgb_buf)?;
     assert_eq!(deserialized[0].g, testing::rect(0));
+    Ok(())
+}
+
+#[test]
+fn triangle_test() -> Result<()> {
+    let mut fgb_buf = vec![];
+    {
+        let mut fgb_w = new_writer(GeometryType::Polygon);
+
+        testing::triangle(0)
+            .to_geometry()
+            .process_geom(&mut fgb_w)?;
+        fgb_w.feature_end(0)?;
+
+        fgb_w.write(&mut fgb_buf)?;
+    }
+
+    let deserialized = deserialize_features::<GeometrySink<geo_types::Triangle>>(&fgb_buf)?;
+    assert_eq!(deserialized[0].g, testing::triangle(0));
     Ok(())
 }
 
