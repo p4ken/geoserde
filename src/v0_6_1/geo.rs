@@ -16,7 +16,7 @@ impl DeserializeGeometry for geo_types::LineString {
             type Value = geo_types::LineString;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a sequence of Point")
+                formatter.write_str("sequence of Points")
             }
             fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
             where
@@ -36,29 +36,18 @@ impl DeserializeGeometry for geo_types::LineString {
 
 impl DeserializeGeometry for geo_types::Line {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = geo_types::Line;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a sequence of Point")
-            }
-            fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
-            where
-                S: serde::de::SeqAccess<'de>,
-            {
-                let mut next = || match seq.next_element()? {
-                    Some(p) => Ok(parse_coord(p)),
-                    None => Err(serde::de::Error::custom("expected 2 Points")),
-                };
-
-                Ok(geo_types::Line::new(next()?, next()?))
-            }
-        }
-
-        de.deserialize_newtype_struct("geoserde::LineString", Visitor)
+        let [start, end] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        Ok(geo_types::Line::new(start, end))
     }
 }
+
+impl DeserializeGeometry for geo_types::Rect {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+        let [c1, _, c2, _, _] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        Ok(geo_types::Rect::new(c1, c2))
+    }
+}
+
 impl DeserializeGeometry for geo_types::Polygon {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         // TODO: ここを FgbFeature とか serde_json::Value とかに特化させる

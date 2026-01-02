@@ -110,6 +110,23 @@ fn lines_test() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn rect_test() -> Result<()> {
+    let mut fgb_buf = vec![];
+    {
+        let mut fgb_w = new_writer(GeometryType::Polygon);
+
+        testing::rect(0).to_geometry().process_geom(&mut fgb_w)?;
+        fgb_w.feature_end(0)?;
+
+        fgb_w.write(&mut fgb_buf)?;
+    }
+
+    let deserialized = deserialize_features::<GeometrySink<geo_types::Rect>>(&fgb_buf)?;
+    assert_eq!(deserialized[0].g, testing::rect(0));
+    Ok(())
+}
+
 fn new_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
     let fgb_opt = flatgeobuf::FgbWriterOptions {
         write_index: false, // To keep the order of features

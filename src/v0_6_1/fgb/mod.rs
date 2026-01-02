@@ -28,7 +28,7 @@ pub use feat::FeatureDeserializer;
 
 /// Owened clones of fbs header.
 ///
-/// Reason to take deep copy:
+/// Why deep copy is needed:
 /// - `flatgeobuf::FeatureIter::next()` takes mutable reference to self including header.
 /// - `flatgeobuf::FgbFeature::header()` is private.
 pub struct OwnedHeader {

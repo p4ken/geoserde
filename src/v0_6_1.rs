@@ -34,7 +34,7 @@ pub trait DeserializeGeometry: Sized {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(rename = "geoserde::Point")]
 pub struct Point {
     pub x: f64,
@@ -43,6 +43,42 @@ pub struct Point {
     pub m: Option<f64>,
 }
 
-// #[derive(Deserialize)]
-// #[serde(rename = "geoserde::LineString")]
-// struct LineString<I: Iterator<Item = Point>>(I);
+pub struct LineString<T>(pub T);
+impl<'de, const N: usize> Deserialize<'de> for LineString<[Point; N]> {
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor<const N: usize>;
+        impl<'de, const N: usize> serde::de::Visitor<'de> for Visitor<N> {
+            type Value = [Point; N];
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("sequence of Points")
+            }
+
+            fn visit_seq<S>(self, seq: S) -> Result<Self::Value, S::Error>
+            where
+                S: serde::de::SeqAccess<'de>,
+            {
+                visit_point_array(seq)
+            }
+        }
+
+        de.deserialize_newtype_struct("geoserde::LineString", Visitor)
+            .map(Self)
+    }
+}
+
+fn visit_point_array<'de, S: serde::de::SeqAccess<'de>, const N: usize>(
+    mut seq: S,
+) -> Result<[Point; N], <S as serde::de::SeqAccess<'de>>::Error> {
+    let mut array = [Point::default(); N];
+    for i in 0..N {
+        match seq.next_element()? {
+            Some(p) => array[i] = p,
+            None => return Err(serde::de::Error::invalid_length(i, &N.to_string().as_str())),
+        }
+    }
+    Ok(array)
+}

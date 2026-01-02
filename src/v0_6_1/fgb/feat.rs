@@ -8,10 +8,12 @@ use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
 
 pub struct FeatureDeserializer<'de> {
     header: &'de OwnedHeader,
+
     // This field is None in cases:
     // - fgb feature has no geometry
     // - geometry has been deserialized once
     geom_de: Option<GeometryDeserializer<'de>>,
+
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
 }
@@ -43,7 +45,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        // Deserialize geometry before any property
+        // Deserialize geometry before any properties.
         if self.geom_de.is_some() {
             // The geometry field must be renamed to "geoserde::geometry".
             // This is because "geometry" may be used as a property name
