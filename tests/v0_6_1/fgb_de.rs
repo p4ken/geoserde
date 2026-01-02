@@ -5,7 +5,7 @@ use std::io::Cursor;
 use anyhow::Result;
 use flatgeobuf::{FallibleStreamingIterator, FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
-use geoserde::v0_6_1::fgb::{FeatureDeserializer, GeometryDeserializer};
+use geoserde::v0_6_1::{fgb::FeatureDeserializer, GeometrySink};
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -28,15 +28,9 @@ fn point_test() -> Result<()> {
         fgb_w.write(&mut fgb_buf)?;
     }
 
-    let mut deserialized = vec![];
-    let mut fgb_iter = FgbReader::open(Cursor::new(&fgb_buf))?.select_all()?;
-    while let Some(fgb_feat) = fgb_iter.next()? {
-        deserialized.push(geoserde::v0_6_1::deserialize::<_, geo_types::Point>(
-            GeometryDeserializer::new(fgb_feat.geometry().unwrap()),
-        )?);
-    }
-    assert_eq!(deserialized[0].x_y(), (0.0, 0.1));
-    assert_eq!(deserialized[1].x_y(), (1.0, 1.1));
+    let deserialized = deserialize_features::<GeometrySink<geo_types::Point>>(&fgb_buf)?;
+    assert_eq!(deserialized[0].g.x_y(), (0.0, 0.1));
+    assert_eq!(deserialized[1].g.x_y(), (1.0, 1.1));
     Ok(())
 }
 

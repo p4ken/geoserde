@@ -16,6 +16,13 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     G::deserialize(de)
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GeometrySink<G: DeserializeGeometry> {
+    #[serde(deserialize_with = "deserialize")]
+    #[serde(rename = "geoserde::geometry")]
+    pub g: G,
+}
+
 pub trait SerializeGeometry: Serialize {}
 impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
