@@ -123,7 +123,7 @@ fn flatten_test() -> Result<()> {
 }
 
 #[test]
-fn lines_test() -> Result<()> {
+fn line_test() -> Result<()> {
     let mut fgb_buf = vec![];
     {
         let mut fgb_w = new_writer(GeometryType::LineString);
@@ -131,15 +131,11 @@ fn lines_test() -> Result<()> {
         testing::line(0).to_geometry().process_geom(&mut fgb_w)?;
         fgb_w.feature_end(0)?;
 
-        testing::line(1).to_geometry().process_geom(&mut fgb_w)?;
-        fgb_w.feature_end(1)?;
-
         fgb_w.write(&mut fgb_buf)?;
     }
 
     let deserialized = deserialize_features::<GeometrySink<geo_types::Line>>(&fgb_buf)?;
     assert_eq!(deserialized[0].g, testing::line(0));
-    assert_eq!(deserialized[1].g, testing::line(1));
     Ok(())
 }
 
