@@ -1,4 +1,4 @@
-use serde::de::{value::SeqDeserializer, Visitor};
+use serde::de::{value::SeqDeserializer, Error, Visitor};
 
 use crate::v0_6_1::fgb::coord::CoordIter;
 
@@ -16,7 +16,7 @@ impl<'de> GeometryDeserializer<'de> {
     {
         match CoordIter::new(self.geom).next() {
             Some(xy) => visitor.visit_map(xy),
-            None => Err(serde::de::Error::custom("fgb geometry has no xy")),
+            None => Err(Error::custom("fbs has no coords")),
         }
     }
 
@@ -32,7 +32,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     type Error = serde::de::value::Error;
 
     fn deserialize_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        Err(serde::de::Error::custom("sink is not a geometry"))
+        Err(Error::custom("expected geometry type"))
     }
 
     fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {

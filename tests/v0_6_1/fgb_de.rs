@@ -32,8 +32,8 @@ fn points_test() -> Result<()> {
     }
 
     let deserialized = deserialize_features::<GeometrySink<geo_types::Point>>(&fgb_buf)?;
-    assert_eq!(deserialized[0].g.x_y(), (0.0, 0.1));
-    assert_eq!(deserialized[1].g.x_y(), (1.0, 1.1));
+    assert_eq!(deserialized[0].g, testing::p(0));
+    assert_eq!(deserialized[1].g, testing::p(1));
     Ok(())
 }
 
@@ -85,8 +85,28 @@ fn line_string_with_property_test() -> Result<()> {
 
     let deserialized = deserialize_features::<MyFeature>(&fgb_buf)?;
     assert_eq!(deserialized[0].number, 1);
-    assert_eq!(deserialized[0].geom.0[0].x_y(), (0.0, 0.1));
-    assert_eq!(deserialized[0].geom.0[1].x_y(), (1.0, 1.1));
+    assert_eq!(deserialized[0].geom, testing::ls(0));
+    Ok(())
+}
+
+#[test]
+fn lines_test() -> Result<()> {
+    let mut fgb_buf = vec![];
+    {
+        let mut fgb_w = new_writer(GeometryType::LineString);
+
+        testing::l(0).to_geometry().process_geom(&mut fgb_w)?;
+        fgb_w.feature_end(0)?;
+
+        testing::l(1).to_geometry().process_geom(&mut fgb_w)?;
+        fgb_w.feature_end(1)?;
+
+        fgb_w.write(&mut fgb_buf)?;
+    }
+
+    let deserialized = deserialize_features::<GeometrySink<geo_types::Line>>(&fgb_buf)?;
+    assert_eq!(deserialized[0].g, testing::l(0));
+    assert_eq!(deserialized[1].g, testing::l(1));
     Ok(())
 }
 

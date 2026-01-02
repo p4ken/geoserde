@@ -75,9 +75,10 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         }
 
         match self.col_type.unwrap() {
-            ColumnType::Int => seed.deserialize(I32Deserializer::new(i32::from_le_bytes(
-                self.take_prop(4)?.try_into().unwrap(),
-            ))),
+            ColumnType::Int => {
+                let n = i32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                seed.deserialize(I32Deserializer::new(n))
+            }
             ColumnType::String => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
                 let s = std::str::from_utf8(self.take_prop(len)?).map_err(Error::custom)?;
@@ -88,14 +89,6 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
 
         // let column = &columns_meta.get(column_idx);
         // match column.type_() {
-        //     ColumnType::Int => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Int(LittleEndian::read_i32(&bytes[offset..offset + 4])),
-        //         )?;
-        //         offset += size_of::<i32>();
-        //     }
         //     ColumnType::Long => {
         //         finish = reader.property(
         //             column_idx,
@@ -119,21 +112,6 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         //             &ColumnValue::Double(LittleEndian::read_f64(&bytes[offset..offset + 8])),
         //         )?;
         //         offset += size_of::<f64>();
-        //     }
-        //     ColumnType::String => {
-        //         let len = LittleEndian::read_u32(&bytes[offset..offset + 4]) as usize;
-        //         offset += size_of::<u32>();
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::String(
-        //                 // unsafe variant without UTF-8 checking would be faster...
-        //                 str::from_utf8(&bytes[offset..offset + len]).map_err(|_| {
-        //                     GeozeroError::Property("Invalid UTF-8 encoding".to_string())
-        //                 })?,
-        //             ),
-        //         )?;
-        //         offset += len;
         //     }
         //     ColumnType::Byte => {
         //         finish = reader.property(
