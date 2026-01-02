@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "flatgeobuf")]
 pub mod fgb;
@@ -13,24 +13,24 @@ pub fn serialize<S: serde::Serializer>(
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     de: D,
 ) -> Result<G, D::Error> {
-    G::deserialize_geometry(de)
+    G::deserialize(de)
 }
 
 pub trait SerializeGeometry: Serialize {}
 impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
-pub trait DeserializeGeometry: DeserializeOwned {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
+pub trait DeserializeGeometry: Sized {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 impl DeserializeGeometry for geo_types::Point {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         let p = Point::deserialize(de)?;
         Ok(geo_types::Point::new(p.x, p.y))
     }
 }
 impl DeserializeGeometry for geo_types::LineString {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
             type Value = Vec<geo_types::Coord>;
@@ -55,7 +55,7 @@ impl DeserializeGeometry for geo_types::LineString {
     }
 }
 impl DeserializeGeometry for geo_types::Polygon {
-    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
         // TODO: ここを FgbFeature とか serde_json::Value とかに特化させる
         // DeserializeFlatgeobufGeometry とか DeserializeGeojsonGeometry になる
         // ただし #[geometry] だけでは不十分になる
