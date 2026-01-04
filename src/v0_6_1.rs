@@ -44,41 +44,87 @@ pub struct Point {
 }
 
 pub struct LineString<T>(pub T);
-impl<'de, const N: usize> Deserialize<'de> for LineString<[Point; N]> {
-    fn deserialize<D>(de: D) -> Result<Self, D::Error>
+#[doc(hidden)]
+#[allow(
+    non_upper_case_globals,
+    unused_attributes,
+    unused_qualifications,
+    clippy::absolute_paths
+)]
+const _: () = {
+    #[allow(unused_extern_crates, clippy::useless_attribute)]
+    extern crate serde as _serde;
+    #[automatically_derived]
+    impl<'de, T> _serde::Deserialize<'de> for LineString<T>
     where
-        D: serde::Deserializer<'de>,
+        T: _serde::Deserialize<'de>,
     {
-        struct Visitor<const N: usize>;
-        impl<'de, const N: usize> serde::de::Visitor<'de> for Visitor<N> {
-            type Value = [Point; N];
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("sequence of Points")
-            }
-
-            fn visit_seq<S>(self, seq: S) -> Result<Self::Value, S::Error>
+        fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, __D::Error>
+        where
+            __D: _serde::Deserializer<'de>,
+        {
+            #[doc(hidden)]
+            struct __Visitor<'de, T>
             where
-                S: serde::de::SeqAccess<'de>,
+                T: _serde::Deserialize<'de>,
             {
-                visit_point_array(seq)
+                marker: _serde::__private228::PhantomData<LineString<T>>,
+                lifetime: _serde::__private228::PhantomData<&'de ()>,
             }
+            #[automatically_derived]
+            impl<'de, T> _serde::de::Visitor<'de> for __Visitor<'de, T>
+            where
+                T: _serde::Deserialize<'de>,
+            {
+                type Value = LineString<T>;
+                fn expecting(
+                    &self,
+                    __formatter: &mut _serde::__private228::Formatter,
+                ) -> _serde::__private228::fmt::Result {
+                    _serde::__private228::Formatter::write_str(
+                        __formatter,
+                        "tuple struct LineString",
+                    )
+                }
+                #[inline]
+                fn visit_newtype_struct<__E>(
+                    self,
+                    __e: __E,
+                ) -> _serde::__private228::Result<Self::Value, __E::Error>
+                where
+                    __E: _serde::Deserializer<'de>,
+                {
+                    let __field0: T = <T as _serde::Deserialize>::deserialize(__e)?;
+                    _serde::__private228::Ok(LineString(__field0))
+                }
+                #[inline]
+                fn visit_seq<__A>(
+                    self,
+                    mut __seq: __A,
+                ) -> _serde::__private228::Result<Self::Value, __A::Error>
+                where
+                    __A: _serde::de::SeqAccess<'de>,
+                {
+                    let __field0 = match _serde::de::SeqAccess::next_element::<T>(&mut __seq)? {
+                        _serde::__private228::Some(__value) => __value,
+                        _serde::__private228::None => {
+                            return _serde::__private228::Err(_serde::de::Error::invalid_length(
+                                0usize,
+                                &"tuple struct LineString with 1 element",
+                            ));
+                        }
+                    };
+                    _serde::__private228::Ok(LineString(__field0))
+                }
+            }
+            _serde::Deserializer::deserialize_newtype_struct(
+                __deserializer,
+                "geoserde::LineString",
+                __Visitor {
+                    marker: _serde::__private228::PhantomData::<LineString<T>>,
+                    lifetime: _serde::__private228::PhantomData,
+                },
+            )
         }
-
-        de.deserialize_newtype_struct("geoserde::LineString", Visitor)
-            .map(Self)
     }
-}
-
-fn visit_point_array<'de, S: serde::de::SeqAccess<'de>, const N: usize>(
-    mut seq: S,
-) -> Result<[Point; N], <S as serde::de::SeqAccess<'de>>::Error> {
-    let mut array = [Point::default(); N];
-    for i in 0..N {
-        match seq.next_element()? {
-            Some(p) => array[i] = p,
-            None => return Err(serde::de::Error::invalid_length(i, &N.to_string().as_str())),
-        }
-    }
-    Ok(array)
-}
+};

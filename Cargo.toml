@@ -44,3 +44,7 @@ geojson = { version = "0.24.2" }
 geozero = { version = "0.14.0" }
 serde = { version = "1.0.188", features = ["derive"] }
 shapefile = { version = "0.6.0", features = ["geo-types"] }
+
+[profile.dev.package."serde_core"]
+opt-level = 0
+debug = true

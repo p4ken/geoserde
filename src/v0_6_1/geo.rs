@@ -1,57 +1,44 @@
 use serde::Deserialize;
 
-use crate::v0_6_1::{DeserializeGeometry, Point};
+use crate::v0_6_1::DeserializeGeometry;
 
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let p = Point::deserialize(de)?;
+        let p = super::Point::deserialize(de)?;
         Ok(geo_types::Point::new(p.x, p.y))
     }
 }
 
 impl DeserializeGeometry for geo_types::LineString {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = geo_types::LineString;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("sequence of Points")
-            }
-
-            fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
-            where
-                S: serde::de::SeqAccess<'de>,
-            {
-                let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or(0));
-                while let Some(c) = seq.next_element()?.map(parse_coord) {
-                    vec.push(c);
-                }
-                Ok(vec.into())
-            }
-        }
-
-        de.deserialize_newtype_struct("geoserde::LineString", Visitor)
+        let vec = super::LineString::<Vec<_>>::deserialize(de)?.0;
+        Ok(geo_types::LineString(vec))
     }
 }
 
 impl DeserializeGeometry for geo_types::Line {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let [start, end] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        let [start, end] = super::LineString::<[_; _]>::deserialize(de)?
+            .0
+            .map(parse_coord);
         Ok(geo_types::Line::new(start, end))
     }
 }
 
 impl DeserializeGeometry for geo_types::Rect {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let [c1, _, c2, _, _] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        let [c1, _, c2, _, _] = super::LineString::<[_; _]>::deserialize(de)?
+            .0
+            .map(parse_coord);
         Ok(geo_types::Rect::new(c1, c2))
     }
 }
 
 impl DeserializeGeometry for geo_types::Triangle {
     fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let [v1, v2, v3] = super::LineString::deserialize(de)?.0.map(parse_coord);
+        let [v1, v2, v3] = super::LineString::<[_; _]>::deserialize(de)?
+            .0
+            .map(parse_coord);
         Ok(geo_types::Triangle::new(v1, v2, v3))
     }
 }
@@ -77,6 +64,6 @@ impl DeserializeGeometry for geo_types::Polygon {
     }
 }
 
-fn parse_coord(p: Point) -> geo_types::Coord {
+fn parse_coord(p: super::Point) -> geo_types::Coord {
     [p.x, p.y].into()
 }

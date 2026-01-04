@@ -20,7 +20,7 @@ impl<'de> GeometryDeserializer<'de> {
         }
     }
 
-    fn deserialize_line_string<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    fn deserialize_point_seq<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -121,13 +121,13 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         visitor: V,
     ) -> Result<V::Value, Self::Error> {
         match name {
-            "geoserde::LineString" => self.deserialize_line_string(visitor),
+            "geoserde::LineString" => visitor.visit_newtype_struct(self),
             _ => todo!(),
         }
     }
 
     fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        self.deserialize_any(visitor)
+        self.deserialize_point_seq(visitor)
     }
 
     fn deserialize_tuple<V: Visitor<'de>>(
@@ -135,7 +135,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         _len: usize,
         visitor: V,
     ) -> Result<V::Value, Self::Error> {
-        self.deserialize_any(visitor)
+        self.deserialize_seq(visitor)
     }
 
     fn deserialize_tuple_struct<V: Visitor<'de>>(
