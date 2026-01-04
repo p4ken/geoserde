@@ -1,7 +1,7 @@
 #[allow(unused)]
-#[derive(geoserde::GeoDeserialize)]
+// #[derive(geoserde::GeoDeserialize)]
 pub struct Child2 {
-    #[geoserde(geometry)]
+    // #[geoserde(geometry)]
     loc: geo_types::Point,
     count: i32,
 }
