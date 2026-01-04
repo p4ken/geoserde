@@ -46,3 +46,7 @@ pub struct Point {
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(rename = "geoserde::LineString")]
 pub struct LineString<T>(pub T);
+
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[serde(rename = "geoserde::Polygon")]
+pub struct Polygon<T>(pub T);
