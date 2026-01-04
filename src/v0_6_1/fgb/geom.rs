@@ -159,7 +159,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     ) -> Result<V::Value, Self::Error> {
         match name {
             "geoserde::Point" => self.deserilize_point(visitor),
-            _ => todo!(),
+            _ => todo!("{}", name),
         }
     }
 

@@ -14,7 +14,15 @@ pub fn serialize<S: serde::Serializer>(
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     de: D,
 ) -> Result<G, D::Error> {
-    G::deserialize(de)
+    G::deserialize_geometry(de)
+}
+
+pub trait SerializeGeometry: Serialize {}
+impl SerializeGeometry for geo_types::Point {}
+impl<T: SerializeGeometry> SerializeGeometry for &T {}
+
+pub trait DeserializeGeometry: Sized {
+    fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 
 /// Feature to deserialize a geometry with no properties
@@ -24,14 +32,6 @@ pub struct GeometrySink<G: DeserializeGeometry> {
     #[serde(rename = "geoserde::geometry")]
     /// Deserialized geometry
     pub g: G,
-}
-
-pub trait SerializeGeometry: Serialize {}
-impl SerializeGeometry for geo_types::Point {}
-impl<T: SerializeGeometry> SerializeGeometry for &T {}
-
-pub trait DeserializeGeometry: Sized {
-    fn deserialize<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
