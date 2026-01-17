@@ -36,14 +36,14 @@ impl DeserializeGeometry for geo_types::Line {
 
 impl DeserializeGeometry for geo_types::Rect {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let [c1, _, c2, _] = super::LineString::<[super::Point; _]>::deserialize(de)?.0;
+        let [c1, _, c2, _, _] = super::LineString::<[super::Point; _]>::deserialize(de)?.0;
         Ok(geo_types::Rect::new(c1, c2))
     }
 }
 
 impl DeserializeGeometry for geo_types::Triangle {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        let [v1, v2, v3] = super::LineString::<[super::Point; _]>::deserialize(de)?
+        let [v1, v2, v3, _] = super::LineString::<[super::Point; _]>::deserialize(de)?
             .0
             .map(Into::into);
         Ok(geo_types::Triangle::new(v1, v2, v3))

@@ -5,6 +5,7 @@ use crate::v0_6_1::fgb::coord::PointIter;
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
 }
+
 impl<'de> GeometryDeserializer<'de> {
     pub fn new(geom: flatgeobuf::Geometry<'de>) -> Self {
         Self { geom }
@@ -24,11 +25,11 @@ impl<'de> GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        // FIXME: Ensure seq of geoserde::Point. SeqDeserializer accepts any.
         let de = SeqDeserializer::new(PointIter::new(self.geom));
         visitor.visit_seq(de)
     }
 }
+
 impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     type Error = serde::de::value::Error;
 

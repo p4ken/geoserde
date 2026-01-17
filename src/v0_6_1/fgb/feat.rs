@@ -1,8 +1,5 @@
 use flatgeobuf::{ColumnType, FgbFeature};
-use serde::de::{
-    value::{I32Deserializer, StrDeserializer},
-    Error, MapAccess,
-};
+use serde::de::{Error, IntoDeserializer, MapAccess};
 
 use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
 
@@ -51,7 +48,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             // This is because "geometry" may be used as a property name
             // and "::" is not used in normal property names.
             return Ok(Some(
-                seed.deserialize(StrDeserializer::new("geoserde::geometry"))?,
+                seed.deserialize("geoserde::geometry".into_deserializer())?,
             ));
         }
 
@@ -63,7 +60,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             Some(c) => c,
             None => return Ok(None),
         };
-        let value = seed.deserialize(StrDeserializer::new(&col.name))?;
+        let value = seed.deserialize(col.name.as_str().into_deserializer())?;
         self.col_type = Some(col.col_type);
         Ok(Some(value))
     }
@@ -79,12 +76,12 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         match self.col_type.unwrap() {
             ColumnType::Int => {
                 let n = i32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
-                seed.deserialize(I32Deserializer::new(n))
+                seed.deserialize(n.into_deserializer())
             }
             ColumnType::String => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
                 let s = std::str::from_utf8(self.take_prop(len)?).map_err(Error::custom)?;
-                seed.deserialize(StrDeserializer::new(s))
+                seed.deserialize(s.into_deserializer())
             }
             x => panic!("{}", x.0),
         }

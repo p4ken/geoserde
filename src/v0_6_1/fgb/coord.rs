@@ -4,11 +4,13 @@ pub struct PointIter<'de> {
     fbs_geom: flatgeobuf::Geometry<'de>,
     index: usize,
 }
+
 impl<'de> PointIter<'de> {
     pub fn new(fbs_geom: flatgeobuf::Geometry<'de>) -> Self {
         Self { fbs_geom, index: 0 }
     }
 }
+
 impl PointIter<'_> {
     fn xy(&self) -> Option<[f64; 2]> {
         let mut iter = self.fbs_geom.xy()?.iter().skip(self.index * 2);
@@ -21,6 +23,7 @@ impl PointIter<'_> {
         self.fbs_geom.m()?.iter().nth(self.index)
     }
 }
+
 impl Iterator for PointIter<'_> {
     type Item = Point;
 
