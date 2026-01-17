@@ -34,4 +34,17 @@ impl Iterator for PointIter<'_> {
         self.index += 1;
         Some(Point { x, y, z, m })
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len(), Some(self.len()))
+    }
+}
+
+impl ExactSizeIterator for PointIter<'_> {
+    fn len(&self) -> usize {
+        match self.fbs_geom.xy() {
+            Some(xy) => xy.len() / 2,
+            None => 0,
+        }
+    }
 }
