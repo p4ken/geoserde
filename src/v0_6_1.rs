@@ -101,7 +101,7 @@ impl<P: From<Point>> FromPointSeq for Vec<P> {
 }
 impl<P: From<Point>, const N: usize> FromPointSeq for [P; N] {
     fn from_point_seq<'de, A: serde::de::SeqAccess<'de>>( mut seq: A) -> Result<Self, A::Error> {
-        if let Some(size) = seq.size_hint() && size != N {
+        if let Some(size) = seq.size_hint() && size < N {
             return Err(serde::de::Error::invalid_length(size, &N.to_string().as_str()));
         }
 
@@ -109,15 +109,17 @@ impl<P: From<Point>, const N: usize> FromPointSeq for [P; N] {
         let mut i = 0;
         // Deserialize Point
         while let Some(point) = seq.next_element()? {
-            if i >= N {
-                return Err(serde::de::Error::invalid_length(i + 1, &N.to_string().as_str()));
+            if i == N {
+                // Ignore remaining elements
+                break;
             }
             array[i] = point;
             i += 1;
         }
-        if i != N {
+        if i < N {
             return Err(serde::de::Error::invalid_length(i, &N.to_string().as_str()));
         }
+
         Ok(array.map(Into::into))
     }
 }
