@@ -25,6 +25,6 @@ pub fn triangle(i: i32) -> geo_types::Triangle {
 
 pub fn donut(i: i32) -> geo_types::Polygon {
     let mut donut = rect(i + 2).to_polygon();
-    // donut.interiors_push(rect(i + 1).to_polygon().into_inner().0);
+    donut.interiors_push(rect(i + 1).to_polygon().into_inner().0);
     donut
 }
