@@ -6,6 +6,53 @@ pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
 }
 
+// LineStringをラップするための構造体
+struct LineStringWrapper<'de> {
+    geom: flatgeobuf::Geometry<'de>,
+}
+
+impl<'de> IntoDeserializer<'de, serde::de::value::Error> for LineStringWrapper<'de> {
+    type Deserializer = LineStringDeserializer<'de>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        LineStringDeserializer { geom: self.geom }
+    }
+}
+
+// LineStringのデシリアライザ
+struct LineStringDeserializer<'de> {
+    geom: flatgeobuf::Geometry<'de>,
+}
+
+impl<'de> serde::Deserializer<'de> for LineStringDeserializer<'de> {
+    type Error = serde::de::value::Error;
+
+    fn deserialize_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
+        Err(Error::custom("expected LineString"))
+    }
+
+    fn deserialize_newtype_struct<V: Visitor<'de>>(
+        self,
+        name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        if name == "geoserde::LineString" {
+            visitor.visit_newtype_struct(SeqDeserializer::new(PointIter::new(self.geom)))
+        } else {
+            Err(Error::invalid_type(
+                serde::de::Unexpected::Other(name),
+                &"geoserde::LineString",
+            ))
+        }
+    }
+
+    serde::forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char str string
+        bytes byte_buf option unit unit_struct seq tuple
+        tuple_struct map struct enum identifier ignored_any
+    }
+}
+
 impl<'de> GeometryDeserializer<'de> {
     pub fn new(geom: flatgeobuf::Geometry<'de>) -> Self {
         Self { geom }
@@ -137,9 +184,10 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
                 visitor.visit_newtype_struct(SeqDeserializer::new(PointIter::new(self.geom)))
             }
 
-            // FIXME: 2つのSeqの間にgeoserde::LineStringというNewTyoeが挟まる
+            // Polygonは LineString のシーケンスとして表現される
+            // 各リングが geoserde::LineString としてデシリアライズされる
             "geoserde::Polygon" => visitor.visit_newtype_struct(SeqDeserializer::new(
-                std::iter::once(SeqDeserializer::new(PointIter::new(self.geom))),
+                std::iter::once(LineStringWrapper { geom: self.geom }),
             )),
             _ => {
                 return Err(Error::invalid_type(
