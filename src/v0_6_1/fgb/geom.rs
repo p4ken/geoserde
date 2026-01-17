@@ -6,22 +6,37 @@ pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
 }
 
+// リングの範囲を持つラッパー
+struct RingGeometry<'de> {
+    geom: flatgeobuf::Geometry<'de>,
+    start: usize,
+    end: usize,
+}
+
 // LineStringをラップするための構造体
 struct LineStringWrapper<'de> {
     geom: flatgeobuf::Geometry<'de>,
+    start: usize,
+    end: usize,
 }
 
 impl<'de> IntoDeserializer<'de, serde::de::value::Error> for LineStringWrapper<'de> {
     type Deserializer = LineStringDeserializer<'de>;
 
     fn into_deserializer(self) -> Self::Deserializer {
-        LineStringDeserializer { geom: self.geom }
+        LineStringDeserializer {
+            geom: self.geom,
+            start: self.start,
+            end: self.end,
+        }
     }
 }
 
 // LineStringのデシリアライザ
 struct LineStringDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
+    start: usize,
+    end: usize,
 }
 
 impl<'de> serde::Deserializer<'de> for LineStringDeserializer<'de> {
@@ -37,7 +52,11 @@ impl<'de> serde::Deserializer<'de> for LineStringDeserializer<'de> {
         visitor: V,
     ) -> Result<V::Value, Self::Error> {
         if name == "geoserde::LineString" {
-            visitor.visit_newtype_struct(SeqDeserializer::new(PointIter::new(self.geom)))
+            // start..end の範囲のポイントのみを取得
+            let points = PointIter::new(self.geom)
+                .skip(self.start)
+                .take(self.end - self.start);
+            visitor.visit_newtype_struct(SeqDeserializer::new(points))
         } else {
             Err(Error::invalid_type(
                 serde::de::Unexpected::Other(name),
@@ -186,9 +205,26 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
 
             // Polygonは LineString のシーケンスとして表現される
             // 各リングが geoserde::LineString としてデシリアライズされる
-            "geoserde::Polygon" => visitor.visit_newtype_struct(SeqDeserializer::new(
-                std::iter::once(LineStringWrapper { geom: self.geom }),
-            )),
+            // 全てのリング(exterior + interiors)に対応
+            "geoserde::Polygon" => {
+                if let Some(ends) = self.geom.ends() {
+                    let mut rings = Vec::new();
+                    let mut start = 0;
+
+                    for end in ends {
+                        rings.push(LineStringWrapper {
+                            geom: self.geom,
+                            start,
+                            end: end as usize,
+                        });
+                        start = end as usize;
+                    }
+
+                    visitor.visit_newtype_struct(SeqDeserializer::new(rings.into_iter()))
+                } else {
+                    Err(Error::custom("Polygon has no ends"))
+                }
+            }
             _ => {
                 return Err(Error::invalid_type(
                     serde::de::Unexpected::Other(name),
