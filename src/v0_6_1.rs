@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+mod de;
 #[cfg(feature = "flatgeobuf")]
 pub mod fgb;
 mod geo;

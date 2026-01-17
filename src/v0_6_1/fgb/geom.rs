@@ -24,6 +24,7 @@ impl<'de> GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        // FIXME: Ensure seq of geoserde::Point. SeqDeserializer accepts any.
         let de = SeqDeserializer::new(CoordIter::new(self.geom));
         visitor.visit_seq(de)
     }

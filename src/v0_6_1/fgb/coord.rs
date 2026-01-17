@@ -36,6 +36,7 @@ impl Iterator for CoordIter<'_> {
     }
 }
 
+// TODO: Rename to crate::PointDeserializer
 pub struct CoordMap {
     x: f64,
     y: f64,
