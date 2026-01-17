@@ -43,6 +43,13 @@ pub struct Point {
     pub z: Option<f64>,
     pub m: Option<f64>,
 }
+impl<'de> serde::de::IntoDeserializer<'de> for Point {
+    type Deserializer = de::PointDeserializer;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        de::PointDeserializer::new(self)
+    }
+}
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(rename = "geoserde::LineString")]

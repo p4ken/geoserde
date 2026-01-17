@@ -1,7 +1,4 @@
-use serde::de::{
-    value::{F64Deserializer, StrDeserializer},
-    MapAccess, Visitor,
-};
+use serde::de::{IntoDeserializer, MapAccess, Visitor};
 
 pub struct PointDeserializer {
     point: crate::v0_6_1::Point,
@@ -9,128 +6,129 @@ pub struct PointDeserializer {
 }
 
 impl PointDeserializer {
-    pub fn new(x: f64, y: f64, z: Option<f64>, m: Option<f64>) -> Self {
-        Self {
-            point: crate::v0_6_1::Point { x, y, z, m },
-            key: None,
-        }
+    pub fn new(point: crate::v0_6_1::Point) -> Self {
+        Self { point, key: None }
     }
 }
 
-impl<'de> serde::Deserializer<'de> for &mut PointDeserializer {
+impl<'de> serde::Deserializer<'de> for PointDeserializer {
     type Error = serde::de::value::Error;
 
     fn deserialize_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+        Err(serde::de::Error::custom("expected geoserde::Point"))
     }
 
-    fn deserialize_bool<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_i8<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_i8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_i16<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_i16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_i32<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_i32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_i64<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_i64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_u8<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_u8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_u16<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_u16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_u32<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_u32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_u64<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_u64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_f32<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_f32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_f64<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_f64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_char<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_str<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_str<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_string<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_string<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_bytes<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_bytes<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_byte_buf<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_byte_buf<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_option<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_unit<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_unit<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
     fn deserialize_unit_struct<V: Visitor<'de>>(
         self,
         _name: &'static str,
-        _: V,
+        visitor: V,
     ) -> Result<V::Value, Self::Error> {
-        todo!()
+        self.deserialize_any(visitor)
     }
 
     fn deserialize_newtype_struct<V: Visitor<'de>>(
         self,
         _name: &'static str,
-        _: V,
+        visitor: V,
     ) -> Result<V::Value, Self::Error> {
-        todo!()
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_seq<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_tuple<V: Visitor<'de>>(self, _: usize, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_tuple<V: Visitor<'de>>(
+        self,
+        _: usize,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
     fn deserialize_tuple_struct<V: Visitor<'de>>(
         self,
         _name: &'static str,
         _len: usize,
-        _: V,
+        visitor: V,
     ) -> Result<V::Value, Self::Error> {
-        todo!()
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_map<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_map<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
     fn deserialize_struct<V: Visitor<'de>>(
@@ -141,7 +139,7 @@ impl<'de> serde::Deserializer<'de> for &mut PointDeserializer {
     ) -> Result<V::Value, Self::Error> {
         match name {
             "geoserde::Point" => visitor.visit_map(self),
-            _ => todo!(),
+            _ => self.deserialize_any(visitor),
         }
     }
 
@@ -149,17 +147,17 @@ impl<'de> serde::Deserializer<'de> for &mut PointDeserializer {
         self,
         _name: &'static str,
         _: &'static [&'static str],
-        _: V,
+        visitor: V,
     ) -> Result<V::Value, Self::Error> {
-        todo!()
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_identifier<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 
-    fn deserialize_ignored_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Self::Error> {
-        todo!()
+    fn deserialize_ignored_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
+        self.deserialize_any(visitor)
     }
 }
 
@@ -185,7 +183,7 @@ impl<'de> MapAccess<'de> for PointDeserializer {
         }
 
         self.key
-            .map(|key| seed.deserialize(StrDeserializer::new(key.as_str())))
+            .map(|key| seed.deserialize(key.as_str().into_deserializer()))
             .transpose()
     }
 
@@ -194,10 +192,10 @@ impl<'de> MapAccess<'de> for PointDeserializer {
         V: serde::de::DeserializeSeed<'de>,
     {
         match self.key.unwrap() {
-            Key::X => seed.deserialize(F64Deserializer::new(self.point.x)),
-            Key::Y => seed.deserialize(F64Deserializer::new(self.point.y)),
-            Key::Z => seed.deserialize(F64Deserializer::new(self.point.z.unwrap())),
-            Key::M => seed.deserialize(F64Deserializer::new(self.point.m.unwrap())),
+            Key::X => seed.deserialize(self.point.x.into_deserializer()),
+            Key::Y => seed.deserialize(self.point.y.into_deserializer()),
+            Key::Z => seed.deserialize(self.point.z.unwrap().into_deserializer()),
+            Key::M => seed.deserialize(self.point.m.unwrap().into_deserializer()),
         }
     }
 }

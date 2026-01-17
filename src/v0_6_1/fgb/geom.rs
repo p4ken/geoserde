@@ -1,6 +1,6 @@
-use serde::de::{value::SeqDeserializer, Error, Visitor};
+use serde::de::{value::SeqDeserializer, Error, IntoDeserializer, Visitor};
 
-use crate::v0_6_1::fgb::coord::CoordIter;
+use crate::v0_6_1::fgb::coord::PointIter;
 
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,
@@ -14,8 +14,8 @@ impl<'de> GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match CoordIter::new(self.geom).next() {
-            Some(xy) => visitor.visit_map(xy),
+        match PointIter::new(self.geom).next() {
+            Some(xy) => visitor.visit_map(xy.into_deserializer()),
             None => Err(Error::custom("fbs has no coords")),
         }
     }
@@ -25,7 +25,7 @@ impl<'de> GeometryDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         // FIXME: Ensure seq of geoserde::Point. SeqDeserializer accepts any.
-        let de = SeqDeserializer::new(CoordIter::new(self.geom));
+        let de = SeqDeserializer::new(PointIter::new(self.geom));
         visitor.visit_seq(de)
     }
 }
