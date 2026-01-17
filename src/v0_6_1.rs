@@ -87,10 +87,8 @@ pub trait FromPointSeq : Sized {
 }
 impl<P: From<Point>> FromPointSeq for Vec<P> {
     fn from_point_seq<'de, A: serde::de::SeqAccess<'de>>( mut seq: A) -> Result<Self, A::Error> {
-        let mut vec = match seq.size_hint() {
-            Some(size) => Vec::with_capacity(size),
-            None => Vec::new(),
-        };
+        // Optimize heap allocation
+        let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or(0));
 
         // Deserialize Point
         while let Some(point) = seq.next_element()? {
@@ -124,6 +122,37 @@ impl<P: From<Point>, const N: usize> FromPointSeq for [P; N] {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, Deserialize)]
-#[serde(rename = "geoserde::Polygon")]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
+impl<'de, T: FromLineStringSeq> Deserialize<'de>  for Polygon<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        struct LineStringSeqVisitor<T>(std::marker::PhantomData<T>);
+        impl<'de , T: FromLineStringSeq> serde::de::Visitor<'de> for LineStringSeqVisitor<T> {
+            type Value = T;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str(&"a sequence of geoserde::LineString")
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+                T::from_linestring_seq(seq)
+            }
+        }
+
+        struct NewtypeVisitor<T>(std::marker::PhantomData<T>);
+        impl<'de, T: FromLineStringSeq> serde::de::Visitor<'de> for NewtypeVisitor<T> {
+            type Value = T;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("a newtype struct")
+            }
+            fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, de: D) -> Result<Self::Value, D::Error> {
+                de.deserialize_seq(LineStringSeqVisitor(std::marker::PhantomData))
+            }
+        }
+        de.deserialize_newtype_struct("geoserde::Polygon", NewtypeVisitor(std::marker::PhantomData)).map(Self)
+    }
+}
+
+pub trait FromLineStringSeq : Sized {
+    fn from_linestring_seq<'de, A: serde::de::SeqAccess<'de> >(seq: A) -> Result<Self, A::Error>;
+}

@@ -28,6 +28,16 @@ impl<'de> GeometryDeserializer<'de> {
         let de = SeqDeserializer::new(PointIter::new(self.geom));
         visitor.visit_seq(de)
     }
+
+    fn deserializable_polygon<V>(&self, visitor: V) -> Result<V::Value, serde::de::value::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        let de = SeqDeserializer::new(std::iter::once(SeqDeserializer::new(PointIter::new(
+            self.geom,
+        ))));
+        visitor.visit_seq(de)
+    }
 }
 
 impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
@@ -123,13 +133,25 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
         visitor: V,
     ) -> Result<V::Value, Self::Error> {
         match name {
-            "geoserde::LineString" => visitor.visit_newtype_struct(self),
-            _ => todo!(),
+            "geoserde::LineString" => {
+                visitor.visit_newtype_struct(SeqDeserializer::new(PointIter::new(self.geom)))
+            }
+
+            // FIXME: 2つのSeqの間にgeoserde::LineStringというNewTyoeが挟まる
+            "geoserde::Polygon" => visitor.visit_newtype_struct(SeqDeserializer::new(
+                std::iter::once(SeqDeserializer::new(PointIter::new(self.geom))),
+            )),
+            _ => {
+                return Err(Error::invalid_type(
+                    serde::de::Unexpected::Other(name),
+                    &"geoserde::LineString or geoserde::Polygon",
+                ))
+            }
         }
     }
 
     fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Self::Error> {
-        self.deserialize_point_seq(visitor)
+        self.deserialize_any(visitor)
     }
 
     fn deserialize_tuple<V: Visitor<'de>>(

@@ -173,7 +173,6 @@ fn triangle_test() -> Result<()> {
     Ok(())
 }
 
-#[ignore = "temporary"]
 #[test]
 fn polygon_test() -> Result<()> {
     let mut fgb_buf = vec![];
