@@ -25,7 +25,7 @@ fn points_test() -> Result<()> {
         w.feature_end(0)?;
 
         testing::p(1).to_geometry().process_geom(&mut w)?;
-        w.property(1, "number", &ColumnValue::Int(2))?;
+        w.property(0, "number", &ColumnValue::Int(2))?;
         w.feature_end(1)?;
 
         w.write(&mut fgb_buf)?;
