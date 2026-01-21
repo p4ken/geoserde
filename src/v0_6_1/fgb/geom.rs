@@ -84,7 +84,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     ) -> Result<V::Value, Self::Error> {
         match name {
             "geoserde::LineString" => {
-                visitor.visit_newtype_struct(SeqDeserializer::new(PointIter::new(self.geom)))
+                visitor.visit_newtype_struct(PointIter::new(self.geom).into_deserializer())
             }
 
             // Polygonは LineString のシーケンスとして表現される

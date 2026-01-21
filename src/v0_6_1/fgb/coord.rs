@@ -1,3 +1,5 @@
+use serde::de::{value::SeqDeserializer, IntoDeserializer};
+
 use crate::v0_6_1::Point;
 
 pub struct PointIter<'de> {
@@ -48,3 +50,15 @@ impl ExactSizeIterator for PointIter<'_> {
         }
     }
 }
+
+impl<'de> IntoDeserializer<'de> for PointIter<'de> {
+    type Deserializer = SeqDeserializer<Self, serde::de::value::Error>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self)
+    }
+}
+
+// struct MultiPart {}
+
+// struct GeometryCollection {}
