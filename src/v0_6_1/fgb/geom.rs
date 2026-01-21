@@ -27,7 +27,7 @@ impl<'de> serde::Deserializer<'de> for LineStringDeserializer<'de> {
     ) -> Result<V::Value, Self::Error> {
         if name == "geoserde::LineString" {
             // start..end の範囲のポイントのみを取得
-            let points = PointIter::new(self.geom)
+            let points = PointIter::new(self.geom, 0)
                 .skip(self.start)
                 .take(self.end - self.start);
             visitor.visit_newtype_struct(SeqDeserializer::new(points))
@@ -63,7 +63,7 @@ impl<'de> GeometryDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match PointIter::new(self.geom).next() {
+        match PointIter::new(self.geom, 0).next() {
             Some(xy) => visitor.visit_map(xy.into_deserializer()),
             None => Err(Error::custom("fbs has no coords")),
         }
@@ -84,7 +84,7 @@ impl<'de> serde::Deserializer<'de> for GeometryDeserializer<'de> {
     ) -> Result<V::Value, Self::Error> {
         match name {
             "geoserde::LineString" => {
-                visitor.visit_newtype_struct(PointIter::new(self.geom).into_deserializer())
+                visitor.visit_newtype_struct(PointIter::new(self.geom, 0).into_deserializer())
             }
 
             // Polygonは LineString のシーケンスとして表現される

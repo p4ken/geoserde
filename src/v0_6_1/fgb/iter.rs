@@ -9,16 +9,12 @@ pub struct PointIter<'a> {
 }
 
 impl<'a> PointIter<'a> {
-    pub fn new(fbs: flatgeobuf::Geometry<'a>) -> Self {
+    pub fn new(fbs: flatgeobuf::Geometry<'a>, offset: usize) -> Self {
         let len = fbs.xy().map(|xy| xy.len() / 2).unwrap_or(0);
-        Self { fbs, index: 0, len }
-    }
-
-    pub fn with_range(fbs: flatgeobuf::Geometry<'a>, start: usize, end: usize) -> Self {
         Self {
             fbs,
-            index: start,
-            len: end,
+            index: offset,
+            len,
         }
     }
 }
@@ -91,11 +87,10 @@ impl<'a> Iterator for LineStringIter<'a> {
         } else {
             ends.get(self.index - 1) as usize
         };
-        let end = ends.get(self.index) as usize;
 
         self.index += 1;
 
-        Some(PointIter::with_range(self.fbs, start, end))
+        Some(PointIter::new(self.fbs, start))
     }
 }
 
