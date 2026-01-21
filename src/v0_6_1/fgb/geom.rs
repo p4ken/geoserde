@@ -1,6 +1,6 @@
 use serde::de::{value::SeqDeserializer, Error, IntoDeserializer, Visitor};
 
-use crate::v0_6_1::fgb::coord::PointIter;
+use crate::v0_6_1::fgb::iter::PointIter;
 
 pub struct GeometryDeserializer<'de> {
     geom: flatgeobuf::Geometry<'de>,

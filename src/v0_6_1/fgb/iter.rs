@@ -2,27 +2,27 @@ use serde::de::{value::SeqDeserializer, IntoDeserializer};
 
 use crate::v0_6_1::Point;
 
-pub struct PointIter<'de> {
-    fbs_geom: flatgeobuf::Geometry<'de>,
+pub struct PointIter<'a> {
+    fbs: flatgeobuf::Geometry<'a>,
     index: usize,
 }
 
-impl<'de> PointIter<'de> {
-    pub fn new(fbs_geom: flatgeobuf::Geometry<'de>) -> Self {
-        Self { fbs_geom, index: 0 }
+impl<'a> PointIter<'a> {
+    pub fn new(fbs: flatgeobuf::Geometry<'a>) -> Self {
+        Self { fbs, index: 0 }
     }
 }
 
 impl PointIter<'_> {
     fn xy(&self) -> Option<[f64; 2]> {
-        let mut iter = self.fbs_geom.xy()?.iter().skip(self.index * 2);
+        let mut iter = self.fbs.xy()?.iter().skip(self.index * 2);
         Some([iter.next()?, iter.next()?])
     }
     fn z(&self) -> Option<f64> {
-        self.fbs_geom.z()?.iter().nth(self.index)
+        self.fbs.z()?.iter().nth(self.index)
     }
     fn m(&self) -> Option<f64> {
-        self.fbs_geom.m()?.iter().nth(self.index)
+        self.fbs.m()?.iter().nth(self.index)
     }
 }
 
@@ -44,14 +44,14 @@ impl Iterator for PointIter<'_> {
 
 impl ExactSizeIterator for PointIter<'_> {
     fn len(&self) -> usize {
-        match self.fbs_geom.xy() {
+        match self.fbs.xy() {
             Some(xy) => xy.len() / 2,
             None => 0,
         }
     }
 }
 
-impl<'de> IntoDeserializer<'de> for PointIter<'de> {
+impl IntoDeserializer<'_> for PointIter<'_> {
     type Deserializer = SeqDeserializer<Self, serde::de::value::Error>;
 
     fn into_deserializer(self) -> Self::Deserializer {

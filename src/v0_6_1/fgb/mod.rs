@@ -1,6 +1,6 @@
-mod coord;
 mod feat;
 mod geom;
+mod iter;
 
 pub use feat::FeatureDeserializer;
 
