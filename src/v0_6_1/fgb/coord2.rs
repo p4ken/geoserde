@@ -1,7 +1,7 @@
 use std::iter::{Skip, Take};
 
 use geo_types::Coord;
-use serde::de::{IntoDeserializer, SeqAccess};
+use serde::de::{value::EnumAccessDeserializer, IntoDeserializer, SeqAccess};
 
 use crate::v0_6_1::Point;
 
@@ -109,6 +109,7 @@ impl<'a> Iterator for PolygonIter<'a> {
     type Item = LineStringIter<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // FIXME: Allow empty parts
         let geom = self.parts.next()?;
         let ends = match geom.ends() {
             Some(ends) if ends.is_empty() => None,
@@ -141,7 +142,10 @@ impl<'de> GeometryDeserializer<'de> {
             flatgeobuf::GeometryType::Unknown => geom_type,
             t => t,
         };
-        todo!()
+        match geom_type {
+            flatgeobuf::GeometryType::Point => todo!(),
+            _ => todo!(),
+        }
     }
 }
 
@@ -153,7 +157,9 @@ impl<'de> serde::de::EnumAccess<'de> for GeometryDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        todo!()
+        let geom_type = flatgeobuf::GeometryType::Polygon;
+        let value = seed.deserialize(geom_type.variant_name().unwrap().into_deserializer())?;
+        Ok((value, self))
     }
 }
 
@@ -161,14 +167,18 @@ impl<'de> serde::de::VariantAccess<'de> for GeometryDeserializer<'de> {
     type Error = serde::de::value::Error;
 
     fn unit_variant(self) -> Result<(), Self::Error> {
-        todo!()
+        Ok(())
     }
 
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        todo!()
+        let geom_type = flatgeobuf::GeometryType::Polygon;
+        match geom_type {
+            flatgeobuf::GeometryType::Point => todo!(),
+            _ => todo!(),
+        }
     }
 
     fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
