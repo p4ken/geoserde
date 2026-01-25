@@ -2,6 +2,7 @@ use serde::de::{value::SeqDeserializer, IntoDeserializer};
 
 use crate::v0_6_1::Point;
 
+/// Iterates [`Point`] from fbs coordinates.
 pub struct PointIter<'a> {
     fbs: flatgeobuf::Geometry<'a>,
     index: usize,
@@ -67,6 +68,7 @@ impl IntoDeserializer<'_> for PointIter<'_> {
     }
 }
 
+/// Iterates nested [`PointIter`].
 struct LineStringIter<'a> {
     fbs: flatgeobuf::Geometry<'a>,
     index: usize,
@@ -76,13 +78,14 @@ impl<'a> Iterator for LineStringIter<'a> {
     type Item = PointIter<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // FIXME: ends がないならシングルパートなので1回Someを返して終わり
         let ends = self.fbs.ends()?;
 
         if self.index >= ends.len() {
             return None;
         }
 
-        let start = if self.index == 0 {
+        let offset = if self.index == 0 {
             0
         } else {
             ends.get(self.index - 1) as usize
@@ -90,8 +93,17 @@ impl<'a> Iterator for LineStringIter<'a> {
 
         self.index += 1;
 
-        Some(PointIter::new(self.fbs, start))
+        Some(PointIter::new(self.fbs, offset))
     }
 }
 
+impl IntoDeserializer<'_> for LineStringIter<'_> {
+    type Deserializer = SeqDeserializer<Self, serde::de::value::Error>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self)
+    }
+}
+
+/// Iterates nested [`LineStringIter`].
 struct PolygonIter {}
