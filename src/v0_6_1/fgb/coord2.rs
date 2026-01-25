@@ -52,11 +52,12 @@ impl<'a> Iterator for PointIter<'a> {
     type Item = Point;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let x = self.xy.next()?;
-        let y = self.xy.next()?;
-        let z = self.z.next();
-        let m = self.m.next();
-        Some(Point { x, y, z, m })
+        Some(Point {
+            x: self.xy.next()?,
+            y: self.xy.next()?,
+            z: self.z.next(),
+            m: self.m.next(),
+        })
     }
 }
 
@@ -65,6 +66,7 @@ impl<'a> Iterator for PointIter<'a> {
 /// LineStrings are wrapped with [`PointIter`].
 pub struct LineStringIter<'a> {
     start: usize,
+    // TODO: ends が無いなら PointIter にフォールバックせよ
     ends: Option<flatbuffers::VectorIter<'a, u32>>,
     xy: Option<flatbuffers::Vector<'a, f64>>,
     z: Option<flatbuffers::Vector<'a, f64>>,
@@ -102,27 +104,32 @@ impl<'a> Iterator for LineStringIter<'a> {
 ///
 /// Polygons are wrapped with [`LineStringIter`].
 pub struct PolygonIter<'a> {
-    parts: flatbuffers::VectorIter<'a, flatgeobuf::Geometry<'a>>,
+    parts: Option<flatbuffers::VectorIter<'a, flatgeobuf::Geometry<'a>>>,
+    // FIXME: partsが無いなら LineStringIter にフォールバック
 }
 
 impl<'a> Iterator for PolygonIter<'a> {
     type Item = LineStringIter<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // FIXME: Allow empty parts
-        let geom = self.parts.next()?;
-        let ends = match geom.ends() {
-            Some(ends) if ends.is_empty() => None,
-            Some(ends) => Some(ends.iter()),
-            None => None,
-        };
-        Some(LineStringIter {
-            start: 0,
-            ends: ends,
-            xy: geom.xy(),
-            z: geom.z(),
-            m: geom.m(),
-        })
+        match &mut self.parts {
+            Some(parts) => {
+                let geom = parts.next()?;
+                let ends = match geom.ends() {
+                    Some(ends) if ends.is_empty() => None,
+                    Some(ends) => Some(ends.iter()),
+                    None => None,
+                };
+                Some(LineStringIter {
+                    start: 0,
+                    ends: ends,
+                    xy: geom.xy(),
+                    z: geom.z(),
+                    m: geom.m(),
+                })
+            }
+            None => todo!(),
+        }
     }
 }
 
