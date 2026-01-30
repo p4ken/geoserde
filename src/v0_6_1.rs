@@ -35,6 +35,13 @@ pub struct GeometrySink<G: DeserializeGeometry> {
     pub g: G,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename = "geoserde::Geometry")]
+pub enum Geometry {
+    #[serde(rename="geoserde::Point")]
+    Point(Point),
+}
+
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(rename = "geoserde::Point")]
 pub struct Point {

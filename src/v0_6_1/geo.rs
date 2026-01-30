@@ -16,7 +16,10 @@ impl DeserializeGeometry for geo_types::Coord {
 
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        geo_types::Coord::deserialize_geometry(de).map(Into::into)
+        match super::Geometry::deserialize(de) {
+            Ok(super::Geometry::Point(p)) => Ok(Self::new(p.x, p.y)),
+            Err(e) => Err(e),
+        }
     }
 }
 
