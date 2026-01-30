@@ -1,7 +1,14 @@
-use flatgeobuf::{ColumnType, FgbFeature};
-use serde::de::{Error, IntoDeserializer, MapAccess};
+use std::fmt::Display;
 
-use crate::v0_6_1::fgb::{geom::GeometryDeserializer, OwnedHeader};
+use flatgeobuf::{ColumnType, FgbFeature};
+use serde::de::{
+    value::EnumAccessDeserializer, DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
+};
+
+use crate::v0_6_1::fgb::{
+    geom2::{GeometryAccess, GeometryError},
+    OwnedHeader,
+};
 
 pub struct FeatureDeserializer<'de> {
     header: &'de OwnedHeader,
@@ -9,16 +16,19 @@ pub struct FeatureDeserializer<'de> {
     // This field is None in cases:
     // - fgb feature has no geometry
     // - geometry has been deserialized once
-    geom_de: Option<GeometryDeserializer<'de>>,
+    geom_de: Option<EnumAccessDeserializer<GeometryAccess<'de>>>,
 
     col_type: Option<ColumnType>,
     properties_buf: &'de [u8],
 }
+
 impl<'de> FeatureDeserializer<'de> {
     pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
             header,
-            geom_de: feat.geometry().map(GeometryDeserializer::new),
+            geom_de: feat
+                .geometry()
+                .map(|geom| GeometryAccess::new(geom, header.geom_type).into_deserializer()),
             col_type: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
@@ -27,16 +37,17 @@ impl<'de> FeatureDeserializer<'de> {
         }
     }
 }
+
 impl FeatureDeserializer<'_> {
-    fn take_prop(&mut self, n: usize) -> Result<&[u8], serde::de::value::Error> {
-        match self.properties_buf.split_off(..n) {
-            Some(slice) => Ok(slice),
-            None => Err(Error::custom("properties buffer out of bounds")),
-        }
+    fn take_prop(&mut self, n: usize) -> Result<&[u8], PropertyError> {
+        self.properties_buf
+            .split_off(..n)
+            .ok_or(PropertyError::Short)
     }
 }
+
 impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
-    type Error = serde::de::value::Error;
+    type Error = FeatureError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
@@ -46,12 +57,14 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         if self.geom_de.is_some() {
             // The geometry field must be renamed to "geoserde::geometry".
             // This is because "geometry" may be used as a property name
-            // and "::" is not used in normal property names.
+            // and "::" is not used generally.
             return Ok(Some(
-                seed.deserialize("geoserde::geometry".into_deserializer())?,
+                seed.deserialize("geoserde::geometry".into_deserializer())
+                    .map_err(FeatureError::Key)?,
             ));
         }
 
+        // Deserialize properties.
         let col_index = match self.properties_buf.split_off(..2) {
             Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
             None => return Ok(None),
@@ -60,17 +73,19 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             Some(c) => c,
             None => return Ok(None),
         };
-        let value = seed.deserialize(col.name.as_str().into_deserializer())?;
+        let key = seed
+            .deserialize(col.name.as_str().into_deserializer())
+            .map_err(FeatureError::Key)?;
         self.col_type = Some(col.col_type);
-        Ok(Some(value))
+        Ok(Some(key))
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
     where
-        V: serde::de::DeserializeSeed<'de>,
+        V: DeserializeSeed<'de>,
     {
         if let Some(geom) = self.geom_de.take() {
-            return seed.deserialize(geom);
+            return Ok(seed.deserialize(geom)?);
         }
 
         match self.col_type.unwrap() {
@@ -80,7 +95,7 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
             }
             ColumnType::String => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
-                let s = std::str::from_utf8(self.take_prop(len)?).map_err(Error::custom)?;
+                let s = std::str::from_utf8(self.take_prop(len)?).map_err(PropertyError::from)?;
                 seed.deserialize(s.into_deserializer())
             }
             x => panic!("{}", x.0),
@@ -210,5 +225,76 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         //     }
         //     ColumnType(_) => {}
         // }
+    }
+}
+
+#[derive(Debug)]
+pub enum FeatureError {
+    Key(serde::de::value::Error),
+    Geometry(GeometryError),
+    Property(PropertyError),
+    Deserialize(serde::de::value::Error),
+}
+
+impl Error for FeatureError {
+    fn custom<T: Display>(msg: T) -> Self {
+        Self::Deserialize(Error::custom(msg))
+    }
+}
+
+impl StdError for FeatureError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(match self {
+            Self::Key(e) => e,
+            Self::Geometry(e) => e,
+            Self::Deserialize(e) => e,
+            _ => None?,
+        })
+    }
+}
+
+impl Display for FeatureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Key(_) => write!(f, "attribute key deserializer failed"),
+            Self::Geometry(_) => write!(f, "geometry deserializer failed"),
+            Self::Property(_) => write!(f, "properties deserializer failed"),
+            Self::Deserialize(_) => write!(f, "deserialize impl failed"),
+        }
+    }
+}
+
+impl From<GeometryError> for FeatureError {
+    fn from(e: GeometryError) -> Self {
+        Self::Geometry(e)
+    }
+}
+
+impl From<PropertyError> for FeatureError {
+    fn from(e: PropertyError) -> Self {
+        Self::Property(e)
+    }
+}
+
+#[derive(Debug)]
+pub enum PropertyError {
+    Short,
+    Utf8(std::str::Utf8Error),
+}
+
+impl StdError for PropertyError {}
+
+impl Display for PropertyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Short => write!(f, "unexpected end of buffer"),
+            Self::Utf8(e) => e.fmt(f),
+        }
+    }
+}
+
+impl From<std::str::Utf8Error> for PropertyError {
+    fn from(e: std::str::Utf8Error) -> Self {
+        Self::Utf8(e)
     }
 }

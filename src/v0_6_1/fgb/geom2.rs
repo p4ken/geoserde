@@ -1,15 +1,18 @@
 use std::fmt::Display;
 
-use serde::de::{DeserializeSeed, Error, IntoDeserializer, StdError, Unexpected, Visitor};
+use serde::de::{
+    value::EnumAccessDeserializer, DeserializeSeed, EnumAccess, Error, IntoDeserializer, StdError,
+    Unexpected, VariantAccess, Visitor,
+};
 
 use crate::v0_6_1::fgb::coord2::{LineStringIter, PointIter, PolygonIter};
 
-pub struct GeometryDeserializer<'a> {
+pub struct GeometryAccess<'a> {
     geom: flatgeobuf::Geometry<'a>,
     geom_type: flatgeobuf::GeometryType,
 }
 
-impl<'de> GeometryDeserializer<'de> {
+impl<'de> GeometryAccess<'de> {
     const VARIANT: Unexpected<'static> = Unexpected::NewtypeVariant;
 
     pub fn new(geom: flatgeobuf::Geometry<'de>, header: flatgeobuf::GeometryType) -> Self {
@@ -21,13 +24,21 @@ impl<'de> GeometryDeserializer<'de> {
     }
 }
 
-impl<'de> serde::de::EnumAccess<'de> for GeometryDeserializer<'de> {
+impl<'de> IntoDeserializer<'de, GeometryError> for GeometryAccess<'de> {
+    type Deserializer = EnumAccessDeserializer<Self>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        EnumAccessDeserializer::new(self)
+    }
+}
+
+impl<'de> EnumAccess<'de> for GeometryAccess<'de> {
     type Error = GeometryError;
     type Variant = Self;
 
     fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
     where
-        V: serde::de::DeserializeSeed<'de>,
+        V: DeserializeSeed<'de>,
     {
         use flatgeobuf::GeometryType;
         let variant = match self.geom_type {
@@ -56,17 +67,17 @@ impl<'de> serde::de::EnumAccess<'de> for GeometryDeserializer<'de> {
     }
 }
 
-impl<'de> serde::de::VariantAccess<'de> for GeometryDeserializer<'de> {
+impl<'de> VariantAccess<'de> for GeometryAccess<'de> {
     type Error = GeometryError;
 
     fn unit_variant(self) -> Result<(), Self::Error> {
         Err(Error::invalid_type(Self::VARIANT, &"unit variant"))
     }
 
-    fn newtype_variant_seed<T: DeserializeSeed<'de>>(
-        self,
-        seed: T,
-    ) -> Result<T::Value, Self::Error> {
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
         match self.geom.parts() {
             Some(parts) => seed.deserialize(PolygonIter::new(parts).into_deserializer()),
             None => match (
@@ -84,18 +95,17 @@ impl<'de> serde::de::VariantAccess<'de> for GeometryDeserializer<'de> {
         .map_err(GeometryError::Coords)
     }
 
-    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn tuple_variant<V>(self, _: usize, _: V) -> Result<V::Value, Self::Error>
     where
-        V: serde::de::Visitor<'de>,
+        V: Visitor<'de>,
     {
         Err(Error::invalid_type(Self::VARIANT, &"tuple variant"))
     }
 
-    fn struct_variant<V: Visitor<'de>>(
-        self,
-        _: &'_ [&'_ str],
-        _: V,
-    ) -> Result<V::Value, Self::Error> {
+    fn struct_variant<V>(self, _: &'_ [&'_ str], _: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
         Err(Error::invalid_type(Self::VARIANT, &"struct variant"))
     }
 }
@@ -103,24 +113,32 @@ impl<'de> serde::de::VariantAccess<'de> for GeometryDeserializer<'de> {
 #[derive(Debug)]
 pub enum GeometryError {
     Type(flatgeobuf::GeometryType),
-    Deserialize(String),
+    Deserialize(serde::de::value::Error),
     Coords(serde::de::value::Error),
 }
 
 impl Error for GeometryError {
     fn custom<T: Display>(msg: T) -> Self {
-        GeometryError::Deserialize(msg.to_string())
+        Self::Deserialize(Error::custom(msg))
     }
 }
 
-impl StdError for GeometryError {}
+impl StdError for GeometryError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(match self {
+            Self::Deserialize(e) => e,
+            Self::Coords(e) => e,
+            _ => None?,
+        })
+    }
+}
 
 impl Display for GeometryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Type(t) => write!(f, "unexpected geometry type {:?}", t),
-            Self::Deserialize(s) => write!(f, "deserialize impl occured {}", s),
-            Self::Coords(e) => e.fmt(f),
+            Self::Deserialize(_) => write!(f, "deserialize impl failed"),
+            Self::Coords(_) => write!(f, "coordinates deserializer failed"),
         }
     }
 }

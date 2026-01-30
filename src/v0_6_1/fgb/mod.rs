@@ -35,6 +35,7 @@ pub use feat::FeatureDeserializer;
 /// - `flatgeobuf::FgbFeature::header()` is private.
 pub struct OwnedHeader {
     cols: Vec<OwnedColumn>,
+    geom_type: flatgeobuf::GeometryType,
 }
 impl From<flatgeobuf::Header<'_>> for OwnedHeader {
     fn from(fbs: flatgeobuf::Header<'_>) -> Self {
@@ -42,7 +43,8 @@ impl From<flatgeobuf::Header<'_>> for OwnedHeader {
             Some(vec) => vec.into_iter().map(OwnedColumn::from).collect(),
             None => vec![],
         };
-        Self { cols }
+        let geom_type = fbs.geometry_type();
+        Self { cols, geom_type }
     }
 }
 
