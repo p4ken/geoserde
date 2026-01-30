@@ -1,29 +1,37 @@
 use std::iter::{Skip, Take};
 
-use geo_types::Coord;
-use serde::de::{value::EnumAccessDeserializer, IntoDeserializer, SeqAccess};
+use serde::de::{
+    value::{Error, SeqDeserializer},
+    IntoDeserializer,
+};
 
 use crate::v0_6_1::Point;
 
 /// Iterates 1-demensional coordinate values in a `LineString` or a `MultiPoint`.
 enum CoordIter<'a> {
     Empty,
-    Range(Skip<Take<flatbuffers::VectorIter<'a, f64>>>),
     Full(flatbuffers::VectorIter<'a, f64>),
+    Range(Skip<Take<flatbuffers::VectorIter<'a, f64>>>),
 }
 
 impl<'a> CoordIter<'a> {
+    fn new(coords: Option<flatbuffers::Vector<'a, f64>>) -> Self {
+        match coords {
+            Some(vec) => Self::Full(vec.iter()),
+            None => Self::Empty,
+        }
+    }
     fn with_range(coords: Option<flatbuffers::Vector<'a, f64>>, start: usize, end: usize) -> Self {
         match coords {
             Some(vec) => Self::Range(vec.iter().take(end).skip(start)),
             None => Self::Empty,
         }
     }
-    fn with_vec(coords: Option<flatbuffers::Vector<'a, f64>>) -> Self {
-        match coords {
-            Some(vec) => Self::Full(vec.iter()),
-            None => Self::Empty,
-        }
+}
+
+impl<'a> Into<CoordIter<'a>> for Option<flatbuffers::Vector<'a, f64>> {
+    fn into(self) -> CoordIter<'a> {
+        CoordIter::new(self)
     }
 }
 
@@ -48,6 +56,20 @@ pub struct PointIter<'a> {
     m: CoordIter<'a>,
 }
 
+impl<'a> PointIter<'a> {
+    pub fn new(
+        xy: impl Into<CoordIter<'a>>,
+        z: impl Into<CoordIter<'a>>,
+        m: impl Into<CoordIter<'a>>,
+    ) -> Self {
+        Self {
+            xy: xy.into(),
+            z: z.into(),
+            m: m.into(),
+        }
+    }
+}
+
 impl<'a> Iterator for PointIter<'a> {
     type Item = Point;
 
@@ -61,16 +83,40 @@ impl<'a> Iterator for PointIter<'a> {
     }
 }
 
+impl<'de> IntoDeserializer<'de> for PointIter<'de> {
+    type Deserializer = SeqDeserializer<Self, Error>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self)
+    }
+}
+
 /// Iterates LineStrings in a `Polygon` or a `MultiLineString`.
 ///
 /// LineStrings are wrapped with [`PointIter`].
 pub struct LineStringIter<'a> {
     start: usize,
-    // TODO: ends が無いなら PointIter にフォールバックせよ
     ends: Option<flatbuffers::VectorIter<'a, u32>>,
     xy: Option<flatbuffers::Vector<'a, f64>>,
     z: Option<flatbuffers::Vector<'a, f64>>,
     m: Option<flatbuffers::Vector<'a, f64>>,
+}
+
+impl<'a> LineStringIter<'a> {
+    pub fn new(
+        ends: flatbuffers::Vector<'a, u32>,
+        xy: Option<flatbuffers::Vector<'a, f64>>,
+        z: Option<flatbuffers::Vector<'a, f64>>,
+        m: Option<flatbuffers::Vector<'a, f64>>,
+    ) -> Self {
+        Self {
+            start: 0,
+            ends: Some(ends.iter()),
+            xy,
+            z,
+            m,
+        }
+    }
 }
 
 impl<'a> Iterator for LineStringIter<'a> {
@@ -89,14 +135,18 @@ impl<'a> Iterator for LineStringIter<'a> {
             }
             (0, None) => {
                 self.start = usize::MAX;
-                Some(PointIter {
-                    xy: CoordIter::with_vec(self.xy),
-                    z: CoordIter::with_vec(self.z),
-                    m: CoordIter::with_vec(self.m),
-                })
+                Some(PointIter::new(self.xy, self.z, self.m))
             }
             (_, None) => None,
         }
+    }
+}
+
+impl<'de> IntoDeserializer<'de> for LineStringIter<'de> {
+    type Deserializer = SeqDeserializer<Self, Error>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self)
     }
 }
 
@@ -104,105 +154,43 @@ impl<'a> Iterator for LineStringIter<'a> {
 ///
 /// Polygons are wrapped with [`LineStringIter`].
 pub struct PolygonIter<'a> {
-    parts: Option<flatbuffers::VectorIter<'a, flatgeobuf::Geometry<'a>>>,
-    // FIXME: partsが無いなら LineStringIter にフォールバック
+    parts: flatbuffers::VectorIter<'a, flatbuffers::ForwardsUOffset<flatgeobuf::Geometry<'a>>>,
+}
+
+impl<'a> PolygonIter<'a> {
+    pub fn new(
+        parts: flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<flatgeobuf::Geometry<'a>>>,
+    ) -> Self {
+        Self {
+            parts: parts.iter(),
+        }
+    }
 }
 
 impl<'a> Iterator for PolygonIter<'a> {
     type Item = LineStringIter<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match &mut self.parts {
-            Some(parts) => {
-                let geom = parts.next()?;
-                let ends = match geom.ends() {
-                    Some(ends) if ends.is_empty() => None,
-                    Some(ends) => Some(ends.iter()),
-                    None => None,
-                };
-                Some(LineStringIter {
-                    start: 0,
-                    ends: ends,
-                    xy: geom.xy(),
-                    z: geom.z(),
-                    m: geom.m(),
-                })
-            }
-            None => todo!(),
-        }
-    }
-}
-
-pub enum GeometryDeserializer<'a> {
-    Point(PointIter<'a>),
-    LineString(PointIter<'a>),
-    Polygon(LineStringIter<'a>),
-    MultiPoint(PointIter<'a>),
-    MultiLineString(LineStringIter<'a>),
-    MultiPolygon(PolygonIter<'a>),
-}
-
-impl<'de> GeometryDeserializer<'de> {
-    pub fn new(fbs: flatgeobuf::Geometry<'de>, geom_type: flatgeobuf::GeometryType) -> Self {
-        const UNKNOWN: flatgeobuf::GeometryType = flatgeobuf::GeometryType::Unknown;
-        let geom_type = match fbs.type_() {
-            flatgeobuf::GeometryType::Unknown => geom_type,
-            t => t,
+        let geom = self.parts.next()?;
+        let ends = match geom.ends() {
+            Some(ends) if ends.is_empty() => None,
+            Some(ends) => Some(ends.iter()),
+            None => None,
         };
-        match geom_type {
-            flatgeobuf::GeometryType::Point => todo!(),
-            _ => todo!(),
-        }
+        Some(LineStringIter {
+            start: 0,
+            ends: ends,
+            xy: geom.xy(),
+            z: geom.z(),
+            m: geom.m(),
+        })
     }
 }
 
-impl<'de> serde::de::EnumAccess<'de> for GeometryDeserializer<'de> {
-    type Error = serde::de::value::Error;
-    type Variant = Self;
+impl<'de> IntoDeserializer<'de> for PolygonIter<'de> {
+    type Deserializer = SeqDeserializer<Self, Error>;
 
-    fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
-    where
-        V: serde::de::DeserializeSeed<'de>,
-    {
-        let geom_type = flatgeobuf::GeometryType::Polygon;
-        let value = seed.deserialize(geom_type.variant_name().unwrap().into_deserializer())?;
-        Ok((value, self))
-    }
-}
-
-impl<'de> serde::de::VariantAccess<'de> for GeometryDeserializer<'de> {
-    type Error = serde::de::value::Error;
-
-    fn unit_variant(self) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
-    where
-        T: serde::de::DeserializeSeed<'de>,
-    {
-        let geom_type = flatgeobuf::GeometryType::Polygon;
-        match geom_type {
-            flatgeobuf::GeometryType::Point => todo!(),
-            _ => todo!(),
-        }
-    }
-
-    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de>,
-    {
-        todo!()
-    }
-
-    fn struct_variant<V>(
-        self,
-        fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de>,
-    {
-        todo!()
+    fn into_deserializer(self) -> Self::Deserializer {
+        SeqDeserializer::new(self)
     }
 }
