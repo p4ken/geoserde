@@ -8,7 +8,7 @@ use serde::de::{
 use crate::v0_6_1::Point;
 
 /// Iterates 1-demensional coordinate values in a `LineString` or a `MultiPoint`.
-enum CoordIter<'a> {
+pub enum CoordIter<'a> {
     Empty,
     Full(flatbuffers::VectorIter<'a, f64>),
     Range(Skip<Take<flatbuffers::VectorIter<'a, f64>>>),
