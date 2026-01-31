@@ -1,3 +1,3 @@
 mod point;
 
-pub use point::PointDeserializer;
+pub use point::{deserialize_point, PointDeserializer};
