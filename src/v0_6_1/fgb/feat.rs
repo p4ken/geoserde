@@ -6,7 +6,7 @@ use serde::de::{
 };
 
 use crate::v0_6_1::fgb::{
-    geom2::{GeometryAccess, GeometryError},
+    geom::{GeometryAccess, GeometryError},
     OwnedHeader,
 };
 
