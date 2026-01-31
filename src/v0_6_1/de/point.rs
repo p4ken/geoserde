@@ -26,18 +26,6 @@ where
         ) -> serde::__private228::fmt::Result {
             serde::__private228::Formatter::write_str(__formatter, "field identifier")
         }
-        fn visit_u64<__E>(self, __value: u64) -> serde::__private228::Result<Self::Value, __E>
-        where
-            __E: serde::de::Error,
-        {
-            match __value {
-                0u64 => serde::__private228::Ok(__Field::__field0),
-                1u64 => serde::__private228::Ok(__Field::__field1),
-                2u64 => serde::__private228::Ok(__Field::__field2),
-                3u64 => serde::__private228::Ok(__Field::__field3),
-                _ => serde::__private228::Ok(__Field::__ignore),
-            }
-        }
         fn visit_str<__E>(self, __value: &str) -> serde::__private228::Result<Self::Value, __E>
         where
             __E: serde::de::Error,
@@ -47,18 +35,6 @@ where
                 "y" => serde::__private228::Ok(__Field::__field1),
                 "z" => serde::__private228::Ok(__Field::__field2),
                 "m" => serde::__private228::Ok(__Field::__field3),
-                _ => serde::__private228::Ok(__Field::__ignore),
-            }
-        }
-        fn visit_bytes<__E>(self, __value: &[u8]) -> serde::__private228::Result<Self::Value, __E>
-        where
-            __E: serde::de::Error,
-        {
-            match __value {
-                b"x" => serde::__private228::Ok(__Field::__field0),
-                b"y" => serde::__private228::Ok(__Field::__field1),
-                b"z" => serde::__private228::Ok(__Field::__field2),
-                b"m" => serde::__private228::Ok(__Field::__field3),
                 _ => serde::__private228::Ok(__Field::__ignore),
             }
         }
