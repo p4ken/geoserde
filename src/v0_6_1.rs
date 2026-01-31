@@ -89,6 +89,5 @@ pub struct Polygon<T>(pub T);
 impl<'de, T: de::FromLineStringSeq> Deserialize<'de> for Polygon<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         de.deserialize_newtype_struct(POLYGON, de::PolygonVisitor::new())
-            .map(Self)
     }
 }
