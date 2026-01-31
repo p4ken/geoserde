@@ -5,8 +5,9 @@ mod de;
 pub mod fgb;
 mod geo;
 
-pub const GEOMETRY: &str = "geoserde::Geometry";
 pub const POINT: &str = "geoserde::Point";
+pub const LINE_STRING: &str = "geoserde::LineString";
+pub const GEOMETRY: &str = "geoserde::Geometry";
 
 pub fn serialize<S: serde::Serializer>(
     geom: impl SerializeGeometry,
@@ -78,7 +79,7 @@ pub struct LineString<T>(pub T);
 
 impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
-        de::deserialize_line_string(de)
+        de.deserialize_newtype_struct(LINE_STRING, de::LineStringVisitor::new())
     }
 }
 

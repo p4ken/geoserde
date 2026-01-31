@@ -1,7 +1,8 @@
-use serde::de::{IntoDeserializer, MapAccess, Visitor};
+use serde::de::{Error, IntoDeserializer, MapAccess, Visitor};
 
 use crate::v0_6_1::{Point, POINT};
 
+// Based on the derived implementations, but some functionalities are added with comments.
 pub fn deserialize_point<'de, D>(de: D) -> Result<Point, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -71,8 +72,8 @@ where
         where
             __A: serde::de::SeqAccess<'de>,
         {
-            // Flatten single Point sequence recursively
-            let point = match serde::de::SeqAccess::next_element::<Point>(&mut __seq)? {
+            // Flatten 1 Point sequence recursively
+            let point = match serde::de::SeqAccess::next_element(&mut __seq)? {
                 serde::__private228::Some(__value) => __value,
                 serde::__private228::None => {
                     return serde::__private228::Err(serde::de::Error::invalid_length(
@@ -169,17 +170,14 @@ where
             })
         }
 
-        // Extract Point variant from the enum.
         fn visit_enum<A>(self, geometry: A) -> Result<Self::Value, A::Error>
         where
             A: serde::de::EnumAccess<'de>,
         {
             match geometry.variant().unwrap() {
+                // Extract Point from Geometry enum (recursive call)
                 (POINT, point) => serde::de::VariantAccess::newtype_variant(point),
-                (id, _) => Err(serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Other(id),
-                    &self,
-                )),
+                (variant, _) => Err(Error::unknown_variant(variant, &[POINT])),
             }
         }
     }

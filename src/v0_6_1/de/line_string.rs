@@ -1,34 +1,45 @@
-use serde::{ Deserializer};
+use std::marker::PhantomData;
 
-use crate::v0_6_1::{LineString, Point};
+use serde::{ Deserializer, de::{EnumAccess, SeqAccess, VariantAccess, Visitor}};
 
-pub fn deserialize_line_string<'de, D: Deserializer<'de>, T: FromPointSeq>(de: D) -> Result<LineString<T>, D::Error> {
-    struct PointSeqVisitor<T>(std::marker::PhantomData<T>);
-    impl<'de , T: FromPointSeq> serde::de::Visitor<'de> for PointSeqVisitor<T> {
-        type Value = T;
+use crate::v0_6_1::{LINE_STRING, LineString, Point};
 
-        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            f.write_str(&"a sequence of geoserde::Point")
-        }
+/// Visitor for LineString::deserialize implementation.
+pub struct LineStringVisitor<T>(PhantomData<T>);
 
-        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
-            T::from_point_seq(seq)
+impl<T> LineStringVisitor<T> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<'de, T: FromPointSeq> Visitor<'de> for LineStringVisitor<T> {
+    type Value = LineString<T>;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(LINE_STRING)
+    }
+
+    /// Accept Geometry enum.
+    ///
+    /// Recommended for self-describing formats, which most GIS formats are.
+    fn visit_enum<A: EnumAccess<'de>>(self, geometry: A) -> Result<Self::Value, A::Error>{
+        match geometry.variant()? {
+            // Extract LineString from Geometry enum (recursive call)
+            (LINE_STRING, line_string) => line_string.newtype_variant(),
+            (name, _) => Err(serde::de::Error::unknown_variant(name, &[LINE_STRING])),
         }
     }
 
-    struct NewtypeVisitor<T>(std::marker::PhantomData<T>);
-    impl<'de, T: FromPointSeq> serde::de::Visitor<'de> for NewtypeVisitor<T> {
-        type Value = T;
-
-        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            f.write_str("a newtype struct")
-        }
-
-        fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, de: D) -> Result<Self::Value, D::Error> {
-            de.deserialize_seq(PointSeqVisitor(std::marker::PhantomData))
-        }
+    /// Accept newtype and flatten inner sequence.
+    fn visit_newtype_struct<D: Deserializer<'de>>(self, de: D) -> Result<Self::Value, D::Error> {
+        de.deserialize_seq(self)
     }
-    de.deserialize_newtype_struct("geoserde::LineString", NewtypeVisitor(std::marker::PhantomData)).map(LineString)
+
+    /// Accept sequence of Points.
+    fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+        T::from_point_seq(seq).map(LineString)
+    }
 }
 
 pub trait FromPointSeq : Sized {
