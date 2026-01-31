@@ -71,49 +71,17 @@ where
         where
             __A: serde::de::SeqAccess<'de>,
         {
-            // FIXME: Flatten Point seq
-            let __field0 = match serde::de::SeqAccess::next_element::<f64>(&mut __seq)? {
+            // Flatten single Point sequence recursively
+            let point = match serde::de::SeqAccess::next_element::<Point>(&mut __seq)? {
                 serde::__private228::Some(__value) => __value,
                 serde::__private228::None => {
                     return serde::__private228::Err(serde::de::Error::invalid_length(
                         0usize,
-                        &"struct Point with 4 elements",
+                        &"struct Point with 1 element",
                     ));
                 }
             };
-            let __field1 = match serde::de::SeqAccess::next_element::<f64>(&mut __seq)? {
-                serde::__private228::Some(__value) => __value,
-                serde::__private228::None => {
-                    return serde::__private228::Err(serde::de::Error::invalid_length(
-                        1usize,
-                        &"struct Point with 4 elements",
-                    ));
-                }
-            };
-            let __field2 = match serde::de::SeqAccess::next_element::<Option<f64>>(&mut __seq)? {
-                serde::__private228::Some(__value) => __value,
-                serde::__private228::None => {
-                    return serde::__private228::Err(serde::de::Error::invalid_length(
-                        2usize,
-                        &"struct Point with 4 elements",
-                    ));
-                }
-            };
-            let __field3 = match serde::de::SeqAccess::next_element::<Option<f64>>(&mut __seq)? {
-                serde::__private228::Some(__value) => __value,
-                serde::__private228::None => {
-                    return serde::__private228::Err(serde::de::Error::invalid_length(
-                        3usize,
-                        &"struct Point with 4 elements",
-                    ));
-                }
-            };
-            serde::__private228::Ok(Point {
-                x: __field0,
-                y: __field1,
-                z: __field2,
-                m: __field3,
-            })
+            serde::__private228::Ok(point)
         }
         #[inline]
         fn visit_map<__A>(
