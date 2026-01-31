@@ -7,6 +7,7 @@ mod geo;
 
 pub const POINT: &str = "geoserde::Point";
 pub const LINE_STRING: &str = "geoserde::LineString";
+pub const POLYGON: &str = "geoserde::Polygon";
 pub const GEOMETRY: &str = "geoserde::Geometry";
 
 pub fn serialize<S: serde::Serializer>(
@@ -85,45 +86,9 @@ impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
-impl<'de, T: FromLineStringSeq> Deserialize<'de> for Polygon<T> {
+impl<'de, T: de::FromLineStringSeq> Deserialize<'de> for Polygon<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
-        struct LineStringSeqVisitor<T>(std::marker::PhantomData<T>);
-        impl<'de, T: FromLineStringSeq> serde::de::Visitor<'de> for LineStringSeqVisitor<T> {
-            type Value = T;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str(&"a sequence of geoserde::LineString")
-            }
-            fn visit_seq<A: serde::de::SeqAccess<'de>>(
-                self,
-                seq: A,
-            ) -> Result<Self::Value, A::Error> {
-                T::from_linestring_seq(seq)
-            }
-        }
-
-        struct NewtypeVisitor<T>(std::marker::PhantomData<T>);
-        impl<'de, T: FromLineStringSeq> serde::de::Visitor<'de> for NewtypeVisitor<T> {
-            type Value = T;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("a newtype struct")
-            }
-            fn visit_newtype_struct<D: serde::Deserializer<'de>>(
-                self,
-                de: D,
-            ) -> Result<Self::Value, D::Error> {
-                de.deserialize_seq(LineStringSeqVisitor(std::marker::PhantomData))
-            }
-        }
-        de.deserialize_newtype_struct(
-            "geoserde::Polygon",
-            NewtypeVisitor(std::marker::PhantomData),
-        )
-        .map(Self)
+        de.deserialize_newtype_struct(POLYGON, de::PolygonVisitor::new())
+            .map(Self)
     }
-}
-
-pub trait FromLineStringSeq: Sized {
-    fn from_linestring_seq<'de, A: serde::de::SeqAccess<'de>>(seq: A) -> Result<Self, A::Error>;
 }

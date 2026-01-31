@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::v0_6_1::DeserializeGeometry;
+use crate::v0_6_1::{de::FromLineStringSeq, DeserializeGeometry};
 
 impl From<super::Point> for geo_types::Coord {
     fn from(p: super::Point) -> Self {
@@ -58,7 +58,8 @@ impl DeserializeGeometry for geo_types::Polygon {
         Ok(polygon)
     }
 }
-impl super::FromLineStringSeq for geo_types::Polygon {
+
+impl FromLineStringSeq for geo_types::Polygon {
     fn from_linestring_seq<'de, A: serde::de::SeqAccess<'de>>(
         mut seq: A,
     ) -> Result<Self, A::Error> {
