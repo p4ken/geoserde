@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use serde::{ Deserializer, de::{EnumAccess, SeqAccess, VariantAccess, Visitor}};
 
-use crate::v0_6_1::{LINE_STRING, LineString, Point};
+use crate::v0_6_1::{LINE_STRING, LineString, POLYGON, Point};
 
 /// Visitor for LineString::deserialize implementation.
 pub struct LineStringVisitor<T>(PhantomData<T>);
@@ -25,8 +25,12 @@ impl<'de, T: FromPointSeq> Visitor<'de> for LineStringVisitor<T> {
     /// Recommended for self-describing formats, which most GIS formats are.
     fn visit_enum<A: EnumAccess<'de>>(self, geometry: A) -> Result<Self::Value, A::Error>{
         match geometry.variant()? {
-            // Extract LineString from Geometry enum (recursive call)
+            // Extract Polygon from Geometry enum.
+            // Expects LineString::deserialize called recursively and then Self::visitd_seq called.
             (LINE_STRING, line_string) => line_string.newtype_variant(),
+            // Try flatten single ring of Polygon.
+            // FIXME: Test inner ring raises error
+            (POLYGON, polygon) => polygon.newtype_variant(),
             (name, _) => Err(serde::de::Error::unknown_variant(name, &[LINE_STRING])),
         }
     }

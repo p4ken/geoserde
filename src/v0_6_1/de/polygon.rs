@@ -28,7 +28,8 @@ impl<'de, T: FromLineStringSeq> Visitor<'de> for PolygonVisitor<T> {
     /// Recommended for self-describing formats, which most GIS formats are.
     fn visit_enum<A: EnumAccess<'de>>(self, geometry: A) -> Result<Self::Value, A::Error> {
         match geometry.variant()? {
-            // Extract Polygon from Geometry enum (recursive call)
+            // Extract Polygon from Geometry enum.
+            // Expects Point::deserialize called recursively and then Self::visitd_seq called.
             (POLYGON, polygon) => polygon.newtype_variant(),
             (name, _) => Err(Error::unknown_variant(name, &[POLYGON])),
         }
