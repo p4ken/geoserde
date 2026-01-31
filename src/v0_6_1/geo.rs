@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{de::VariantAccess, Deserialize};
 
 use crate::v0_6_1::DeserializeGeometry;
 
@@ -10,16 +10,36 @@ impl From<super::Point> for geo_types::Coord {
 
 impl DeserializeGeometry for geo_types::Coord {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        super::Point::deserialize(de).map(Into::into)
+        let p = super::Point::deserialize(de)?;
+        Ok(geo_types::Coord::from(p))
     }
 }
 
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        match super::Geometry::deserialize(de) {
-            Ok(super::Geometry::Point(p)) => Ok(Self::new(p.x, p.y)),
-            Err(e) => Err(e),
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = geo_types::Point;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "Geometry enum")
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::EnumAccess<'de>,
+            {
+                // FIXME: String -> &str
+                let (v, variant_access) = data.variant::<String>().unwrap();
+                assert_eq!(v, "geoserde::Point");
+                let p = variant_access.newtype_variant::<super::Point>().unwrap();
+                Ok(geo_types::Point::new(p.x, p.y))
+            }
         }
+        de.deserialize_enum("", &["geoserde::Point"], Visitor)
+
+        // let p = super::Point::deserialize(de)?;
+        // Ok(geo_types::Point::new(p.x, p.y))
     }
 }
 
@@ -80,3 +100,10 @@ impl super::FromLineStringSeq for geo_types::Polygon {
         Ok(geo_types::Polygon::new(exterior, interiors))
     }
 }
+
+// impl DeserializeGeometry for geo_types::Geometry {
+//     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
+//         let [c1, _, c2, _] = super::LineString::<[super::Point; _]>::deserialize(de)?.0;
+//         Ok(geo_types::Rect::new(c1, c2))
+//     }
+// }
