@@ -6,7 +6,7 @@ use serde::de::{
     Visitor,
 };
 
-use crate::v0_6_1::fgb::coord::{LineStringIter, PointIter, PolygonIter};
+use crate::v0_6_1::de::fgb::coord::{LineStringIter, PointIter, PolygonIter};
 
 pub struct GeometryAccess<'a> {
     geom: flatgeobuf::Geometry<'a>,

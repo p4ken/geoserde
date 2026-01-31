@@ -29,12 +29,13 @@ pub use feat::FeatureDeserializer;
 /// Owened clones of fbs header.
 ///
 /// Why deep copy is needed:
-/// - `flatgeobuf::FeatureIter::next()` takes mutable reference to self including header.
+/// - `flatgeobuf::FeatureIter::next()` takes `&mut self` which contains the header.
 /// - `flatgeobuf::FgbFeature::header()` is private.
 pub struct OwnedHeader {
     cols: Vec<OwnedColumn>,
     geom_type: flatgeobuf::GeometryType,
 }
+
 impl From<flatgeobuf::Header<'_>> for OwnedHeader {
     fn from(fbs: flatgeobuf::Header<'_>) -> Self {
         let cols = match fbs.columns() {
@@ -50,6 +51,7 @@ struct OwnedColumn {
     name: String,
     col_type: flatgeobuf::ColumnType,
 }
+
 impl From<flatgeobuf::Column<'_>> for OwnedColumn {
     fn from(col: flatgeobuf::Column<'_>) -> Self {
         Self {

@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-mod de;
-#[cfg(feature = "flatgeobuf")]
-pub mod fgb;
-mod geo;
+pub mod de;
 
 pub const POINT: &str = "geoserde::Point";
 pub const LINE_STRING: &str = "geoserde::LineString";
@@ -24,7 +21,7 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
 }
 
 pub trait SerializeGeometry: Serialize {}
-impl SerializeGeometry for geo_types::Point {}
+// impl SerializeGeometry for geo_types::Point {}
 impl<T: SerializeGeometry> SerializeGeometry for &T {}
 
 pub trait DeserializeGeometry: Sized {

@@ -1,3 +1,6 @@
+#[cfg(feature = "flatgeobuf")]
+pub mod fgb;
+mod geo;
 mod line_string;
 mod point;
 mod polygon;
