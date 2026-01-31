@@ -1,6 +1,6 @@
 use serde::de::{IntoDeserializer, MapAccess, Visitor};
 
-use crate::v0_6_1::Point;
+use crate::v0_6_1::{Point, POINT};
 
 pub fn deserialize_point<'de, D>(de: D) -> Result<Point, D::Error>
 where
@@ -61,7 +61,7 @@ where
             &self,
             __formatter: &mut serde::__private228::Formatter,
         ) -> serde::__private228::fmt::Result {
-            serde::__private228::Formatter::write_str(__formatter, "struct Point")
+            serde::__private228::Formatter::write_str(__formatter, POINT)
         }
         #[inline]
         fn visit_seq<__A>(
@@ -168,12 +168,26 @@ where
                 m: __field3,
             })
         }
+
+        // Extract Point variant from the enum.
+        fn visit_enum<A>(self, geometry: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::EnumAccess<'de>,
+        {
+            match geometry.variant().unwrap() {
+                (POINT, point) => serde::de::VariantAccess::newtype_variant(point),
+                (id, _) => Err(serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Other(id),
+                    &self,
+                )),
+            }
+        }
     }
     #[doc(hidden)]
     const FIELDS: &'static [&'static str] = &["x", "y", "z", "m"];
     serde::Deserializer::deserialize_struct(
         de,
-        "geoserde::Point",
+        POINT,
         FIELDS,
         __Visitor {
             marker: serde::__private228::PhantomData::<Point>,

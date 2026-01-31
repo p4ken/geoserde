@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use serde::de::{
-    value::EnumAccessDeserializer, DeserializeSeed, EnumAccess, Error, IntoDeserializer, StdError,
-    Unexpected, VariantAccess, Visitor,
+    value::{BorrowedStrDeserializer, EnumAccessDeserializer},
+    DeserializeSeed, EnumAccess, Error, IntoDeserializer, StdError, Unexpected, VariantAccess,
+    Visitor,
 };
 
 use crate::v0_6_1::fgb::coord2::{LineStringIter, PointIter, PolygonIter};
@@ -62,7 +63,7 @@ impl<'de> EnumAccess<'de> for GeometryAccess<'de> {
             | GeometryType::Triangle
             | _ => return Err(GeometryError::Type(self.geom_type)),
         };
-        let value = seed.deserialize(variant.into_deserializer())?;
+        let value = seed.deserialize(BorrowedStrDeserializer::new(variant))?;
         Ok((value, self))
     }
 }

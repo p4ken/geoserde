@@ -1,4 +1,4 @@
-use serde::{de::VariantAccess, Deserialize};
+use serde::Deserialize;
 
 use crate::v0_6_1::DeserializeGeometry;
 
@@ -17,29 +17,8 @@ impl DeserializeGeometry for geo_types::Coord {
 
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error> {
-        struct Visitor;
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = geo_types::Point;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(f, "Geometry enum")
-            }
-
-            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::EnumAccess<'de>,
-            {
-                // FIXME: String -> &str
-                let (v, variant_access) = data.variant::<String>().unwrap();
-                assert_eq!(v, "geoserde::Point");
-                let p = variant_access.newtype_variant::<super::Point>().unwrap();
-                Ok(geo_types::Point::new(p.x, p.y))
-            }
-        }
-        de.deserialize_enum("", &["geoserde::Point"], Visitor)
-
-        // let p = super::Point::deserialize(de)?;
-        // Ok(geo_types::Point::new(p.x, p.y))
+        let p = super::Point::deserialize(de)?;
+        Ok(geo_types::Point::new(p.x, p.y))
     }
 }
 

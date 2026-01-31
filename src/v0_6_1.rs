@@ -5,6 +5,10 @@ mod de;
 pub mod fgb;
 mod geo;
 
+
+pub const GEOMETRY: &str = "geoserde::Geometry";
+pub const POINT: &str = "geoserde::Point";
+
 pub fn serialize<S: serde::Serializer>(
     geom: impl SerializeGeometry,
     ser: S,
@@ -44,6 +48,10 @@ enum Geometry<T: FromPointSeq> {
     LineString(LineString<T>),
 }
 
+/// Point representation to support new data structures or data formats.
+/// Named as [`geoserde::POINT`](POINT) during (de)serialization.
+///
+/// **In most cases you should consider using [`geo_types::Point`] instead.**
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Point {
     pub x: f64,
