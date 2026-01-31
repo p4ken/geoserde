@@ -76,6 +76,12 @@ impl<'de> serde::de::IntoDeserializer<'de> for Point {
 #[derive(Debug, Clone, Default)]
 pub struct LineString<T>(pub T);
 
+impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        de::deserialize_line_string(de)
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
 impl<'de, T: FromLineStringSeq> Deserialize<'de> for Polygon<T> {

@@ -1,36 +1,34 @@
-use serde::Deserialize;
+use serde::{ Deserializer};
 
 use crate::v0_6_1::{LineString, Point};
 
-impl<'de, T: FromPointSeq> Deserialize<'de>  for LineString<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
-        struct PointSeqVisitor<T>(std::marker::PhantomData<T>);
-        impl<'de , T: FromPointSeq> serde::de::Visitor<'de> for PointSeqVisitor<T> {
-            type Value = T;
+pub fn deserialize_line_string<'de, D: Deserializer<'de>, T: FromPointSeq>(de: D) -> Result<LineString<T>, D::Error> {
+    struct PointSeqVisitor<T>(std::marker::PhantomData<T>);
+    impl<'de , T: FromPointSeq> serde::de::Visitor<'de> for PointSeqVisitor<T> {
+        type Value = T;
 
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str(&"a sequence of geoserde::Point")
-            }
-
-            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
-                T::from_point_seq(seq)
-            }
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str(&"a sequence of geoserde::Point")
         }
 
-        struct NewtypeVisitor<T>(std::marker::PhantomData<T>);
-        impl<'de, T: FromPointSeq> serde::de::Visitor<'de> for NewtypeVisitor<T> {
-            type Value = T;
-
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("a newtype struct")
-            }
-
-            fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, de: D) -> Result<Self::Value, D::Error> {
-                de.deserialize_seq(PointSeqVisitor(std::marker::PhantomData))
-            }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, seq: A) -> Result<Self::Value, A::Error> {
+            T::from_point_seq(seq)
         }
-        de.deserialize_newtype_struct("geoserde::LineString", NewtypeVisitor(std::marker::PhantomData)).map(Self)
     }
+
+    struct NewtypeVisitor<T>(std::marker::PhantomData<T>);
+    impl<'de, T: FromPointSeq> serde::de::Visitor<'de> for NewtypeVisitor<T> {
+        type Value = T;
+
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("a newtype struct")
+        }
+
+        fn visit_newtype_struct<D: serde::Deserializer<'de>>(self, de: D) -> Result<Self::Value, D::Error> {
+            de.deserialize_seq(PointSeqVisitor(std::marker::PhantomData))
+        }
+    }
+    de.deserialize_newtype_struct("geoserde::LineString", NewtypeVisitor(std::marker::PhantomData)).map(LineString)
 }
 
 pub trait FromPointSeq : Sized {
