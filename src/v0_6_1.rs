@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 pub mod de;
+pub mod fgb;
+mod geo;
+pub mod ser;
 
 pub const POINT: &str = "geoserde::Point";
 pub const LINE_STRING: &str = "geoserde::LineString";

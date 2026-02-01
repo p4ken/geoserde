@@ -6,7 +6,7 @@ use serde::de::{
     DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
 };
 
-use crate::v0_6_1::de::fgb::{
+use crate::v0_6_1::fgb::de::{
     geom::{GeometryAccess, GeometryError},
     OwnedHeader,
 };
