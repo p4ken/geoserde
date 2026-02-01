@@ -1,8 +1,11 @@
-build: FORCE
-	cargo build --all-features
+all: build test doc
+
+build: build-all-features build-no-default-features
+
+build-%: FORCE
+	cargo build --$*
 
 test: FORCE
-	cargo test --no-default-features --tests
 	cargo test --all-features
 
 doc: FORCE

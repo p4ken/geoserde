@@ -1,5 +1,6 @@
 #[cfg(feature = "flatgeobuf")]
 pub mod fgb;
+#[cfg(feature = "geo-types")]
 pub mod geo;
 #[cfg(feature = "geojson")]
 pub mod json;

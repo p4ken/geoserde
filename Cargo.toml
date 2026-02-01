@@ -23,7 +23,7 @@ shapefile = ["dep:shapefile", "dbase"]
 macros = ["dep:geoserde-macros"]
 
 [dependencies]
-serde = { version = "1.0.214" }
+serde = { version = "1.0.214", features = ["derive"] }
 geoserde-macros = { version = "0.1.0", path = "macros", optional = true }
 geo-types = { version = "0.7.11", optional = true }
 geo-traits = { version = "0.2.0" }
