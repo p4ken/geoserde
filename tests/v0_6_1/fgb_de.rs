@@ -199,13 +199,7 @@ fn new_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
 }
 
 fn deserialize_features<T: DeserializeOwned>(fgb_buf: &[u8]) -> Result<Vec<T>> {
-    let mut features = vec![];
-    let mut fgb_iter = FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
-    let fgb_header = fgb_iter.header().into();
-    while let Some(fgb_feat) = fgb_iter.next()? {
-        let my_point =
-            T::deserialize(FeatureAccess::new(&fgb_header, fgb_feat).into_deserializer())?;
-        features.push(my_point);
-    }
+    let fgb_iter = FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    let features = geoserde::v0_6_1::fgb::from_feature_iter(fgb_iter)?;
     Ok(features)
 }

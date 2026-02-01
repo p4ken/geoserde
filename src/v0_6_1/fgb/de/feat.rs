@@ -3,13 +3,27 @@ use std::fmt::Display;
 use flatgeobuf::{ColumnType, FgbFeature};
 use serde::de::{
     value::{EnumAccessDeserializer, MapAccessDeserializer},
-    DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
+    DeserializeOwned, DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
 };
 
 use crate::v0_6_1::fgb::de::{
     geom::{GeometryAccess, GeometryError},
     OwnedHeader,
 };
+
+pub fn from_feature_iter<T: DeserializeOwned>(
+    mut fgb_iter: flatgeobuf::FeatureIter<std::io::Cursor<&[u8]>, flatgeobuf::Seekable>,
+) -> Result<Vec<T>, crate::v0_6_1::fgb::Error> {
+    let mut features: Vec<T> = vec![];
+    let fgb_header = fgb_iter.header().into();
+    while let Some(fgb_feat) = flatgeobuf::FallibleStreamingIterator::next(&mut fgb_iter)? {
+        let my_point = T::deserialize(serde::de::IntoDeserializer::into_deserializer(
+            FeatureAccess::new(&fgb_header, fgb_feat),
+        ))?;
+        features.push(my_point);
+    }
+    Ok(features)
+}
 
 pub struct FeatureAccess<'de> {
     header: &'de OwnedHeader,

@@ -2,29 +2,10 @@ mod coord;
 mod feat;
 mod geom;
 
-pub use feat::FeatureAccess;
+pub use feat::{from_feature_iter, FeatureAccess, FeatureError};
 
-// pub struct DeserializerIter<'a, R> {
-//     fgb_iter: &'a mut flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
-//     header: OwnedHeader,
-// }
-// impl<'a, R: std::io::Read + std::io::Seek> DeserializerIter<'a, R> {
-//     pub fn new(
-//         fgb_iter: &'a mut flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
-//     ) -> Result<Self, flatgeobuf::Error> {
-//         let header = fgb_iter.header().into();
-//         Ok(Self { fgb_iter, header })
-//     }
-// }
-// impl<'a, R: std::io::Read + std::io::Seek> Iterator for DeserializerIter<'a, R> {
-//     type Item = FeatureDeserializer<'a>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let fgb_feat = self.fgb_iter.next().transpose()?.unwrap();
-//         let de = FeatureDeserializer::new(&self.header, fgb_feat);
-//         Some(de)
-//     }
-// }
+// pub struct FeatureIter {
+//     header: Own
 
 /// Owened clones of fbs header.
 ///
