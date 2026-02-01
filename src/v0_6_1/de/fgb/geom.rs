@@ -25,14 +25,6 @@ impl<'de> GeometryAccess<'de> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, GeometryError> for GeometryAccess<'de> {
-    type Deserializer = EnumAccessDeserializer<Self>;
-
-    fn into_deserializer(self) -> Self::Deserializer {
-        EnumAccessDeserializer::new(self)
-    }
-}
-
 impl<'de> EnumAccess<'de> for GeometryAccess<'de> {
     type Error = GeometryError;
     type Variant = Self;
@@ -108,6 +100,14 @@ impl<'de> VariantAccess<'de> for GeometryAccess<'de> {
         V: Visitor<'de>,
     {
         Err(Error::invalid_type(Self::VARIANT, &"struct variant"))
+    }
+}
+
+impl<'de> IntoDeserializer<'de, GeometryError> for GeometryAccess<'de> {
+    type Deserializer = EnumAccessDeserializer<Self>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        EnumAccessDeserializer::new(self)
     }
 }
 

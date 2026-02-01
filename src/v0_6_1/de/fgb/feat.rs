@@ -2,7 +2,8 @@ use std::fmt::Display;
 
 use flatgeobuf::{ColumnType, FgbFeature};
 use serde::de::{
-    value::EnumAccessDeserializer, DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
+    value::{EnumAccessDeserializer, MapAccessDeserializer},
+    DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
 };
 
 use crate::v0_6_1::de::fgb::{
@@ -10,7 +11,7 @@ use crate::v0_6_1::de::fgb::{
     OwnedHeader,
 };
 
-pub struct FeatureDeserializer<'de> {
+pub struct FeatureAccess<'de> {
     header: &'de OwnedHeader,
 
     // This field is None in cases:
@@ -22,7 +23,7 @@ pub struct FeatureDeserializer<'de> {
     properties_buf: &'de [u8],
 }
 
-impl<'de> FeatureDeserializer<'de> {
+impl<'de> FeatureAccess<'de> {
     pub fn new(header: &'de OwnedHeader, feat: &'de FgbFeature) -> Self {
         Self {
             header,
@@ -38,7 +39,7 @@ impl<'de> FeatureDeserializer<'de> {
     }
 }
 
-impl FeatureDeserializer<'_> {
+impl FeatureAccess<'_> {
     fn take_prop(&mut self, n: usize) -> Result<&[u8], PropertyError> {
         self.properties_buf
             .split_off(..n)
@@ -46,7 +47,7 @@ impl FeatureDeserializer<'_> {
     }
 }
 
-impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
+impl<'de> MapAccess<'de> for FeatureAccess<'de> {
     type Error = FeatureError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -225,6 +226,14 @@ impl<'de> MapAccess<'de> for FeatureDeserializer<'de> {
         //     }
         //     ColumnType(_) => {}
         // }
+    }
+}
+
+impl<'de> IntoDeserializer<'de, FeatureError> for FeatureAccess<'de> {
+    type Deserializer = MapAccessDeserializer<Self>;
+
+    fn into_deserializer(self) -> Self::Deserializer {
+        MapAccessDeserializer::new(self)
     }
 }
 

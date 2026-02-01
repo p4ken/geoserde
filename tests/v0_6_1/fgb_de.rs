@@ -5,10 +5,10 @@ use std::io::Cursor;
 use anyhow::Result;
 use flatgeobuf::{FallibleStreamingIterator, FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
-use geoserde::v0_6_1::{de::fgb::FeatureDeserializer, GeometrySink};
+use geoserde::v0_6_1::{de::fgb::FeatureAccess, GeometrySink};
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
 use serde::{
-    de::{value::MapAccessDeserializer, DeserializeOwned},
+    de::{DeserializeOwned, IntoDeserializer},
     Deserialize,
 };
 
@@ -203,10 +203,8 @@ fn deserialize_features<T: DeserializeOwned>(fgb_buf: &[u8]) -> Result<Vec<T>> {
     let mut fgb_iter = FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_header = fgb_iter.header().into();
     while let Some(fgb_feat) = fgb_iter.next()? {
-        let my_point = T::deserialize(MapAccessDeserializer::new(&mut FeatureDeserializer::new(
-            &fgb_header,
-            fgb_feat,
-        )))?;
+        let my_point =
+            T::deserialize(FeatureAccess::new(&fgb_header, fgb_feat).into_deserializer())?;
         features.push(my_point);
     }
     Ok(features)

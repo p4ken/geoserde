@@ -2,7 +2,7 @@ mod coord;
 mod feat;
 mod geom;
 
-pub use feat::FeatureDeserializer;
+pub use feat::FeatureAccess;
 
 // pub struct DeserializerIter<'a, R> {
 //     fgb_iter: &'a mut flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
