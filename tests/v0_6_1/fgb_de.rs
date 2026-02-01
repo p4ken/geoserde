@@ -197,6 +197,6 @@ fn new_writer(geom_type: GeometryType) -> flatgeobuf::FgbWriter<'static> {
 
 fn deserialize_features<T: DeserializeOwned>(fgb_buf: &[u8]) -> Result<Vec<T>> {
     let fgb_iter = FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
-    let features = geoserde::v0_6_1::fgb::from_feature_iter(fgb_iter)?;
+    let features = geoserde::v0_6_1::fgb::from_feature_iter(fgb_iter).collect::<Result<_, _>>()?;
     Ok(features)
 }
