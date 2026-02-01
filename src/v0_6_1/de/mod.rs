@@ -3,5 +3,5 @@ mod point;
 mod polygon;
 
 pub use line_string::{FromPointSeq, LineStringVisitor};
-pub use point::{deserialize_point, PointDeserializer};
+pub use point::{PointDeserializer, PointVisitor, POINT_FIELDS};
 pub use polygon::{FromLineStringSeq, PolygonVisitor};

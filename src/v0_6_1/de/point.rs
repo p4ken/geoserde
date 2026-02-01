@@ -2,197 +2,190 @@ use serde::de::{Error, IntoDeserializer, MapAccess, Visitor};
 
 use crate::v0_6_1::{Point, POINT};
 
-// Based on the derived implementations, but some functionalities are added with comments.
-pub fn deserialize_point<'de, D>(de: D) -> Result<Point, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    #[allow(non_camel_case_types)]
-    #[doc(hidden)]
-    enum __Field {
-        __field0,
-        __field1,
-        __field2,
-        __field3,
-        __ignore,
-    }
-    #[doc(hidden)]
-    struct __FieldVisitor;
-    #[automatically_derived]
-    impl<'de> serde::de::Visitor<'de> for __FieldVisitor {
-        type Value = __Field;
-        fn expecting(
-            &self,
-            __formatter: &mut serde::__private228::Formatter,
-        ) -> serde::__private228::fmt::Result {
-            serde::__private228::Formatter::write_str(__formatter, "field identifier")
-        }
-        fn visit_str<__E>(self, __value: &str) -> serde::__private228::Result<Self::Value, __E>
-        where
-            __E: serde::de::Error,
-        {
-            match __value {
-                "x" => serde::__private228::Ok(__Field::__field0),
-                "y" => serde::__private228::Ok(__Field::__field1),
-                "z" => serde::__private228::Ok(__Field::__field2),
-                "m" => serde::__private228::Ok(__Field::__field3),
-                _ => serde::__private228::Ok(__Field::__ignore),
-            }
-        }
-    }
-    #[automatically_derived]
-    impl<'de> serde::Deserialize<'de> for __Field {
-        #[inline]
-        fn deserialize<__D>(__deserializer: __D) -> serde::__private228::Result<Self, __D::Error>
-        where
-            __D: serde::Deserializer<'de>,
-        {
-            serde::Deserializer::deserialize_identifier(__deserializer, __FieldVisitor)
-        }
-    }
-    #[doc(hidden)]
-    struct __Visitor<'de> {
-        marker: serde::__private228::PhantomData<Point>,
-        lifetime: serde::__private228::PhantomData<&'de ()>,
-    }
-    #[automatically_derived]
-    impl<'de> serde::de::Visitor<'de> for __Visitor<'de> {
-        type Value = Point;
-        fn expecting(
-            &self,
-            __formatter: &mut serde::__private228::Formatter,
-        ) -> serde::__private228::fmt::Result {
-            serde::__private228::Formatter::write_str(__formatter, POINT)
-        }
-        #[inline]
-        fn visit_seq<__A>(
-            self,
-            mut __seq: __A,
-        ) -> serde::__private228::Result<Self::Value, __A::Error>
-        where
-            __A: serde::de::SeqAccess<'de>,
-        {
-            // Flatten 1 Point sequence recursively
-            let point = match serde::de::SeqAccess::next_element(&mut __seq)? {
-                serde::__private228::Some(__value) => __value,
-                serde::__private228::None => {
-                    return serde::__private228::Err(serde::de::Error::invalid_length(
-                        0usize,
-                        &"struct Point with 1 element",
-                    ));
-                }
-            };
-            serde::__private228::Ok(point)
-        }
-        #[inline]
-        fn visit_map<__A>(
-            self,
-            mut __map: __A,
-        ) -> serde::__private228::Result<Self::Value, __A::Error>
-        where
-            __A: serde::de::MapAccess<'de>,
-        {
-            let mut __field0: serde::__private228::Option<f64> = serde::__private228::None;
-            let mut __field1: serde::__private228::Option<f64> = serde::__private228::None;
-            let mut __field2: serde::__private228::Option<Option<f64>> = serde::__private228::None;
-            let mut __field3: serde::__private228::Option<Option<f64>> = serde::__private228::None;
-            while let serde::__private228::Some(__key) =
-                serde::de::MapAccess::next_key::<__Field>(&mut __map)?
-            {
-                match __key {
-                    __Field::__field0 => {
-                        if serde::__private228::Option::is_some(&__field0) {
-                            return serde::__private228::Err(
-                                <__A::Error as serde::de::Error>::duplicate_field("x"),
-                            );
-                        }
-                        __field0 = serde::__private228::Some(serde::de::MapAccess::next_value::<
-                            f64,
-                        >(&mut __map)?);
-                    }
-                    __Field::__field1 => {
-                        if serde::__private228::Option::is_some(&__field1) {
-                            return serde::__private228::Err(
-                                <__A::Error as serde::de::Error>::duplicate_field("y"),
-                            );
-                        }
-                        __field1 = serde::__private228::Some(serde::de::MapAccess::next_value::<
-                            f64,
-                        >(&mut __map)?);
-                    }
-                    __Field::__field2 => {
-                        if serde::__private228::Option::is_some(&__field2) {
-                            return serde::__private228::Err(
-                                <__A::Error as serde::de::Error>::duplicate_field("z"),
-                            );
-                        }
-                        __field2 = serde::__private228::Some(serde::de::MapAccess::next_value::<
-                            Option<f64>,
-                        >(&mut __map)?);
-                    }
-                    __Field::__field3 => {
-                        if serde::__private228::Option::is_some(&__field3) {
-                            return serde::__private228::Err(
-                                <__A::Error as serde::de::Error>::duplicate_field("m"),
-                            );
-                        }
-                        __field3 = serde::__private228::Some(serde::de::MapAccess::next_value::<
-                            Option<f64>,
-                        >(&mut __map)?);
-                    }
-                    _ => {
-                        let _ =
-                            serde::de::MapAccess::next_value::<serde::de::IgnoredAny>(&mut __map)?;
-                    }
-                }
-            }
-            let __field0 = match __field0 {
-                serde::__private228::Some(__field0) => __field0,
-                serde::__private228::None => serde::__private228::de::missing_field("x")?,
-            };
-            let __field1 = match __field1 {
-                serde::__private228::Some(__field1) => __field1,
-                serde::__private228::None => serde::__private228::de::missing_field("y")?,
-            };
-            let __field2 = match __field2 {
-                serde::__private228::Some(__field2) => __field2,
-                serde::__private228::None => serde::__private228::de::missing_field("z")?,
-            };
-            let __field3 = match __field3 {
-                serde::__private228::Some(__field3) => __field3,
-                serde::__private228::None => serde::__private228::de::missing_field("m")?,
-            };
-            serde::__private228::Ok(Point {
-                x: __field0,
-                y: __field1,
-                z: __field2,
-                m: __field3,
-            })
-        }
-
-        fn visit_enum<A>(self, geometry: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::EnumAccess<'de>,
-        {
-            match geometry.variant().unwrap() {
-                // Extract Point from Geometry enum (recursive call)
-                (POINT, point) => serde::de::VariantAccess::newtype_variant(point),
-                (variant, _) => Err(Error::unknown_variant(variant, &[POINT])),
-            }
-        }
-    }
-    #[doc(hidden)]
-    const FIELDS: &'static [&'static str] = &["x", "y", "z", "m"];
-    serde::Deserializer::deserialize_struct(
-        de,
-        POINT,
-        FIELDS,
-        __Visitor {
-            marker: serde::__private228::PhantomData::<Point>,
-            lifetime: serde::__private228::PhantomData,
-        },
-    )
+#[allow(non_camel_case_types)]
+#[doc(hidden)]
+enum __Field {
+    __field0,
+    __field1,
+    __field2,
+    __field3,
+    __ignore,
 }
+
+#[doc(hidden)]
+struct __FieldVisitor;
+#[automatically_derived]
+impl<'de> serde::de::Visitor<'de> for __FieldVisitor {
+    type Value = __Field;
+    fn expecting(
+        &self,
+        __formatter: &mut serde::__private228::Formatter,
+    ) -> serde::__private228::fmt::Result {
+        serde::__private228::Formatter::write_str(__formatter, "field identifier")
+    }
+    fn visit_str<__E>(self, __value: &str) -> serde::__private228::Result<Self::Value, __E>
+    where
+        __E: serde::de::Error,
+    {
+        match __value {
+            "x" => serde::__private228::Ok(__Field::__field0),
+            "y" => serde::__private228::Ok(__Field::__field1),
+            "z" => serde::__private228::Ok(__Field::__field2),
+            "m" => serde::__private228::Ok(__Field::__field3),
+            _ => serde::__private228::Ok(__Field::__ignore),
+        }
+    }
+}
+
+#[automatically_derived]
+impl<'de> serde::Deserialize<'de> for __Field {
+    #[inline]
+    fn deserialize<__D>(__deserializer: __D) -> serde::__private228::Result<Self, __D::Error>
+    where
+        __D: serde::Deserializer<'de>,
+    {
+        serde::Deserializer::deserialize_identifier(__deserializer, __FieldVisitor)
+    }
+}
+
+#[doc(hidden)]
+pub struct PointVisitor<'de> {
+    marker: serde::__private228::PhantomData<Point>,
+    lifetime: serde::__private228::PhantomData<&'de ()>,
+}
+
+impl<'de> PointVisitor<'de> {
+    pub fn new() -> Self {
+        Self {
+            marker: std::marker::PhantomData,
+            lifetime: std::marker::PhantomData,
+        }
+    }
+}
+
+// Based on the derived implementations, but some functionalities are added with comments.
+#[automatically_derived]
+impl<'de> serde::de::Visitor<'de> for PointVisitor<'de> {
+    type Value = Point;
+    fn expecting(
+        &self,
+        __formatter: &mut serde::__private228::Formatter,
+    ) -> serde::__private228::fmt::Result {
+        serde::__private228::Formatter::write_str(__formatter, POINT)
+    }
+    #[inline]
+    fn visit_seq<__A>(self, mut __seq: __A) -> serde::__private228::Result<Self::Value, __A::Error>
+    where
+        __A: serde::de::SeqAccess<'de>,
+    {
+        // Flatten 1 Point sequence recursively
+        let point = match serde::de::SeqAccess::next_element(&mut __seq)? {
+            serde::__private228::Some(__value) => __value,
+            serde::__private228::None => {
+                return serde::__private228::Err(serde::de::Error::invalid_length(
+                    0usize,
+                    &"struct Point with 1 element",
+                ));
+            }
+        };
+        serde::__private228::Ok(point)
+    }
+    #[inline]
+    fn visit_map<__A>(self, mut __map: __A) -> serde::__private228::Result<Self::Value, __A::Error>
+    where
+        __A: serde::de::MapAccess<'de>,
+    {
+        let mut __field0: serde::__private228::Option<f64> = serde::__private228::None;
+        let mut __field1: serde::__private228::Option<f64> = serde::__private228::None;
+        let mut __field2: serde::__private228::Option<Option<f64>> = serde::__private228::None;
+        let mut __field3: serde::__private228::Option<Option<f64>> = serde::__private228::None;
+        while let serde::__private228::Some(__key) =
+            serde::de::MapAccess::next_key::<__Field>(&mut __map)?
+        {
+            match __key {
+                __Field::__field0 => {
+                    if serde::__private228::Option::is_some(&__field0) {
+                        return serde::__private228::Err(
+                            <__A::Error as serde::de::Error>::duplicate_field("x"),
+                        );
+                    }
+                    __field0 = serde::__private228::Some(serde::de::MapAccess::next_value::<f64>(
+                        &mut __map,
+                    )?);
+                }
+                __Field::__field1 => {
+                    if serde::__private228::Option::is_some(&__field1) {
+                        return serde::__private228::Err(
+                            <__A::Error as serde::de::Error>::duplicate_field("y"),
+                        );
+                    }
+                    __field1 = serde::__private228::Some(serde::de::MapAccess::next_value::<f64>(
+                        &mut __map,
+                    )?);
+                }
+                __Field::__field2 => {
+                    if serde::__private228::Option::is_some(&__field2) {
+                        return serde::__private228::Err(
+                            <__A::Error as serde::de::Error>::duplicate_field("z"),
+                        );
+                    }
+                    __field2 = serde::__private228::Some(serde::de::MapAccess::next_value::<
+                        Option<f64>,
+                    >(&mut __map)?);
+                }
+                __Field::__field3 => {
+                    if serde::__private228::Option::is_some(&__field3) {
+                        return serde::__private228::Err(
+                            <__A::Error as serde::de::Error>::duplicate_field("m"),
+                        );
+                    }
+                    __field3 = serde::__private228::Some(serde::de::MapAccess::next_value::<
+                        Option<f64>,
+                    >(&mut __map)?);
+                }
+                _ => {
+                    let _ = serde::de::MapAccess::next_value::<serde::de::IgnoredAny>(&mut __map)?;
+                }
+            }
+        }
+        let __field0 = match __field0 {
+            serde::__private228::Some(__field0) => __field0,
+            serde::__private228::None => serde::__private228::de::missing_field("x")?,
+        };
+        let __field1 = match __field1 {
+            serde::__private228::Some(__field1) => __field1,
+            serde::__private228::None => serde::__private228::de::missing_field("y")?,
+        };
+        let __field2 = match __field2 {
+            serde::__private228::Some(__field2) => __field2,
+            serde::__private228::None => serde::__private228::de::missing_field("z")?,
+        };
+        let __field3 = match __field3 {
+            serde::__private228::Some(__field3) => __field3,
+            serde::__private228::None => serde::__private228::de::missing_field("m")?,
+        };
+        serde::__private228::Ok(Point {
+            x: __field0,
+            y: __field1,
+            z: __field2,
+            m: __field3,
+        })
+    }
+
+    fn visit_enum<A>(self, geometry: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::EnumAccess<'de>,
+    {
+        match geometry.variant().unwrap() {
+            // Extract Point from Geometry enum (recursive call)
+            (POINT, point) => serde::de::VariantAccess::newtype_variant(point),
+            (variant, _) => Err(Error::unknown_variant(variant, &[POINT])),
+        }
+    }
+}
+
+#[doc(hidden)]
+pub const POINT_FIELDS: &'static [&'static str] = &["x", "y", "z", "m"];
 
 pub struct PointDeserializer {
     point: crate::v0_6_1::Point,

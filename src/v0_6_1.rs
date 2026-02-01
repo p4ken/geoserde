@@ -63,7 +63,12 @@ pub struct Point {
 
 impl<'de> serde::Deserialize<'de> for Point {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
-        de::deserialize_point(de)
+        serde::Deserializer::deserialize_struct(
+            de,
+            POINT,
+            de::POINT_FIELDS,
+            de::PointVisitor::new(),
+        )
     }
 }
 
@@ -86,6 +91,7 @@ impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
+
 impl<'de, T: de::FromLineStringSeq> Deserialize<'de> for Polygon<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         de.deserialize_newtype_struct(POLYGON, de::PolygonVisitor::new())
