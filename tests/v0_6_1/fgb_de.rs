@@ -3,14 +3,11 @@
 use std::io::Cursor;
 
 use anyhow::Result;
-use flatgeobuf::{FallibleStreamingIterator, FgbReader, GeometryType};
+use flatgeobuf::{FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
-use geoserde::v0_6_1::{fgb::de::FeatureAccess, GeometrySink};
+use geoserde::v0_6_1::GeometrySink;
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
-use serde::{
-    de::{DeserializeOwned, IntoDeserializer},
-    Deserialize,
-};
+use serde::{de::DeserializeOwned, Deserialize};
 
 use crate::testing;
 

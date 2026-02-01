@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use flatgeobuf::{ColumnType, FgbFeature};
+use flatgeobuf::{ColumnType, FallibleStreamingIterator, FgbFeature};
 use serde::de::{
     value::{EnumAccessDeserializer, MapAccessDeserializer},
     DeserializeOwned, DeserializeSeed, Error, IntoDeserializer, MapAccess, StdError,
@@ -11,16 +11,22 @@ use crate::v0_6_1::fgb::de::{
     OwnedHeader,
 };
 
-pub fn from_feature_iter<T: DeserializeOwned>(
-    mut fgb_iter: flatgeobuf::FeatureIter<std::io::Cursor<&[u8]>, flatgeobuf::Seekable>,
-) -> Result<Vec<T>, crate::v0_6_1::fgb::Error> {
-    let mut features: Vec<T> = vec![];
+pub fn from_feature_iter<T, R, S>(
+    mut fgb_iter: flatgeobuf::FeatureIter<R, S>,
+) -> Result<Vec<T>, crate::v0_6_1::fgb::Error>
+where
+    T: DeserializeOwned,
+    R: std::io::Read,
+    flatgeobuf::FeatureIter<R, S>:
+        FallibleStreamingIterator<Item = FgbFeature, Error = flatgeobuf::Error>,
+{
+    let mut features = vec![];
     let fgb_header = fgb_iter.header().into();
-    while let Some(fgb_feat) = flatgeobuf::FallibleStreamingIterator::next(&mut fgb_iter)? {
-        let my_point = T::deserialize(serde::de::IntoDeserializer::into_deserializer(
-            FeatureAccess::new(&fgb_header, fgb_feat),
-        ))?;
-        features.push(my_point);
+    while let Some(fgb_feat) = FallibleStreamingIterator::next(&mut fgb_iter)? {
+        // T should implement DeserializeGeometry.
+        // deserialize -> serde(with = "geoserde") -> deserialize_geometry
+        let feat = T::deserialize(FeatureAccess::new(&fgb_header, fgb_feat).into_deserializer())?;
+        features.push(feat);
     }
     Ok(features)
 }
