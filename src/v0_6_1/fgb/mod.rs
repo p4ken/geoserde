@@ -23,7 +23,7 @@ impl From<de::FeatureError> for Error {
 }
 
 impl std::error::Error for Error {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Error::Fgb(e) => Some(e),
             Error::De(e) => Some(e),
