@@ -5,7 +5,7 @@ use std::{io::Cursor, vec};
 use geoserde::GeoDeserialize;
 use serde::{Deserialize, Serialize};
 
-mod testing;
+use crate::testing;
 
 #[test]
 fn de() -> anyhow::Result<()> {
@@ -34,9 +34,9 @@ fn de() -> anyhow::Result<()> {
     let dbf_r = shapefile::dbase::Reader::new(Cursor::new(dbf_buf))?;
     let mut reader = shapefile::Reader::new(shp_r, dbf_r);
 
-    // ジオメトリは1コピーとなる
     for res in reader.iter_shapes_and_records_as::<shapefile::Polyline, MyProperty>() {
         let (geom, _prop) = res.unwrap();
+        // ジオメトリは1コピーとなる
         let _geom = geo_types::MultiLineString::from(geom)
             .0
             .into_iter()
