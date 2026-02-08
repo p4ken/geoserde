@@ -24,8 +24,6 @@ impl<'de, P: FeatureProperties> serde::de::MapAccess<'de> for MapAdapter<&'de P>
         // -> flatgeobuf側でイテレータを提供すべき
 
         // GWの結論: 公式で deserialize を実装してくれ！
-        // しかし外から指定された順序でランダムアクセスしたいとなると、
-        // 結局、指数関数的に処理量が増えてしまい、解決にならない...
         if self.keys.is_empty() {
             return Ok(None);
         }

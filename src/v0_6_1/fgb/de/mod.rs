@@ -1,6 +1,7 @@
 mod coord;
 mod feat;
 mod geom;
+mod prop;
 
 pub use feat::{from_feature_iter, FeatureAccess, FeatureError};
 
