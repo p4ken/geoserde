@@ -120,6 +120,8 @@ fn flatten_property_test() -> Result<()> {
 }
 
 // BUG: Virtual enum `Geometry` cannot deserialized with `flatten`.
+// TODO: Change Geometry from enum to map.
+// Or, prohibit serde(flatten) and fgb Deserializer flatten all maps.
 #[ignore = "todo"]
 #[test]
 fn flatten_geometry_test() -> Result<()> {
