@@ -7,7 +7,7 @@ use flatgeobuf::{FgbReader, GeometryType};
 use geo_traits::to_geo::ToGeoGeometry;
 use geoserde::v0_6_1::GeometrySink;
 use geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize};
 
 use crate::testing;
 
@@ -119,6 +119,7 @@ fn flatten_property_test() -> Result<()> {
     Ok(())
 }
 
+// BUG: Virtual enum `Geometry` cannot deserialized with `flatten`.
 #[ignore = "todo"]
 #[test]
 fn flatten_geometry_test() -> Result<()> {

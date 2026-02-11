@@ -140,7 +140,7 @@ impl geoserde::DeserializeFeature for MyStruct {
     fn deserialize_feature(fmt: impl geoserde::ParseFeature) -> Self {
         #[derive(geoserde::serde::Deserialize)]
         struct __Properties {
-            // この中にジオメトリがある！！
+            // BUG: この中にジオメトリがある！！
             child: Child,
         }
         let (__geom, __props) = fmt.parse_feature::<(), __Properties>();
