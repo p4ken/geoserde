@@ -3,17 +3,15 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_5::prop::root::RootSerializer;
-
 // parent.child
 // parent[i].child
-pub struct Child<'a, M> {
-    table: &'a mut M,
+pub struct Child<M> {
+    table: M,
     key: String,
 }
 
-impl<'a, M> Child<'a, M> {
-    pub fn new(table: &'a mut M) -> Self {
+impl<M> Child<M> {
+    pub fn new(table: M) -> Self {
         Self {
             table,
             key: String::new(),
@@ -21,7 +19,7 @@ impl<'a, M> Child<'a, M> {
     }
 }
 
-impl<M: SerializeMap> SerializeStruct for Child<'_, M> {
+impl<'a, M: SerializeMap> SerializeStruct for &'a mut Child<M> {
     type Ok = M::Ok;
     type Error = M::Error;
 
@@ -29,36 +27,33 @@ impl<M: SerializeMap> SerializeStruct for Child<'_, M> {
     where
         T: ?Sized + Serialize,
     {
-        let mut child_key = self.key.clone();
+        let parent = self.key.clone();
         if !self.key.is_empty() {
-            child_key += ".";
+            self.key += ".";
         }
-        child_key += key;
-
-        let mut child = Child {
-            table: self.table,
-            key: child_key,
-        };
-        let _ = value.serialize(&mut child);
+        self.key += key;
+        let _ = value.serialize(&mut **self);
+        self.key = parent;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
+        // self.table.end() // TODO
         todo!()
     }
 }
 
-impl<'a, S: SerializeMap> Serializer for &'a mut Child<'a, S> {
-    type Ok = S::Ok;
-    type Error = S::Error;
+impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
+    type Ok = M::Ok;
+    type Error = M::Error;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, S::Error>;
-    type SerializeStruct = Child<'a, S>;
-    type SerializeStructVariant = Impossible<S::Ok, S::Error>;
+    type SerializeMap = Impossible<Self::Ok, M::Error>;
+    type SerializeStruct = Self;
+    type SerializeStructVariant = Impossible<M::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
@@ -204,10 +199,7 @@ impl<'a, S: SerializeMap> Serializer for &'a mut Child<'a, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(Child {
-            table: &mut self.table,
-            key: self.key.clone(),
-        })
+        Ok(self)
     }
 
     fn serialize_struct_variant(

@@ -1,6 +1,9 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{
+    ser::{Impossible, SerializeMap},
+    Serialize, Serializer,
+};
 
 pub struct FlattenSerializer<S: Serializer> {
     key: Cow<'static, str>,
@@ -12,22 +15,22 @@ impl<S: Serializer> FlattenSerializer<S> {
     pub fn new(inner: S) -> Self {
         Self {
             key: Cow::default(),
-            table: inner.serialize_map(None).unwrap(), // TODO,
+            table: inner.serialize_map(None).unwrap(),
             inner: PhantomData,
         }
     }
 }
 
 impl<S: Serializer> Serializer for FlattenSerializer<S> {
-    type Ok = S::Ok;
+    type Ok = Option<S::Ok>;
     type Error = S::Error;
-    type SerializeSeq = S::SerializeSeq;
-    type SerializeTuple = S::SerializeTuple;
-    type SerializeTupleStruct = S::SerializeTupleStruct;
-    type SerializeTupleVariant = S::SerializeTupleVariant;
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Self;
-    type SerializeStruct = S::SerializeStruct;
-    type SerializeStructVariant = S::SerializeStructVariant;
+    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
@@ -188,7 +191,7 @@ impl<S: Serializer> Serializer for FlattenSerializer<S> {
 }
 
 impl<S: Serializer> SerializeMap for FlattenSerializer<S> {
-    type Ok = S::Ok;
+    type Ok = Option<S::Ok>;
     type Error = S::Error;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>

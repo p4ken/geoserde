@@ -6,13 +6,15 @@ use serde::{
 use crate::v0_5::prop::child::Child;
 
 pub struct RootSerializer<M> {
-    table: M,
+    child: Child<M>,
 }
 
 impl<M> RootSerializer<M> {
     pub fn new<S: Serializer<SerializeMap = M>>(inner: S) -> Self {
         let table = inner.serialize_map(None).unwrap();
-        Self { table }
+        Self {
+            child: Child::new(table),
+        }
     }
 }
 
@@ -25,7 +27,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
     type SerializeTupleStruct = Impossible<M::Ok, M::Error>;
     type SerializeTupleVariant = Impossible<M::Ok, M::Error>;
     type SerializeMap = Impossible<M::Ok, M::Error>;
-    type SerializeStruct = Child<'a, M>;
+    type SerializeStruct = &'a mut Child<M>;
     type SerializeStructVariant = Impossible<M::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -171,7 +173,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(Child::new(&mut self.table))
+        Ok(&mut self.child)
     }
 
     fn serialize_struct_variant(
