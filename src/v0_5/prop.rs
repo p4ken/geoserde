@@ -1,3 +1,6 @@
+mod child;
+mod root;
+
 use serde::{
     ser::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,

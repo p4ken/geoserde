@@ -3,11 +3,20 @@ use serde::{
     Serialize, Serializer,
 };
 
-pub struct FlatSerializer<'a, S> {
+// parent.child
+// parent[i].child
+pub struct ChildSerializer<'a, S> {
     sink: &'a mut S,
+    key: &'static str,
 }
 
-impl<'a, S: 'a + Serializer> Serializer for &'a mut FlatSerializer<'a, S> {
+impl<'a, S> ChildSerializer<'a, S> {
+    pub fn new(sink: &'a mut S) -> Self {
+        Self { sink, key: "" }
+    }
+}
+
+impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'a, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -15,8 +24,8 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut FlatSerializer<'a, S> {
     type SerializeTuple = S::SerializeTuple;
     type SerializeTupleStruct = S::SerializeTupleStruct;
     type SerializeTupleVariant = S::SerializeTupleVariant;
-    type SerializeMap = FlatenMap<'a, S>;
-    type SerializeStruct = FlatenMap<'a, S>;
+    type SerializeMap = ChildSerializer<'a, S>;
+    type SerializeStruct = ChildSerializer<'a, S>;
     type SerializeStructVariant = S::SerializeStructVariant;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -153,8 +162,8 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut FlatSerializer<'a, S> {
         todo!()
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(FlatenMap::new(self.sink))
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        Ok(ChildSerializer::new(self.sink))
     }
 
     fn serialize_struct(
@@ -162,7 +171,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut FlatSerializer<'a, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(FlatenMap::new(self.sink))
+        Ok(ChildSerializer::new(self.sink))
     }
 
     fn serialize_struct_variant(
@@ -176,20 +185,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut FlatSerializer<'a, S> {
     }
 }
 
-// parent.child
-// parent[i].child
-pub struct FlatenMap<'a, S> {
-    sink: &'a mut S,
-    key: &'static str,
-}
-
-impl<'a, S> FlatenMap<'a, S> {
-    fn new(sink: &'a mut S) -> Self {
-        Self { sink, key: "" }
-    }
-}
-
-impl<'a, S: 'a + Serializer> SerializeMap for FlatenMap<'a, S> {
+impl<'a, S: 'a + Serializer> SerializeMap for ChildSerializer<'a, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -212,7 +208,7 @@ impl<'a, S: 'a + Serializer> SerializeMap for FlatenMap<'a, S> {
     }
 }
 
-impl<'a, S: 'a + Serializer> SerializeStruct for FlatenMap<'a, S> {
+impl<'a, S: 'a + Serializer> SerializeStruct for ChildSerializer<'a, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -220,51 +216,12 @@ impl<'a, S: 'a + Serializer> SerializeStruct for FlatenMap<'a, S> {
     where
         T: ?Sized + Serialize,
     {
-        self.key = key; // "parent"
-                        // {text:"hello"}
-        todo!()
+        self.key = key;
+        let _ = value.serialize(self.sink);
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         todo!()
-    }
-}
-
-// elem0,elem1
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Serialize)]
-    struct Root {
-        parent: Parent,
-    }
-
-    #[derive(Serialize)]
-    struct Parent {
-        child: Child,
-    }
-
-    #[derive(Serialize)]
-    struct Child {
-        text: &'static str,
-    }
-
-    #[test]
-    fn test() {
-        let root = Root {
-            parent: Parent {
-                child: Child { text: "hello" },
-            },
-        };
-
-        let mut buf = Vec::new();
-        let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let mut ser = FlatSerializer {
-            sink: &mut &mut json_ser,
-        };
-        root.serialize(&mut ser).unwrap();
-        println!("{}", String::from_utf8(buf).unwrap());
     }
 }

@@ -1,6 +1,5 @@
 mod err;
 mod feat;
-mod flatten;
 mod geom;
 mod prop;
 mod sink;
