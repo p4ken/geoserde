@@ -9,12 +9,15 @@ use crate::v0_5::prop::root::RootSerializer;
 // parent[i].child
 pub struct ChildSerializer<'a, S> {
     sink: &'a mut RootSerializer<S>,
-    key: &'static str,
+    key: String,
 }
 
 impl<'a, S> ChildSerializer<'a, S> {
     pub fn new(sink: &'a mut RootSerializer<S>) -> Self {
-        Self { sink, key: "" }
+        Self {
+            sink,
+            key: String::new(),
+        }
     }
 }
 
@@ -79,6 +82,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
+        // self.sink; // TODO
         todo!()
     }
 
@@ -165,7 +169,10 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(ChildSerializer::new(self.sink))
+        Ok(ChildSerializer {
+            sink: self.sink,
+            key: self.key.clone(),
+        })
     }
 
     fn serialize_struct(
@@ -173,7 +180,10 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(ChildSerializer::new(self.sink))
+        Ok(ChildSerializer {
+            sink: self.sink,
+            key: self.key.clone(),
+        })
     }
 
     fn serialize_struct_variant(
@@ -218,13 +228,17 @@ impl<S: Serializer> SerializeStruct for ChildSerializer<'_, S> {
     where
         T: ?Sized + Serialize,
     {
-        self.key = key; // parent
+        let mut child_key = self.key.clone();
+        if !self.key.is_empty() {
+            child_key += ".";
+        }
+        child_key += key;
 
         let mut child = ChildSerializer {
             sink: self.sink,
-            key,
+            key: child_key,
         };
-        let _ = value.serialize(&mut child); // BUG
+        let _ = value.serialize(&mut child);
         Ok(())
     }
 
