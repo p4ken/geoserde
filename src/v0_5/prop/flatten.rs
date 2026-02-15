@@ -1,35 +1,34 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::borrow::Cow;
 
 use serde::{
-    ser::{Impossible, SerializeMap},
+    ser::{Impossible, SerializeMap, SerializeStruct},
     Serialize, Serializer,
 };
 
-pub struct FlattenSerializer<S: Serializer> {
-    key: Cow<'static, str>,
-    table: S::SerializeMap,
-    inner: PhantomData<S>,
+pub struct FlattenSerializer<M> {
+    key: Vec<Cow<'static, str>>,
+    table: M,
 }
 
-impl<S: Serializer> FlattenSerializer<S> {
-    pub fn new(inner: S) -> Self {
+impl<M> FlattenSerializer<M> {
+    pub fn new<S: Serializer<SerializeMap = M>>(inner: S) -> Self {
+        let table = inner.serialize_map(None).unwrap();
         Self {
-            key: Cow::default(),
-            table: inner.serialize_map(None).unwrap(),
-            inner: PhantomData,
+            key: Vec::new(),
+            table,
         }
     }
 }
 
-impl<S: Serializer> Serializer for FlattenSerializer<S> {
+impl<S: SerializeMap> Serializer for &mut FlattenSerializer<S> {
     type Ok = Option<S::Ok>;
     type Error = S::Error;
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Self;
-    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -80,9 +79,9 @@ impl<S: Serializer> Serializer for FlattenSerializer<S> {
         todo!()
     }
 
-    fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
-        let () = self.table.serialize_entry(&self.key, v)?;
-        todo!() // TODO: Nothing to return!
+    fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
+        self.table.serialize_entry(&self.key.join("."), v)?;
+        Ok(None)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -173,10 +172,10 @@ impl<S: Serializer> Serializer for FlattenSerializer<S> {
 
     fn serialize_struct(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        todo!()
+        Ok(self)
     }
 
     fn serialize_struct_variant(
@@ -213,6 +212,24 @@ impl<S: Serializer> SerializeMap for FlattenSerializer<S> {
     }
 }
 
+impl<S: SerializeMap> SerializeStruct for &mut FlattenSerializer<S> {
+    type Ok = Option<S::Ok>;
+    type Error = S::Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        value.serialize(&mut **self)?;
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        // self.table.end()
+        Ok(None)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,8 +260,8 @@ mod tests {
 
         let mut buf = Vec::new();
         let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let ser = FlattenSerializer::new(&mut json_ser);
-        root.serialize(ser).unwrap();
+        let mut ser = FlattenSerializer::new(&mut json_ser);
+        root.serialize(&mut ser).unwrap();
         println!("{}", String::from_utf8(buf).unwrap());
         // Expected: {"parent.child.text":"hello"}
     }

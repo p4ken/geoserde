@@ -3,11 +3,17 @@ use serde::{
     Serialize, Serializer,
 };
 
+pub enum Value {
+    None,
+    String(String),
+}
+
 // parent.child
 // parent[i].child
 pub struct Child<M> {
     table: M,
     key: String,
+    value: Value,
 }
 
 impl<M> Child<M> {
@@ -15,11 +21,12 @@ impl<M> Child<M> {
         Self {
             table,
             key: String::new(),
+            value: Value::None,
         }
     }
 }
 
-impl<'a, M: SerializeMap> SerializeStruct for &'a mut Child<M> {
+impl<'a, M: SerializeMap> SerializeStruct for Child<M> {
     type Ok = M::Ok;
     type Error = M::Error;
 
@@ -32,7 +39,10 @@ impl<'a, M: SerializeMap> SerializeStruct for &'a mut Child<M> {
             self.key += ".";
         }
         self.key += key;
+        // TODO: Make key, value
         let _ = value.serialize(&mut **self);
+        // TODO: Serialize key, value outside
+
         self.key = parent;
         Ok(())
     }
@@ -43,7 +53,7 @@ impl<'a, M: SerializeMap> SerializeStruct for &'a mut Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
+impl<'a, M: SerializeMap> Serializer for &mut Child<M> {
     type Ok = M::Ok;
     type Error = M::Error;
 
