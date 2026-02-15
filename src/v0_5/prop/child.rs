@@ -1,5 +1,5 @@
 use serde::{
-    ser::{SerializeMap, SerializeStruct},
+    ser::{Impossible, SerializeMap, SerializeStruct},
     Serialize, Serializer,
 };
 
@@ -7,31 +7,58 @@ use crate::v0_5::prop::root::RootSerializer;
 
 // parent.child
 // parent[i].child
-pub struct ChildSerializer<'a, S> {
-    sink: &'a mut RootSerializer<S>,
+pub struct Child<'a, M> {
+    table: &'a mut M,
     key: String,
 }
 
-impl<'a, S> ChildSerializer<'a, S> {
-    pub fn new(sink: &'a mut RootSerializer<S>) -> Self {
+impl<'a, M> Child<'a, M> {
+    pub fn new(table: &'a mut M) -> Self {
         Self {
-            sink,
+            table,
             key: String::new(),
         }
     }
 }
 
-impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
+impl<M: SerializeMap> SerializeStruct for Child<'_, M> {
+    type Ok = M::Ok;
+    type Error = M::Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        let mut child_key = self.key.clone();
+        if !self.key.is_empty() {
+            child_key += ".";
+        }
+        child_key += key;
+
+        let mut child = Child {
+            table: self.table,
+            key: child_key,
+        };
+        let _ = value.serialize(&mut child);
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        todo!()
+    }
+}
+
+impl<'a, S: SerializeMap> Serializer for &'a mut Child<'a, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
-    type SerializeSeq = S::SerializeSeq;
-    type SerializeTuple = S::SerializeTuple;
-    type SerializeTupleStruct = S::SerializeTupleStruct;
-    type SerializeTupleVariant = S::SerializeTupleVariant;
-    type SerializeMap = ChildSerializer<'a, S>;
-    type SerializeStruct = ChildSerializer<'a, S>;
-    type SerializeStructVariant = S::SerializeStructVariant;
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, S::Error>;
+    type SerializeStruct = Child<'a, S>;
+    type SerializeStructVariant = Impossible<S::Ok, S::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
@@ -82,7 +109,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        // self.sink; // TODO
+        self.table.serialize_entry(&self.key, v)?; // TODO
         todo!()
     }
 
@@ -169,10 +196,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(ChildSerializer {
-            sink: self.sink,
-            key: self.key.clone(),
-        })
+        todo!()
     }
 
     fn serialize_struct(
@@ -180,8 +204,8 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(ChildSerializer {
-            sink: self.sink,
+        Ok(Child {
+            table: &mut self.table,
             key: self.key.clone(),
         })
     }
@@ -193,56 +217,6 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        todo!()
-    }
-}
-
-impl<'a, S: 'a + Serializer> SerializeMap for ChildSerializer<'a, S> {
-    type Ok = S::Ok;
-    type Error = S::Error;
-
-    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        todo!()
-    }
-
-    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        todo!()
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
-    }
-}
-
-impl<S: Serializer> SerializeStruct for ChildSerializer<'_, S> {
-    type Ok = S::Ok;
-    type Error = S::Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
-    where
-        T: ?Sized + Serialize,
-    {
-        let mut child_key = self.key.clone();
-        if !self.key.is_empty() {
-            child_key += ".";
-        }
-        child_key += key;
-
-        let mut child = ChildSerializer {
-            sink: self.sink,
-            key: child_key,
-        };
-        let _ = value.serialize(&mut child);
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 }

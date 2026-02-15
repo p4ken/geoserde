@@ -1,6 +1,6 @@
-// mod child;
-// mod root;
-pub mod flatten;
+mod child;
+pub mod root;
+// pub mod flatten;
 
 use serde::{
     ser::{

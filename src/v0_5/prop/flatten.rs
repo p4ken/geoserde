@@ -79,7 +79,7 @@ impl<S: Serializer> Serializer for FlattenSerializer<S> {
 
     fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
         let () = self.table.serialize_entry(&self.key, v)?;
-        todo!() // Nothing to return!
+        todo!() // TODO: Nothing to return!
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {

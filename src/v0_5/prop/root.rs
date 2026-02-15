@@ -1,28 +1,32 @@
-use serde::{Serialize, Serializer};
+use serde::{
+    ser::{Impossible, SerializeMap},
+    Serialize, Serializer,
+};
 
-use crate::v0_5::prop::child::ChildSerializer;
+use crate::v0_5::prop::child::Child;
 
-pub struct RootSerializer<S> {
-    sink: S,
+pub struct RootSerializer<M> {
+    table: M,
 }
 
-impl<S> RootSerializer<S> {
-    pub fn new(sink: S) -> Self {
-        Self { sink }
+impl<M> RootSerializer<M> {
+    pub fn new<S: Serializer<SerializeMap = M>>(inner: S) -> Self {
+        let table = inner.serialize_map(None).unwrap();
+        Self { table }
     }
 }
 
-impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<S> {
-    type Ok = S::Ok;
-    type Error = S::Error;
+impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
+    type Ok = M::Ok;
+    type Error = M::Error;
 
-    type SerializeSeq = S::SerializeSeq;
-    type SerializeTuple = S::SerializeTuple;
-    type SerializeTupleStruct = S::SerializeTupleStruct;
-    type SerializeTupleVariant = S::SerializeTupleVariant;
-    type SerializeMap = ChildSerializer<'a, S>;
-    type SerializeStruct = ChildSerializer<'a, S>;
-    type SerializeStructVariant = S::SerializeStructVariant;
+    type SerializeSeq = Impossible<M::Ok, M::Error>;
+    type SerializeTuple = Impossible<M::Ok, M::Error>;
+    type SerializeTupleStruct = Impossible<M::Ok, M::Error>;
+    type SerializeTupleVariant = Impossible<M::Ok, M::Error>;
+    type SerializeMap = Impossible<M::Ok, M::Error>;
+    type SerializeStruct = Child<'a, M>;
+    type SerializeStructVariant = Impossible<M::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
@@ -159,7 +163,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<S> {
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(ChildSerializer::new(self))
+        todo!()
     }
 
     fn serialize_struct(
@@ -167,7 +171,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(ChildSerializer::new(self))
+        Ok(Child::new(&mut self.table))
     }
 
     fn serialize_struct_variant(
