@@ -2,11 +2,17 @@ use serde::{Serialize, Serializer};
 
 use crate::v0_5::prop::child::ChildSerializer;
 
-pub struct RootSerializer<'a, S> {
-    sink: &'a mut S,
+pub struct RootSerializer<S> {
+    sink: S,
 }
 
-impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<'a, S> {
+impl<S> RootSerializer<S> {
+    pub fn new(sink: S) -> Self {
+        Self { sink }
+    }
+}
+
+impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -153,7 +159,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<'a, S> {
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(ChildSerializer::new(self.sink))
+        Ok(ChildSerializer::new(self))
     }
 
     fn serialize_struct(
@@ -161,7 +167,7 @@ impl<'a, S: 'a + Serializer> Serializer for &'a mut RootSerializer<'a, S> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(ChildSerializer::new(self.sink))
+        Ok(ChildSerializer::new(self))
     }
 
     fn serialize_struct_variant(
@@ -206,9 +212,7 @@ mod tests {
 
         let mut buf = Vec::new();
         let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let mut ser = RootSerializer {
-            sink: &mut &mut json_ser,
-        };
+        let mut ser = RootSerializer::new(&mut json_ser);
         root.serialize(&mut ser).unwrap();
         println!("{}", String::from_utf8(buf).unwrap());
         // Expected: {"parent.child.text":"hello"}

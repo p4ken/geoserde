@@ -3,20 +3,22 @@ use serde::{
     Serialize, Serializer,
 };
 
+use crate::v0_5::prop::root::RootSerializer;
+
 // parent.child
 // parent[i].child
 pub struct ChildSerializer<'a, S> {
-    sink: &'a mut S,
+    sink: &'a mut RootSerializer<S>,
     key: &'static str,
 }
 
 impl<'a, S> ChildSerializer<'a, S> {
-    pub fn new(sink: &'a mut S) -> Self {
+    pub fn new(sink: &'a mut RootSerializer<S>) -> Self {
         Self { sink, key: "" }
     }
 }
 
-impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'a, S> {
+impl<'a, S: 'a + Serializer> Serializer for &'a mut ChildSerializer<'_, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -208,7 +210,7 @@ impl<'a, S: 'a + Serializer> SerializeMap for ChildSerializer<'a, S> {
     }
 }
 
-impl<'a, S: 'a + Serializer> SerializeStruct for ChildSerializer<'a, S> {
+impl<S: Serializer> SerializeStruct for ChildSerializer<'_, S> {
     type Ok = S::Ok;
     type Error = S::Error;
 
@@ -216,8 +218,13 @@ impl<'a, S: 'a + Serializer> SerializeStruct for ChildSerializer<'a, S> {
     where
         T: ?Sized + Serialize,
     {
-        self.key = key;
-        let _ = value.serialize(self.sink);
+        self.key = key; // parent
+
+        let mut child = ChildSerializer {
+            sink: self.sink,
+            key,
+        };
+        let _ = value.serialize(&mut child); // BUG
         Ok(())
     }
 
