@@ -1,5 +1,5 @@
 use serde::{
-    ser::{Impossible, SerializeMap},
+    ser::{Impossible, SerializeMap, SerializeStruct},
     Serialize, Serializer,
 };
 
@@ -18,7 +18,7 @@ impl<M> RootSerializer<M> {
     }
 }
 
-impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
+impl<'a, M: SerializeMap> Serializer for RootSerializer<M> {
     type Ok = M::Ok;
     type Error = M::Error;
 
@@ -27,7 +27,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
     type SerializeTupleStruct = Impossible<M::Ok, M::Error>;
     type SerializeTupleVariant = Impossible<M::Ok, M::Error>;
     type SerializeMap = Impossible<M::Ok, M::Error>;
-    type SerializeStruct = &'a mut Child<M>;
+    type SerializeStruct = RootSerializer<M>;
     type SerializeStructVariant = Impossible<M::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -173,7 +173,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Ok(&mut self.child)
+        Ok(self)
     }
 
     fn serialize_struct_variant(
@@ -184,6 +184,22 @@ impl<'a, M: SerializeMap> Serializer for &'a mut RootSerializer<M> {
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         todo!()
+    }
+}
+
+impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
+    type Ok = M::Ok;
+    type Error = M::Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        self.child.serialize_field(key, value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.child.into_table().end()
     }
 }
 
@@ -219,8 +235,8 @@ mod tests {
 
         let mut buf = Vec::new();
         let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let mut ser = RootSerializer::new(&mut json_ser);
-        root.serialize(&mut ser).unwrap();
+        let ser = RootSerializer::new(&mut json_ser);
+        root.serialize(ser).unwrap();
         println!("{}", String::from_utf8(buf).unwrap());
         // Expected: {"parent.child.text":"hello"}
     }
