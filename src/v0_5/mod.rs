@@ -1,7 +1,7 @@
 mod err;
 mod feat;
 mod geom;
-mod prop;
+pub mod prop;
 mod sink;
 
 pub use err::SerializeError;
