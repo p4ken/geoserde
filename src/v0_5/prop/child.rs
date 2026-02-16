@@ -29,7 +29,7 @@ impl<M> Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> SerializeStruct for Child<M> {
+impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
     type Ok = ();
     type Error = M::Error;
 
@@ -43,7 +43,7 @@ impl<'a, M: SerializeMap> SerializeStruct for Child<M> {
         }
         self.key += key;
         // TODO: Make key, value
-        let _ = value.serialize(&mut *self);
+        let _ = value.serialize(&mut **self);
         // TODO: Serialize key, value outside
 
         self.key = parent;
@@ -55,7 +55,7 @@ impl<'a, M: SerializeMap> SerializeStruct for Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> Serializer for &mut Child<M> {
+impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     type Ok = ();
     type Error = M::Error;
 
@@ -64,7 +64,7 @@ impl<'a, M: SerializeMap> Serializer for &mut Child<M> {
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Impossible<Self::Ok, M::Error>;
-    type SerializeStruct = Child<M>;
+    type SerializeStruct = &'a mut Child<M>;
     type SerializeStructVariant = Impossible<Self::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -116,8 +116,8 @@ impl<'a, M: SerializeMap> Serializer for &mut Child<M> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.table.serialize_entry(&self.key, v)?; // TODO
-        todo!()
+        self.table.serialize_entry(&self.key, v)?;
+        Ok(())
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -211,8 +211,7 @@ impl<'a, M: SerializeMap> Serializer for &mut Child<M> {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        // Ok(self)
-        todo!()
+        Ok(self)
     }
 
     fn serialize_struct_variant(

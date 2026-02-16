@@ -195,7 +195,7 @@ impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
     where
         T: ?Sized + Serialize,
     {
-        self.child.serialize_field(key, value)
+        (&mut self.child).serialize_field(key, value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -225,7 +225,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test() {
         let root = Root {
             parent: Parent {
@@ -237,7 +236,9 @@ mod tests {
         let mut json_ser = serde_json::Serializer::new(&mut buf);
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
-        println!("{}", String::from_utf8(buf).unwrap());
-        // Expected: {"parent.child.text":"hello"}
+        assert_eq!(
+            r#"{"parent.child.text":"hello"}"#,
+            String::from_utf8(buf).unwrap()
+        );
     }
 }
