@@ -78,7 +78,8 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        self.table.serialize_entry(&self.key, &v)?;
+        Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {

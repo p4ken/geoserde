@@ -212,6 +212,7 @@ mod tests {
     #[derive(Serialize)]
     struct Root {
         parent: Parent,
+        number: i32,
     }
 
     #[derive(Serialize)]
@@ -225,11 +226,12 @@ mod tests {
     }
 
     #[test]
-    fn test() {
+    fn flatten_nested_key() {
         let root = Root {
             parent: Parent {
                 child: Child { text: "hello" },
             },
+            number: 2,
         };
 
         let mut buf = Vec::new();
@@ -237,7 +239,7 @@ mod tests {
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
         assert_eq!(
-            r#"{"parent.child.text":"hello"}"#,
+            r#"{"parent.child.text":"hello","number":2}"#,
             String::from_utf8(buf).unwrap()
         );
     }
