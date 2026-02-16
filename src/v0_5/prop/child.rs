@@ -15,7 +15,7 @@ pub enum Value {
 pub struct Child<M> {
     table: M,
     key: String,
-    index: usize,
+    index: Vec<usize>,
     value: Value,
 }
 
@@ -24,7 +24,7 @@ impl<M> Child<M> {
         Self {
             table,
             key: String::new(),
-            index: 0,
+            index: Vec::new(),
             value: Value::None,
         }
     }
@@ -43,15 +43,15 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let parent = self.key.clone();
-        self.key = format!("{}[{}]", self.key, self.index);
+        self.key = format!("{}[{}]", self.key, self.index.last().unwrap());
         value.serialize(&mut **self)?;
-        self.index += 1;
+        *self.index.last_mut().unwrap() += 1;
         self.key = parent;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.index = 0;
+        self.index.pop();
         Ok(())
     }
 }
@@ -204,6 +204,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        self.index.push(0);
         Ok(self)
     }
 

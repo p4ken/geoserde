@@ -266,7 +266,9 @@ mod tests {
                 Parent {
                     child: vec![Child { text: "one" }, Child { text: "two" }],
                 },
-                Parent { child: vec![] },
+                Parent {
+                    child: vec![Child { text: "three" }],
+                },
             ],
         };
 
@@ -275,7 +277,7 @@ mod tests {
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
         assert_eq!(
-            r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two"}"#,
+            r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two","parent[1].child[0].text":"three"}"#,
             String::from_utf8(buf).unwrap()
         );
     }
