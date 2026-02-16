@@ -1,5 +1,4 @@
 mod child;
-pub mod flatten;
 pub mod root;
 
 use serde::{

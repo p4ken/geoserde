@@ -42,9 +42,7 @@ impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
             self.key += ".";
         }
         self.key += key;
-        // TODO: Make key, value
         let _ = value.serialize(&mut **self);
-        // TODO: Serialize key, value outside
 
         self.key = parent;
         Ok(())
