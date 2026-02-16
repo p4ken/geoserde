@@ -209,29 +209,29 @@ impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
 mod tests {
     use super::*;
 
-    #[derive(Serialize)]
-    struct Root {
-        parent: Parent,
-        number: i32,
-    }
-
-    #[derive(Serialize)]
-    struct Parent {
-        child: Child,
-    }
-
-    #[derive(Serialize)]
-    struct Child {
-        text: &'static str,
-    }
-
     #[test]
-    fn flatten_nested_key() {
+    fn flatten_nested_object() {
+        #[derive(Serialize)]
+        struct Root {
+            parent: Parent,
+            child: Child,
+        }
+
+        #[derive(Serialize)]
+        struct Parent {
+            child: Child,
+        }
+
+        #[derive(Serialize)]
+        struct Child {
+            text: &'static str,
+        }
+
         let root = Root {
             parent: Parent {
                 child: Child { text: "hello" },
             },
-            number: 2,
+            child: Child { text: "world" },
         };
 
         let mut buf = Vec::new();
@@ -239,7 +239,43 @@ mod tests {
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
         assert_eq!(
-            r#"{"parent.child.text":"hello","number":2}"#,
+            r#"{"parent.child.text":"hello","child.text":"world"}"#,
+            String::from_utf8(buf).unwrap()
+        );
+    }
+
+    #[test]
+    fn flatten_seq_of_object() {
+        #[derive(Serialize)]
+        struct Root {
+            parent: Vec<Parent>,
+        }
+
+        #[derive(Serialize)]
+        struct Parent {
+            child: Vec<Child>,
+        }
+
+        #[derive(Serialize)]
+        struct Child {
+            text: &'static str,
+        }
+
+        let root = Root {
+            parent: vec![
+                Parent {
+                    child: vec![Child { text: "one" }, Child { text: "two" }],
+                },
+                Parent { child: vec![] },
+            ],
+        };
+
+        let mut buf = Vec::new();
+        let mut json_ser = serde_json::Serializer::new(&mut buf);
+        let ser = RootSerializer::new(&mut json_ser);
+        root.serialize(ser).unwrap();
+        assert_eq!(
+            r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two"}"#,
             String::from_utf8(buf).unwrap()
         );
     }

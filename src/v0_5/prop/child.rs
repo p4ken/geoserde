@@ -1,5 +1,7 @@
+use std::fmt::format;
+
 use serde::{
-    ser::{Impossible, SerializeMap, SerializeStruct},
+    ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
     Serialize, Serializer,
 };
 
@@ -13,6 +15,7 @@ pub enum Value {
 pub struct Child<M> {
     table: M,
     key: String,
+    index: usize,
     value: Value,
 }
 
@@ -21,11 +24,35 @@ impl<M> Child<M> {
         Self {
             table,
             key: String::new(),
+            index: 0,
             value: Value::None,
         }
     }
     pub fn into_table(self) -> M {
         self.table
+    }
+}
+
+// TODO: Remove 'a
+impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
+    type Ok = ();
+    type Error = M::Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        let parent = self.key.clone();
+        self.key = format!("{}[{}]", self.key, self.index);
+        value.serialize(&mut **self)?;
+        self.index += 1;
+        self.key = parent;
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.index = 0;
+        Ok(())
     }
 }
 
@@ -38,11 +65,12 @@ impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let parent = self.key.clone();
-        if !self.key.is_empty() {
-            self.key += ".";
+
+        match self.key.as_str() {
+            "" => self.key = key.to_owned(), // TODO: Cow
+            _ => self.key = format!("{}.{}", self.key, key),
         }
-        self.key += key;
-        let _ = value.serialize(&mut **self);
+        value.serialize(&mut **self)?;
 
         self.key = parent;
         Ok(())
@@ -57,7 +85,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     type Ok = ();
     type Error = M::Error;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = Self;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
@@ -175,8 +203,8 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
         todo!()
     }
 
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!()
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        Ok(self)
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
