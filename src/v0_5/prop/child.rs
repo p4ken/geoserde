@@ -1,13 +1,13 @@
-use std::fmt::format;
-
 use serde::{
     Serialize, Serializer,
     ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
 };
 
+use crate::prop::leaf::PrimitiveCollector;
+
 pub enum Value {
     None,
-    String(String),
+    Primitives(Vec<String>),
 }
 
 // parent.child
@@ -42,6 +42,24 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
+        // プリミティブ値として収集を試みる
+        let mut collector: PrimitiveCollector<M::Error> = PrimitiveCollector::new();
+        if value.serialize(&mut collector).is_ok() {
+            if let Some(val) = collector.into_value() {
+                // プリミティブ値の場合、ベクターに追加
+                match &mut self.value {
+                    Value::None => {
+                        self.value = Value::Primitives(vec![val]);
+                    }
+                    Value::Primitives(vec) => {
+                        vec.push(val);
+                    }
+                }
+                return Ok(());
+            }
+        }
+
+        // プリミティブでない場合、従来の処理（インデックス付きキーで展開）
         let parent = self.key.clone();
         let idx = self.index.unwrap();
         self.key = format!("{}[{}]", self.key, idx);
@@ -52,6 +70,12 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
+        // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
+        if let Value::Primitives(vec) = &self.value {
+            let joined = vec.join(",");
+            self.table.serialize_entry(&self.key, &joined)?;
+            self.value = Value::None;
+        }
         Ok(())
     }
 }
