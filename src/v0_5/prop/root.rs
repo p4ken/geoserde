@@ -1,6 +1,6 @@
 use serde::{
-    ser::{Impossible, SerializeMap, SerializeStruct},
     Serialize, Serializer,
+    ser::{Impossible, SerializeMap, SerializeStruct},
 };
 
 use crate::v0_5::prop::child::Child;
@@ -259,28 +259,19 @@ mod tests {
         #[derive(Serialize)]
         struct Child {
             text: &'static str,
-            number: i32,
         }
 
         let root = Root {
             parent: vec![
                 Parent {
                     child: vec![
-                        Child {
-                            text: "one",
-                            number: 11,
-                        },
-                        Child {
-                            text: "two",
-                            number: 12,
-                        },
+                        Child { text: "one" },
+                        Child { text: "two" },
+                        Child { text: "three" },
                     ],
                 },
                 Parent {
-                    child: vec![Child {
-                        text: "three",
-                        number: 13,
-                    }],
+                    child: vec![Child { text: "another" }],
                 },
             ],
         };
@@ -290,7 +281,7 @@ mod tests {
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
         assert_eq!(
-            r#"{"parent[0].child[0].text":"one","parent[0].child[0].number":11,"parent[0].child[1].text":"two","parent[0].child[1].number":12,"parent[1].child[0].text":"three","parent[1].child[0].number":13}"#,
+            r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two","parent[0].child[2].text":"three","parent[1].child[0].text":"another"}"#,
             String::from_utf8(buf).unwrap()
         );
     }

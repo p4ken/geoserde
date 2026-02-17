@@ -1,8 +1,8 @@
 use std::fmt::format;
 
 use serde::{
-    ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
     Serialize, Serializer,
+    ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
 };
 
 pub enum Value {
@@ -15,7 +15,7 @@ pub enum Value {
 pub struct Child<M> {
     table: M,
     key: String,
-    index: Vec<usize>,
+    index: Option<usize>,
     value: Value,
 }
 
@@ -24,7 +24,7 @@ impl<M> Child<M> {
         Self {
             table,
             key: String::new(),
-            index: Vec::new(),
+            index: None,
             value: Value::None,
         }
     }
@@ -43,15 +43,15 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let parent = self.key.clone();
-        self.key = format!("{}[{}]", self.key, self.index.last().unwrap());
+        let idx = self.index.unwrap();
+        self.key = format!("{}[{}]", self.key, idx);
         value.serialize(&mut **self)?;
-        *self.index.last_mut().unwrap() += 1;
+        self.index = Some(idx + 1);
         self.key = parent;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.index.pop();
         Ok(())
     }
 }
@@ -204,7 +204,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        self.index.push(0);
+        self.index = Some(0);
         Ok(self)
     }
 
