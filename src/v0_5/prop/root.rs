@@ -287,7 +287,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn flatten_seq_of_value() {
         #[derive(Serialize)]
         struct Root {
@@ -296,15 +295,13 @@ mod tests {
 
         #[derive(Serialize)]
         struct Child {
-            text: &'static str,
+            text: Vec<&'static str>,
         }
 
         let root = Root {
-            child: vec![
-                Child { text: "one" },
-                Child { text: "two" },
-                Child { text: "three" },
-            ],
+            child: vec![Child {
+                text: vec!["one", "two", "three"],
+            }],
         };
 
         let mut buf = Vec::new();
@@ -312,7 +309,7 @@ mod tests {
         let ser = RootSerializer::new(&mut json_ser);
         root.serialize(ser).unwrap();
         assert_eq!(
-            r#"{"child:"one,two,three"}"#,
+            r#"{"child[0].text":"one,two,three"}"#,
             String::from_utf8(buf).unwrap()
         );
     }
