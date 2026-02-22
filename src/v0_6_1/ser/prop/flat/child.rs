@@ -8,19 +8,41 @@ use crate::v0_6_1::ser::prop::flat::{
     FlattenError,
 };
 
+enum Segment {
+    Field(String),
+    Index(usize),
+}
+
+fn build_key(stack: &[Segment]) -> String {
+    let mut result = String::new();
+    for seg in stack {
+        match seg {
+            Segment::Field(s) => {
+                if !result.is_empty() {
+                    result.push('.');
+                }
+                result.push_str(s);
+            }
+            Segment::Index(i) => {
+                use std::fmt::Write;
+                write!(result, "[{}]", i).unwrap();
+            }
+        }
+    }
+    result
+}
+
 pub struct Child<M> {
     sink: M,
-    key: String,
     index: usize,
     value_seq: Vec<StringLike>,
-    key_stack: Vec<String>,
+    key_stack: Vec<Segment>,
 }
 
 impl<M> Child<M> {
     pub fn new(sink: M) -> Self {
         Self {
             sink,
-            key: String::new(),
             index: 0,
             value_seq: Vec::new(),
             key_stack: Vec::new(),
@@ -52,25 +74,24 @@ impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
             Err(_) => self.value_seq.clear(),
         }
 
-        let parent_key = self.key.clone();
         let parent_index = self.index;
-        self.key = format!("{}[{}]", self.key, parent_index);
+        self.key_stack.push(Segment::Index(parent_index));
         value.serialize(&mut **self)?;
+        self.key_stack.pop();
         self.index = parent_index + 1;
-        self.key = parent_key;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        if self.value_seq.len() > 0 {
-            let sep = ",";
+        if !self.value_seq.is_empty() {
             let value = self
                 .value_seq
                 .drain(..)
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
-                .join(sep);
-            self.sink.serialize_entry(&self.key, &value)?;
+                .join(",");
+            let key = build_key(&self.key_stack);
+            self.sink.serialize_entry(&key, &value)?;
         }
         Ok(())
     }
@@ -84,15 +105,9 @@ impl<M: SerializeMap<Error: 'static>> SerializeStruct for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
-        let parent = self.key.clone();
-
-        match self.key.as_str() {
-            "" => self.key = key.to_owned(), // TODO: Cow
-            _ => self.key = format!("{}.{}", self.key, key),
-        }
+        self.key_stack.push(Segment::Field(key.to_owned())); // TODO: Cow
         value.serialize(&mut **self)?;
-
-        self.key = parent;
+        self.key_stack.pop();
         Ok(())
     }
 
@@ -110,11 +125,7 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let key = key.serialize(Stringifier).map_err(FlattenError::Key)?;
-        self.key_stack.push(self.key.clone());
-        match self.key.as_str() {
-            "" => self.key = key.to_string(),
-            _ => self.key = format!("{}.{}", self.key, key),
-        }
+        self.key_stack.push(Segment::Field(key.to_string()));
         Ok(())
     }
 
@@ -123,7 +134,7 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)?;
-        self.key = self.key_stack.pop().unwrap_or_default();
+        self.key_stack.pop();
         Ok(())
     }
 
@@ -157,7 +168,8 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.sink.serialize_entry(&self.key, &v)?;
+        let key = build_key(&self.key_stack);
+        self.sink.serialize_entry(&key, &v)?;
         Ok(())
     }
 
@@ -194,7 +206,8 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.sink.serialize_entry(&self.key, v)?;
+        let key = build_key(&self.key_stack);
+        self.sink.serialize_entry(&key, v)?;
         Ok(())
     }
 
