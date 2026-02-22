@@ -9,7 +9,7 @@ pub struct Child<M> {
     table: M,
     key: String,
     index: usize,
-    value_seq: Option<Vec<String>>,
+    value_seq: ValueSeq,
 }
 
 impl<M> Child<M> {
@@ -18,7 +18,7 @@ impl<M> Child<M> {
             table,
             key: String::new(),
             index: 0,
-            value_seq: None,
+            value_seq: ValueSeq::new(),
         }
     }
     pub fn into_table(self) -> M {
@@ -36,20 +36,8 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         // プリミティブ値として収集を試みる
-        let mut collector = ValueSeq::new();
-        if value.serialize(&mut collector).is_ok() {
-            if let Some(val) = collector.into_value() {
-                // プリミティブ値の場合、ベクターに追加
-                match &mut self.value_seq {
-                    None => {
-                        self.value_seq = Some(vec![val]);
-                    }
-                    Some(vec) => {
-                        vec.push(val);
-                    }
-                }
-                return Ok(());
-            }
+        if value.serialize(&mut self.value_seq).is_ok() {
+            return Ok(());
         }
 
         // プリミティブでない場合、従来の処理（インデックス付きキーで展開）
@@ -64,10 +52,9 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
-        if let Some(vec) = &self.value_seq {
-            let joined = vec.join(",");
-            self.table.serialize_entry(&self.key, &joined)?;
-            self.value_seq = None;
+        if let Some(value) = self.value_seq.join(",") {
+            self.table.serialize_entry(&self.key, &value)?;
+            self.value_seq = ValueSeq::new();
         }
         Ok(())
     }
