@@ -3,7 +3,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::prop::leaf::PrimitiveCollector;
+use crate::v0_6_1::ser::prop::flat::leaf::PrimitiveCollector;
 
 pub enum Value {
     None,

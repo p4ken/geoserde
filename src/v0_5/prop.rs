@@ -1,9 +1,3 @@
-mod child;
-mod leaf;
-mod root;
-
-pub use root::RootSerializer;
-
 use serde::{
     ser::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,

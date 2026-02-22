@@ -3,7 +3,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_5::prop::child::Child;
+use crate::v0_6_1::ser::prop::flat::child::Child;
 
 pub struct RootSerializer<M> {
     child: Child<M>,
