@@ -1,6 +1,6 @@
 use serde::{
-    Serialize, Serializer,
     ser::{Impossible, SerializeMap, SerializeStruct},
+    Serialize, Serializer,
 };
 
 use crate::v0_5::prop::child::Child;
@@ -26,8 +26,8 @@ impl<'a, M: SerializeMap> Serializer for RootSerializer<M> {
     type SerializeTuple = Impossible<M::Ok, M::Error>;
     type SerializeTupleStruct = Impossible<M::Ok, M::Error>;
     type SerializeTupleVariant = Impossible<M::Ok, M::Error>;
-    type SerializeMap = Impossible<M::Ok, M::Error>;
-    type SerializeStruct = RootSerializer<M>;
+    type SerializeMap = Self;
+    type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<M::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -164,8 +164,8 @@ impl<'a, M: SerializeMap> Serializer for RootSerializer<M> {
         todo!()
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        todo!()
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        Ok(self)
     }
 
     fn serialize_struct(
@@ -203,14 +203,35 @@ impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
     }
 }
 
-// elem0,elem1
+impl<M: SerializeMap> SerializeMap for RootSerializer<M> {
+    type Ok = M::Ok;
+    type Error = M::Error;
+
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        (&mut self.child).serialize_key(key)
+    }
+
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        (&mut self.child).serialize_value(value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.child.into_table().end()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn flatten_nested_object() {
+    fn flatten_struct() {
         #[derive(Serialize)]
         struct Root {
             parent: Parent,
@@ -245,7 +266,23 @@ mod tests {
     }
 
     #[test]
-    fn flatten_seq_of_object() {
+    #[ignore]
+    fn flatten_map() {
+        let root =
+            serde_json::json!({"parent":{"child":{"text":"hello"}},"child":{"text":"world"}});
+
+        let mut buf = Vec::new();
+        let mut json_ser = serde_json::Serializer::new(&mut buf);
+        let ser = RootSerializer::new(&mut json_ser);
+        root.serialize(ser).unwrap();
+        assert_eq!(
+            r#"{"parent.child.text":"hello","child.text":"world"}"#,
+            String::from_utf8(buf).unwrap()
+        );
+    }
+
+    #[test]
+    fn flatten_struct_seq() {
         #[derive(Serialize)]
         struct Root {
             parent: Vec<Parent>,
@@ -287,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn flatten_seq_of_value() {
+    fn flatten_value_seq() {
         #[derive(Serialize)]
         struct Root {
             child: Vec<Child>,

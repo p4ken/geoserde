@@ -1,6 +1,6 @@
 use serde::{
-    Serialize, Serializer,
     ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
+    Serialize, Serializer,
 };
 
 use crate::prop::leaf::PrimitiveCollector;
@@ -105,6 +105,29 @@ impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
     }
 }
 
+impl<'a, M: SerializeMap> SerializeMap for &mut Child<M> {
+    type Ok = ();
+    type Error = M::Error;
+
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        todo!()
+    }
+
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        todo!()
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        todo!()
+    }
+}
+
 impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     type Ok = ();
     type Error = M::Error;
@@ -113,8 +136,8 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, M::Error>;
-    type SerializeStruct = &'a mut Child<M>;
+    type SerializeMap = Self;
+    type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<Self::Ok, M::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -255,7 +278,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        todo!()
+        Ok(self)
     }
 
     fn serialize_struct(
