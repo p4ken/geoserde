@@ -116,11 +116,12 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
-        todo!()
+        value.serialize(&mut **self)?;
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Ok(())
     }
 }
 
@@ -274,7 +275,9 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Ok(self)
+        // let child = Child::new(self.sink);
+        // Ok(child)
+        todo!()
     }
 
     fn serialize_struct(
