@@ -13,6 +13,7 @@ pub struct Child<M> {
     key: String,
     index: usize,
     value_seq: Vec<StringLike>,
+    key_stack: Vec<String>,
 }
 
 impl<M> Child<M> {
@@ -22,6 +23,7 @@ impl<M> Child<M> {
             key: String::new(),
             index: 0,
             value_seq: Vec::new(),
+            key_stack: Vec::new(),
         }
     }
     pub fn into_table(self) -> M {
@@ -108,7 +110,11 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let key = key.serialize(Stringifier).map_err(FlattenError::Key)?;
-        self.sink.serialize_key(&key)?;
+        self.key_stack.push(self.key.clone());
+        match self.key.as_str() {
+            "" => self.key = key.to_string(),
+            _ => self.key = format!("{}.{}", self.key, key),
+        }
         Ok(())
     }
 
@@ -117,6 +123,7 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         value.serialize(&mut **self)?;
+        self.key = self.key_stack.pop().unwrap_or_default();
         Ok(())
     }
 
@@ -275,9 +282,7 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        // let child = Child::new(self.sink);
-        // Ok(child)
-        todo!()
+        Ok(self)
     }
 
     fn serialize_struct(

@@ -40,7 +40,6 @@ fn flatten_struct() {
 }
 
 #[test]
-#[ignore]
 fn flatten_map() {
     let root = serde_json::json!({"parent":{"child":{"text":"hello"}},"child":{"text":"world"}});
 
