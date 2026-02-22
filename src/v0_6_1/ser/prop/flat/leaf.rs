@@ -1,11 +1,10 @@
 use serde::{ser::Impossible, Serialize, Serializer};
 
-// プリミティブ値を収集するための特殊なシリアライザ
-pub struct PrimitiveCollector {
+pub struct FlatSeq {
     value: Option<String>,
 }
 
-impl PrimitiveCollector {
+impl FlatSeq {
     pub fn new() -> Self {
         Self { value: None }
     }
@@ -15,9 +14,9 @@ impl PrimitiveCollector {
     }
 }
 
-impl Serializer for &mut PrimitiveCollector {
+impl Serializer for &mut FlatSeq {
     type Ok = ();
-    type Error = NestedElement;
+    type Error = FlatSeqError;
     type SerializeSeq = Impossible<(), Self::Error>;
     type SerializeTuple = Impossible<(), Self::Error>;
     type SerializeTupleStruct = Impossible<(), Self::Error>;
@@ -79,7 +78,7 @@ impl Serializer for &mut PrimitiveCollector {
         Ok(())
     }
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_str("")
@@ -97,9 +96,9 @@ impl Serializer for &mut PrimitiveCollector {
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Err(NestedElement)
+        self.serialize_str(variant)
     }
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
         self,
@@ -113,22 +112,22 @@ impl Serializer for &mut PrimitiveCollector {
         _name: &'static str,
         _variant_index: u32,
         _variant: &'static str,
-        _value: &T,
+        value: &T,
     ) -> Result<Self::Ok, Self::Error> {
-        Err(NestedElement)
+        value.serialize(self)
     }
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_tuple_struct(
         self,
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_tuple_variant(
         self,
@@ -137,17 +136,17 @@ impl Serializer for &mut PrimitiveCollector {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_struct(
         self,
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
     fn serialize_struct_variant(
         self,
@@ -156,23 +155,23 @@ impl Serializer for &mut PrimitiveCollector {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        Err(NestedElement)
+        Err(FlatSeqError)
     }
 }
 
 #[derive(Debug)]
-pub struct NestedElement;
+pub struct FlatSeqError;
 
-impl serde::ser::Error for NestedElement {
+impl serde::ser::Error for FlatSeqError {
     fn custom<T: std::fmt::Display>(_msg: T) -> Self {
         Self
     }
 }
 
-impl serde::ser::StdError for NestedElement {}
+impl serde::ser::StdError for FlatSeqError {}
 
-impl std::fmt::Display for NestedElement {
-    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
+impl std::fmt::Display for FlatSeqError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
