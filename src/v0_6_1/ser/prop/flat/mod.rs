@@ -1,5 +1,5 @@
 mod child;
-mod leaf;
+mod node;
 mod root;
 
 pub use root::RootSerializer;

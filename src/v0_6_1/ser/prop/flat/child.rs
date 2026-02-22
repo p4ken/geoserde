@@ -3,13 +3,13 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::flat::leaf::ValueSeq;
+use crate::v0_6_1::ser::prop::flat::node::{TextLike, TextLikeSerializer};
 
 pub struct Child<M> {
     table: M,
     key: String,
     index: usize,
-    value_seq: ValueSeq,
+    value_seq: Vec<TextLike>,
 }
 
 impl<M> Child<M> {
@@ -18,7 +18,7 @@ impl<M> Child<M> {
             table,
             key: String::new(),
             index: 0,
-            value_seq: ValueSeq::new(","),
+            value_seq: Vec::new(),
         }
     }
     pub fn into_table(self) -> M {
@@ -35,12 +35,15 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
-        // プリミティブ値として収集を試みる
-        if value.serialize(&mut self.value_seq).is_ok() {
-            return Ok(());
+        match value.serialize(TextLikeSerializer) {
+            Ok(text) => {
+                self.value_seq.push(text);
+                return Ok(());
+            }
+            // FIXME: Previous elements are not serialized if error
+            Err(_) => self.value_seq.clear(),
         }
 
-        // プリミティブでない場合、従来の処理（インデックス付きキーで展開）
         let parent_key = self.key.clone();
         let parent_index = self.index;
         self.key = format!("{}[{}]", self.key, parent_index);
@@ -51,8 +54,14 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
-        if let Some(value) = self.value_seq.take_value() {
+        if self.value_seq.len() > 0 {
+            let sep = ",";
+            let value = self
+                .value_seq
+                .drain(..)
+                .map(|text| text.to_string())
+                .collect::<Vec<_>>()
+                .join(sep);
             self.table.serialize_entry(&self.key, &value)?;
         }
         Ok(())
@@ -92,6 +101,7 @@ impl<'a, M: SerializeMap> SerializeMap for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
+        // key.serialize(serializer)
         todo!()
     }
 
