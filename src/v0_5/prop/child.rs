@@ -10,12 +10,10 @@ pub enum Value {
     Primitives(Vec<String>),
 }
 
-// parent.child
-// parent[i].child
 pub struct Child<M> {
     table: M,
     key: String,
-    index: Option<usize>,
+    index: usize,
     value: Value,
 }
 
@@ -24,7 +22,7 @@ impl<M> Child<M> {
         Self {
             table,
             key: String::new(),
-            index: None,
+            index: 0,
             value: Value::None,
         }
     }
@@ -60,12 +58,12 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         }
 
         // プリミティブでない場合、従来の処理（インデックス付きキーで展開）
-        let parent = self.key.clone();
-        let idx = self.index.unwrap();
-        self.key = format!("{}[{}]", self.key, idx);
+        let parent_key = self.key.clone();
+        let parent_index = self.index;
+        self.key = format!("{}[{}]", self.key, parent_index);
         value.serialize(&mut **self)?;
-        self.index = Some(idx + 1);
-        self.key = parent;
+        self.index = parent_index + 1;
+        self.key = parent_key;
         Ok(())
     }
 
@@ -251,7 +249,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        self.index = Some(0);
+        self.index = 0;
         Ok(self)
     }
 
