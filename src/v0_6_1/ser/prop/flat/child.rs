@@ -5,16 +5,11 @@ use serde::{
 
 use crate::v0_6_1::ser::prop::flat::leaf::FlatSeq;
 
-pub enum Value {
-    None,
-    Primitives(Vec<String>),
-}
-
 pub struct Child<M> {
     table: M,
     key: String,
     index: usize,
-    value: Value,
+    value: Option<Vec<String>>,
 }
 
 impl<M> Child<M> {
@@ -23,7 +18,7 @@ impl<M> Child<M> {
             table,
             key: String::new(),
             index: 0,
-            value: Value::None,
+            value: None,
         }
     }
     pub fn into_table(self) -> M {
@@ -46,10 +41,10 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
             if let Some(val) = collector.into_value() {
                 // プリミティブ値の場合、ベクターに追加
                 match &mut self.value {
-                    Value::None => {
-                        self.value = Value::Primitives(vec![val]);
+                    None => {
+                        self.value = Some(vec![val]);
                     }
-                    Value::Primitives(vec) => {
+                    Some(vec) => {
                         vec.push(val);
                     }
                 }
@@ -69,10 +64,10 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
-        if let Value::Primitives(vec) = &self.value {
+        if let Some(vec) = &self.value {
             let joined = vec.join(",");
             self.table.serialize_entry(&self.key, &joined)?;
-            self.value = Value::None;
+            self.value = None;
         }
         Ok(())
     }
