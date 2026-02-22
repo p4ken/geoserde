@@ -1,5 +1,5 @@
 use serde::{
-    ser::{Impossible, SerializeMap, SerializeStruct},
+    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
     Serialize, Serializer,
 };
 
@@ -18,17 +18,17 @@ impl<M> RootSerializer<M> {
     }
 }
 
-impl<'a, M: SerializeMap> Serializer for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> Serializer for RootSerializer<M> {
     type Ok = M::Ok;
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
-    type SerializeSeq = Impossible<M::Ok, M::Error>;
-    type SerializeTuple = Impossible<M::Ok, M::Error>;
-    type SerializeTupleStruct = Impossible<M::Ok, M::Error>;
-    type SerializeTupleVariant = Impossible<M::Ok, M::Error>;
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
-    type SerializeStructVariant = Impossible<M::Ok, M::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
@@ -187,9 +187,9 @@ impl<'a, M: SerializeMap> Serializer for RootSerializer<M> {
     }
 }
 
-impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeStruct for RootSerializer<M> {
     type Ok = M::Ok;
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
@@ -199,13 +199,13 @@ impl<M: SerializeMap> SerializeStruct for RootSerializer<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.child.into_table().end()
+        Ok(self.child.into_table().end()?)
     }
 }
 
-impl<M: SerializeMap> SerializeMap for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeMap for RootSerializer<M> {
     type Ok = M::Ok;
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
@@ -222,7 +222,43 @@ impl<M: SerializeMap> SerializeMap for RootSerializer<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.child.into_table().end()
+        Ok(self.child.into_table().end()?)
+    }
+}
+
+#[derive(Debug)]
+pub enum FlattenError<E> {
+    Key,
+    Sink(E),
+}
+
+impl<E> From<E> for FlattenError<E> {
+    fn from(e: E) -> Self {
+        Self::Sink(e)
+    }
+}
+
+impl<E: std::fmt::Display> std::fmt::Display for FlattenError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Key => f.write_str("invalid key"),
+            Self::Sink(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl<E: StdError + 'static> StdError for FlattenError<E> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::Key => None,
+            Self::Sink(e) => Some(e),
+        }
+    }
+}
+
+impl<E: Error + 'static> Error for FlattenError<E> {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
+        Self::Sink(E::custom(msg))
     }
 }
 

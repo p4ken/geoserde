@@ -3,7 +3,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-pub enum TextLike {
+pub enum StringLike {
     Empty,
     Bool(bool),
     Signed(i64),
@@ -14,26 +14,26 @@ pub enum TextLike {
     Ident(&'static str),
 }
 
-impl std::fmt::Display for TextLike {
+impl std::fmt::Display for StringLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TextLike::Bool(v) => write!(f, "{v}"),
-            TextLike::Signed(v) => write!(f, "{v}"),
-            TextLike::Unsigned(v) => write!(f, "{v}"),
-            TextLike::Float(v) => write!(f, "{v}"),
-            TextLike::Char(v) => write!(f, "{v}"),
-            TextLike::String(v) => write!(f, "{v}"),
-            TextLike::Ident(v) => write!(f, "{v}"),
-            TextLike::Empty => f.write_str(""),
+            StringLike::Empty => f.write_str(""),
+            StringLike::Bool(v) => write!(f, "{v}"),
+            StringLike::Signed(v) => write!(f, "{v}"),
+            StringLike::Unsigned(v) => write!(f, "{v}"),
+            StringLike::Float(v) => write!(f, "{v}"),
+            StringLike::Char(v) => write!(f, "{v}"),
+            StringLike::String(v) => write!(f, "{v}"),
+            StringLike::Ident(v) => write!(f, "{v}"),
         }
     }
 }
 
-pub struct TextLikeSerializer;
+pub struct Stringifier;
 
-impl Serializer for TextLikeSerializer {
-    type Ok = TextLike;
-    type Error = TextError;
+impl Serializer for Stringifier {
+    type Ok = StringLike;
+    type Error = StringifyError;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
@@ -44,7 +44,7 @@ impl Serializer for TextLikeSerializer {
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Bool(v))
+        Ok(StringLike::Bool(v))
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
@@ -60,7 +60,7 @@ impl Serializer for TextLikeSerializer {
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Signed(v))
+        Ok(StringLike::Signed(v))
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
@@ -76,7 +76,7 @@ impl Serializer for TextLikeSerializer {
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Unsigned(v))
+        Ok(StringLike::Unsigned(v))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
@@ -84,23 +84,23 @@ impl Serializer for TextLikeSerializer {
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Float(v))
+        Ok(StringLike::Float(v))
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Char(v))
+        Ok(StringLike::Char(v))
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::String(v.into()))
+        Ok(StringLike::String(v.into()))
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Empty)
+        Ok(StringLike::Empty)
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
@@ -108,11 +108,11 @@ impl Serializer for TextLikeSerializer {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Empty)
+        Ok(StringLike::Empty)
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Ident(name))
+        Ok(StringLike::Ident(name))
     }
 
     fn serialize_unit_variant(
@@ -121,7 +121,7 @@ impl Serializer for TextLikeSerializer {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        Ok(TextLike::Ident(variant))
+        Ok(StringLike::Ident(variant))
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -142,11 +142,11 @@ impl Serializer for TextLikeSerializer {
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_tuple_struct(
@@ -154,7 +154,7 @@ impl Serializer for TextLikeSerializer {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_tuple_variant(
@@ -164,11 +164,11 @@ impl Serializer for TextLikeSerializer {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_struct(
@@ -176,7 +176,7 @@ impl Serializer for TextLikeSerializer {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 
     fn serialize_struct_variant(
@@ -186,23 +186,26 @@ impl Serializer for TextLikeSerializer {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        Err(TextError::NotText)
+        Err(StringifyError::NotText)
     }
 }
 
 #[derive(Debug)]
-pub enum TextError {
+pub enum StringifyError {
     NotText,
     Serialize(serde::de::value::Error),
 }
 
-impl Error for TextError {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Serialize(Error::custom(msg))
+impl std::fmt::Display for StringifyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StringifyError::NotText => f.write_str("not a text"),
+            StringifyError::Serialize(_) => f.write_str("serialize impl caused"),
+        }
     }
 }
 
-impl StdError for TextError {
+impl StdError for StringifyError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Serialize(e) => Some(e),
@@ -211,11 +214,8 @@ impl StdError for TextError {
     }
 }
 
-impl std::fmt::Display for TextError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TextError::NotText => f.write_str("not a text"),
-            TextError::Serialize(_) => f.write_str("serialize impl caused"),
-        }
+impl Error for StringifyError {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
+        Self::Serialize(Error::custom(msg))
     }
 }

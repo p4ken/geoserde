@@ -1,15 +1,18 @@
 use serde::{
-    ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
+    ser::{Error, Impossible, SerializeMap, SerializeSeq, SerializeStruct},
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::flat::node::{TextLike, TextLikeSerializer};
+use crate::v0_6_1::ser::prop::flat::{
+    node::{StringLike, Stringifier},
+    FlattenError,
+};
 
 pub struct Child<M> {
     table: M,
     key: String,
     index: usize,
-    value_seq: Vec<TextLike>,
+    value_seq: Vec<StringLike>,
 }
 
 impl<M> Child<M> {
@@ -26,16 +29,15 @@ impl<M> Child<M> {
     }
 }
 
-// TODO: Remove 'a
-impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
     type Ok = ();
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        match value.serialize(TextLikeSerializer) {
+        match value.serialize(Stringifier) {
             Ok(text) => {
                 self.value_seq.push(text);
                 return Ok(());
@@ -68,9 +70,9 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeStruct for &mut Child<M> {
     type Ok = ();
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
@@ -93,15 +95,15 @@ impl<'a, M: SerializeMap> SerializeStruct for &mut Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> SerializeMap for &mut Child<M> {
+impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
     type Ok = ();
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        // key.serialize(serializer)
+        let key = key.serialize(Stringifier).map_err(|_| M::Error::custom(""));
         todo!()
     }
 
@@ -117,9 +119,9 @@ impl<'a, M: SerializeMap> SerializeMap for &mut Child<M> {
     }
 }
 
-impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
+impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     type Ok = ();
-    type Error = M::Error;
+    type Error = FlattenError<M::Error>;
 
     type SerializeSeq = Self;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
@@ -127,7 +129,7 @@ impl<'a, M: SerializeMap> Serializer for &'a mut Child<M> {
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
-    type SerializeStructVariant = Impossible<Self::Ok, M::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
