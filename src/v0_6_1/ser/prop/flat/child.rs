@@ -3,13 +3,13 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::flat::leaf::FlatSeq;
+use crate::v0_6_1::ser::prop::flat::leaf::ValueSeq;
 
 pub struct Child<M> {
     table: M,
     key: String,
     index: usize,
-    value: Option<Vec<String>>,
+    value_seq: Option<Vec<String>>,
 }
 
 impl<M> Child<M> {
@@ -18,7 +18,7 @@ impl<M> Child<M> {
             table,
             key: String::new(),
             index: 0,
-            value: None,
+            value_seq: None,
         }
     }
     pub fn into_table(self) -> M {
@@ -36,13 +36,13 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         // プリミティブ値として収集を試みる
-        let mut collector = FlatSeq::new();
+        let mut collector = ValueSeq::new();
         if value.serialize(&mut collector).is_ok() {
             if let Some(val) = collector.into_value() {
                 // プリミティブ値の場合、ベクターに追加
-                match &mut self.value {
+                match &mut self.value_seq {
                     None => {
-                        self.value = Some(vec![val]);
+                        self.value_seq = Some(vec![val]);
                     }
                     Some(vec) => {
                         vec.push(val);
@@ -64,10 +64,10 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
-        if let Some(vec) = &self.value {
+        if let Some(vec) = &self.value_seq {
             let joined = vec.join(",");
             self.table.serialize_entry(&self.key, &joined)?;
-            self.value = None;
+            self.value_seq = None;
         }
         Ok(())
     }

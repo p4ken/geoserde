@@ -1,10 +1,10 @@
 use serde::{ser::Impossible, Serialize, Serializer};
 
-pub struct FlatSeq {
+pub struct ValueSeq {
     value: Option<String>,
 }
 
-impl FlatSeq {
+impl ValueSeq {
     pub fn new() -> Self {
         Self { value: None }
     }
@@ -14,7 +14,7 @@ impl FlatSeq {
     }
 }
 
-impl Serializer for &mut FlatSeq {
+impl Serializer for &mut ValueSeq {
     type Ok = ();
     type Error = FlatSeqError;
     type SerializeSeq = Impossible<(), Self::Error>;
