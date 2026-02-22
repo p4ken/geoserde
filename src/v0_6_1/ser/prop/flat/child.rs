@@ -41,7 +41,7 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         // プリミティブ値として収集を試みる
-        let mut collector: PrimitiveCollector<M::Error> = PrimitiveCollector::new();
+        let mut collector = PrimitiveCollector::new();
         if value.serialize(&mut collector).is_ok() {
             if let Some(val) = collector.into_value() {
                 // プリミティブ値の場合、ベクターに追加
