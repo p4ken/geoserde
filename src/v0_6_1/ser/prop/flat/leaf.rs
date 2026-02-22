@@ -25,22 +25,28 @@ enum Element {
 /// - [Struct{..}] => Error
 pub struct ValueSeq {
     buf: Vec<String>,
+    sep: &'static str,
 }
 
 impl ValueSeq {
-    pub fn new() -> Self {
-        Self { buf: Vec::new() }
+    pub fn new(sep: &'static str) -> Self {
+        Self {
+            buf: Vec::new(),
+            sep,
+        }
     }
 
     fn push(&mut self, value: impl Display) {
         self.buf.push(value.to_string());
     }
 
-    pub fn join(&self, sep: &str) -> Option<String> {
+    pub fn take_value(&mut self) -> Option<String> {
         if self.buf.is_empty() {
             None
         } else {
-            Some(self.buf.join(sep))
+            let joined = self.buf.join(self.sep);
+            *self = Self::new(self.sep);
+            Some(joined)
         }
     }
 }

@@ -18,7 +18,7 @@ impl<M> Child<M> {
             table,
             key: String::new(),
             index: 0,
-            value_seq: ValueSeq::new(),
+            value_seq: ValueSeq::new(","),
         }
     }
     pub fn into_table(self) -> M {
@@ -52,9 +52,8 @@ impl<'a, M: SerializeMap> SerializeSeq for &mut Child<M> {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         // プリミティブ値が収集されている場合、カンマ区切りの文字列として保存
-        if let Some(value) = self.value_seq.join(",") {
+        if let Some(value) = self.value_seq.take_value() {
             self.table.serialize_entry(&self.key, &value)?;
-            self.value_seq = ValueSeq::new();
         }
         Ok(())
     }
