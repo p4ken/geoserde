@@ -4,28 +4,28 @@ use serde::{
 };
 
 use crate::v0_6_1::ser::prop::flat::{
-    node::{StringLike, Stringifier},
+    node::{StringLike, Stringifier, StringifyError},
     FlattenError,
 };
 
 pub struct Child<M> {
-    table: M,
+    sink: M,
     key: String,
     index: usize,
     value_seq: Vec<StringLike>,
 }
 
 impl<M> Child<M> {
-    pub fn new(table: M) -> Self {
+    pub fn new(sink: M) -> Self {
         Self {
-            table,
+            sink,
             key: String::new(),
             index: 0,
             value_seq: Vec::new(),
         }
     }
     pub fn into_table(self) -> M {
-        self.table
+        self.sink
     }
 }
 
@@ -40,6 +40,10 @@ impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
         match value.serialize(Stringifier) {
             Ok(text) => {
                 self.value_seq.push(text);
+                return Ok(());
+            }
+            Err(StringifyError::Empty) => {
+                self.value_seq.push(StringLike::Empty);
                 return Ok(());
             }
             // FIXME: Previous elements are not serialized if error
@@ -64,7 +68,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(sep);
-            self.table.serialize_entry(&self.key, &value)?;
+            self.sink.serialize_entry(&self.key, &value)?;
         }
         Ok(())
     }
@@ -103,8 +107,9 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
-        let key = key.serialize(Stringifier).map_err(|_| M::Error::custom(""));
-        todo!()
+        let key = key.serialize(Stringifier).map_err(FlattenError::Key)?;
+        self.sink.serialize_key(&key)?;
+        Ok(())
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -144,7 +149,7 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.table.serialize_entry(&self.key, &v)?;
+        self.sink.serialize_entry(&self.key, &v)?;
         Ok(())
     }
 
@@ -181,7 +186,7 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.table.serialize_entry(&self.key, v)?;
+        self.sink.serialize_entry(&self.key, v)?;
         Ok(())
     }
 

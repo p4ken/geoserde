@@ -1,5 +1,6 @@
 mod child;
 mod node;
 mod root;
+mod tests;
 
-pub use root::{FlattenError, RootSerializer};
+pub use root::{FlatProperties, FlattenError};

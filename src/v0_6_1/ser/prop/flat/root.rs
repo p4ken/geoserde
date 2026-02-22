@@ -3,22 +3,22 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::flat::child::Child;
+use crate::v0_6_1::ser::prop::flat::{child::Child, node::StringifyError};
 
-pub struct RootSerializer<M> {
+pub struct FlatProperties<M> {
     child: Child<M>,
 }
 
-impl<M> RootSerializer<M> {
-    pub fn new<S: Serializer<SerializeMap = M>>(inner: S) -> Self {
-        let table = inner.serialize_map(None).unwrap();
+impl<M> FlatProperties<M> {
+    pub fn new<S: Serializer<SerializeMap = M>>(ser: S) -> Self {
+        let sink = ser.serialize_map(None).unwrap();
         Self {
-            child: Child::new(table),
+            child: Child::new(sink),
         }
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> Serializer for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
     type Ok = M::Ok;
     type Error = FlattenError<M::Error>;
 
@@ -187,7 +187,7 @@ impl<M: SerializeMap<Error: 'static>> Serializer for RootSerializer<M> {
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> SerializeStruct for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeStruct for FlatProperties<M> {
     type Ok = M::Ok;
     type Error = FlattenError<M::Error>;
 
@@ -203,7 +203,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeStruct for RootSerializer<M> {
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> SerializeMap for RootSerializer<M> {
+impl<M: SerializeMap<Error: 'static>> SerializeMap for FlatProperties<M> {
     type Ok = M::Ok;
     type Error = FlattenError<M::Error>;
 
@@ -228,11 +228,11 @@ impl<M: SerializeMap<Error: 'static>> SerializeMap for RootSerializer<M> {
 
 #[derive(Debug)]
 pub enum FlattenError<E> {
-    Key,
+    Key(StringifyError),
     Sink(E),
 }
 
-impl<E> From<E> for FlattenError<E> {
+impl<E: Error> From<E> for FlattenError<E> {
     fn from(e: E) -> Self {
         Self::Sink(e)
     }
@@ -241,8 +241,8 @@ impl<E> From<E> for FlattenError<E> {
 impl<E: std::fmt::Display> std::fmt::Display for FlattenError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Key => f.write_str("invalid key"),
-            Self::Sink(e) => write!(f, "{}", e),
+            Self::Key(_) => f.write_str("map key must be a string"),
+            Self::Sink(_) => f.write_str("downstream serializer caused"),
         }
     }
 }
@@ -250,7 +250,7 @@ impl<E: std::fmt::Display> std::fmt::Display for FlattenError<E> {
 impl<E: StdError + 'static> StdError for FlattenError<E> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
-            Self::Key => None,
+            Self::Key(e) => Some(e),
             Self::Sink(e) => Some(e),
         }
     }
@@ -259,131 +259,5 @@ impl<E: StdError + 'static> StdError for FlattenError<E> {
 impl<E: Error + 'static> Error for FlattenError<E> {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Self::Sink(E::custom(msg))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn flatten_struct() {
-        #[derive(Serialize)]
-        struct Root {
-            parent: Parent,
-            child: Child,
-        }
-
-        #[derive(Serialize)]
-        struct Parent {
-            child: Child,
-        }
-
-        #[derive(Serialize)]
-        struct Child {
-            text: &'static str,
-        }
-
-        let root = Root {
-            parent: Parent {
-                child: Child { text: "hello" },
-            },
-            child: Child { text: "world" },
-        };
-
-        let mut buf = Vec::new();
-        let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let ser = RootSerializer::new(&mut json_ser);
-        root.serialize(ser).unwrap();
-        assert_eq!(
-            r#"{"parent.child.text":"hello","child.text":"world"}"#,
-            String::from_utf8(buf).unwrap()
-        );
-    }
-
-    #[test]
-    #[ignore]
-    fn flatten_map() {
-        let root =
-            serde_json::json!({"parent":{"child":{"text":"hello"}},"child":{"text":"world"}});
-
-        let mut buf = Vec::new();
-        let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let ser = RootSerializer::new(&mut json_ser);
-        root.serialize(ser).unwrap();
-        assert_eq!(
-            r#"{"parent.child.text":"hello","child.text":"world"}"#,
-            String::from_utf8(buf).unwrap()
-        );
-    }
-
-    #[test]
-    fn flatten_struct_seq() {
-        #[derive(Serialize)]
-        struct Root {
-            parent: Vec<Parent>,
-        }
-
-        #[derive(Serialize)]
-        struct Parent {
-            child: Vec<Child>,
-        }
-
-        #[derive(Serialize)]
-        struct Child {
-            text: &'static str,
-        }
-
-        let root = Root {
-            parent: vec![
-                Parent {
-                    child: vec![
-                        Child { text: "one" },
-                        Child { text: "two" },
-                        Child { text: "three" },
-                    ],
-                },
-                Parent {
-                    child: vec![Child { text: "another" }],
-                },
-            ],
-        };
-
-        let mut buf = Vec::new();
-        let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let ser = RootSerializer::new(&mut json_ser);
-        root.serialize(ser).unwrap();
-        assert_eq!(
-            r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two","parent[0].child[2].text":"three","parent[1].child[0].text":"another"}"#,
-            String::from_utf8(buf).unwrap()
-        );
-    }
-
-    #[test]
-    fn flatten_value_seq() {
-        #[derive(Serialize)]
-        struct Root {
-            child: Vec<Child>,
-        }
-
-        #[derive(Serialize)]
-        struct Child {
-            text: Vec<&'static str>,
-        }
-
-        let root = Root {
-            child: vec![Child {
-                text: vec!["one", "two", "three"],
-            }],
-        };
-
-        let mut buf = Vec::new();
-        let mut json_ser = serde_json::Serializer::new(&mut buf);
-        let ser = RootSerializer::new(&mut json_ser);
-        root.serialize(ser).unwrap();
-        assert_eq!(
-            r#"{"child[0].text":"one,two,three"}"#,
-            String::from_utf8(buf).unwrap()
-        );
     }
 }

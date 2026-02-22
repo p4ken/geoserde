@@ -1,3 +1,3 @@
 mod flat;
 
-pub use flat::RootSerializer;
+pub use flat::FlatProperties;

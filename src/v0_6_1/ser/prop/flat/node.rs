@@ -3,6 +3,8 @@ use serde::{
     Serialize, Serializer,
 };
 
+#[derive(Serialize)]
+#[serde(untagged)]
 pub enum StringLike {
     Empty,
     Bool(bool),
@@ -17,14 +19,14 @@ pub enum StringLike {
 impl std::fmt::Display for StringLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StringLike::Empty => f.write_str(""),
-            StringLike::Bool(v) => write!(f, "{v}"),
-            StringLike::Signed(v) => write!(f, "{v}"),
-            StringLike::Unsigned(v) => write!(f, "{v}"),
-            StringLike::Float(v) => write!(f, "{v}"),
-            StringLike::Char(v) => write!(f, "{v}"),
-            StringLike::String(v) => write!(f, "{v}"),
-            StringLike::Ident(v) => write!(f, "{v}"),
+            Self::Empty => f.write_str(""),
+            Self::Bool(v) => write!(f, "{v}"),
+            Self::Signed(v) => write!(f, "{v}"),
+            Self::Unsigned(v) => write!(f, "{v}"),
+            Self::Float(v) => write!(f, "{v}"),
+            Self::Char(v) => write!(f, "{v}"),
+            Self::String(v) => write!(f, "{v}"),
+            Self::Ident(v) => write!(f, "{v}"),
         }
     }
 }
@@ -96,11 +98,11 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Empty)
+        Err(StringifyError::Empty)
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
@@ -108,7 +110,7 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Empty)
+        Err(StringifyError::Empty)
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
@@ -142,11 +144,11 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_tuple_struct(
@@ -154,7 +156,7 @@ impl Serializer for Stringifier {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_tuple_variant(
@@ -164,11 +166,11 @@ impl Serializer for Stringifier {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_struct(
@@ -176,7 +178,7 @@ impl Serializer for Stringifier {
         _name: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_struct_variant(
@@ -186,21 +188,23 @@ impl Serializer for Stringifier {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        Err(StringifyError::NotText)
+        Err(StringifyError::Nested)
     }
 }
 
 #[derive(Debug)]
 pub enum StringifyError {
-    NotText,
-    Serialize(serde::de::value::Error),
+    Empty,
+    Nested,
+    Source(Box<dyn StdError>),
 }
 
 impl std::fmt::Display for StringifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StringifyError::NotText => f.write_str("not a text"),
-            StringifyError::Serialize(_) => f.write_str("serialize impl caused"),
+            Self::Empty => f.write_str("means empty"),
+            Self::Nested => f.write_str("nested hierarchy"),
+            Self::Source(_) => f.write_str("upstream serialize impl caused"),
         }
     }
 }
@@ -208,7 +212,7 @@ impl std::fmt::Display for StringifyError {
 impl StdError for StringifyError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
-            Self::Serialize(e) => Some(e),
+            Self::Source(e) => Some(e.as_ref()),
             _ => None,
         }
     }
@@ -216,6 +220,6 @@ impl StdError for StringifyError {
 
 impl Error for StringifyError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Serialize(Error::custom(msg))
+        Self::Source(msg.to_string().into())
     }
 }
