@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::{
     ser::{Impossible, SerializeMap, SerializeSeq, SerializeStruct},
     Serialize, Serializer,
@@ -8,35 +10,11 @@ use crate::v0_6_1::ser::prop::flat::{
     FlattenError,
 };
 
-enum Segment {
-    Field(String),
-    Index(usize),
-}
-
-fn build_key(stack: &[Segment]) -> String {
-    let mut result = String::new();
-    for seg in stack {
-        match seg {
-            Segment::Field(s) => {
-                if !result.is_empty() {
-                    result.push('.');
-                }
-                result.push_str(s);
-            }
-            Segment::Index(i) => {
-                use std::fmt::Write;
-                write!(result, "[{}]", i).unwrap();
-            }
-        }
-    }
-    result
-}
-
 pub struct Child<M> {
     sink: M,
     index: usize,
     value_seq: Vec<StringLike>,
-    key_stack: Vec<Segment>,
+    key_stack: Vec<Cow<'static, str>>,
 }
 
 impl<M> Child<M> {
@@ -48,8 +26,13 @@ impl<M> Child<M> {
             key_stack: Vec::new(),
         }
     }
+
     pub fn into_table(self) -> M {
         self.sink
+    }
+
+    fn build_key(&self) -> String {
+        self.key_stack.join(".")
     }
 }
 
@@ -75,9 +58,20 @@ impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
         }
 
         let parent_index = self.index;
-        self.key_stack.push(Segment::Index(parent_index));
+
+        let parent_key = self.key_stack.pop();
+        let key = Cow::Owned(format!(
+            "{}[{}]",
+            parent_key.as_ref().unwrap_or(&Cow::default()),
+            parent_index
+        ));
+        self.key_stack.push(key);
         value.serialize(&mut **self)?;
         self.key_stack.pop();
+        if let Some(p) = parent_key {
+            self.key_stack.push(p);
+        }
+
         self.index = parent_index + 1;
         Ok(())
     }
@@ -90,7 +84,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeSeq for &mut Child<M> {
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            let key = build_key(&self.key_stack);
+            let key = self.build_key();
             self.sink.serialize_entry(&key, &value)?;
         }
         Ok(())
@@ -105,7 +99,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeStruct for &mut Child<M> {
     where
         T: ?Sized + Serialize,
     {
-        self.key_stack.push(Segment::Field(key.to_owned())); // TODO: Cow
+        self.key_stack.push(Cow::Borrowed(key));
         value.serialize(&mut **self)?;
         self.key_stack.pop();
         Ok(())
@@ -125,7 +119,7 @@ impl<'a, M: SerializeMap<Error: 'static>> SerializeMap for &mut Child<M> {
         T: ?Sized + Serialize,
     {
         let key = key.serialize(Stringifier).map_err(FlattenError::Key)?;
-        self.key_stack.push(Segment::Field(key.to_string()));
+        self.key_stack.push(Cow::Owned(key.to_string()));
         Ok(())
     }
 
@@ -168,7 +162,7 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        let key = build_key(&self.key_stack);
+        let key = self.build_key();
         self.sink.serialize_entry(&key, &v)?;
         Ok(())
     }
@@ -206,7 +200,7 @@ impl<'a, M: SerializeMap<Error: 'static>> Serializer for &'a mut Child<M> {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        let key = build_key(&self.key_stack);
+        let key = self.build_key();
         self.sink.serialize_entry(&key, v)?;
         Ok(())
     }
