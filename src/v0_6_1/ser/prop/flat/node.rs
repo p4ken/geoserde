@@ -94,7 +94,10 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::String(v.into()))
+        match v {
+            "" => Err(StringifyError::Empty),
+            _ => Ok(StringLike::String(v.into())),
+        }
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {

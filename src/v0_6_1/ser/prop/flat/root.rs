@@ -31,63 +31,63 @@ impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_i8(self, _v: i8) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_i16(self, _v: i16) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_i32(self, _v: i32) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_i64(self, _v: i64) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_u8(self, _v: u8) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_u16(self, _v: u16) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_u32(self, _v: u32) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_u64(self, _v: u64) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_f32(self, _v: f32) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_f64(self, _v: f64) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_char(self, _v: char) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_str(self, _v: &str) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
@@ -98,70 +98,70 @@ impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        todo!()
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        Err(FlattenError::Root)
     }
 
     fn serialize_unit_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_newtype_struct<T>(
         self,
-        name: &'static str,
+        _name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        todo!()
+        value.serialize(self)
     }
 
     fn serialize_newtype_variant<T>(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        value: &T,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_tuple_struct(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_tuple_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -183,7 +183,7 @@ impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        todo!()
+        Err(FlattenError::Root)
     }
 }
 
@@ -228,6 +228,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeMap for FlatProperties<M> {
 
 #[derive(Debug)]
 pub enum FlattenError<E> {
+    Root,
     Key(StringifyError),
     Sink(E),
 }
@@ -241,6 +242,7 @@ impl<E: Error> From<E> for FlattenError<E> {
 impl<E: std::fmt::Display> std::fmt::Display for FlattenError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Root => f.write_str("data source must be a map or struct"),
             Self::Key(_) => f.write_str("map key must be a string"),
             Self::Sink(_) => f.write_str("downstream serializer caused"),
         }
@@ -250,6 +252,7 @@ impl<E: std::fmt::Display> std::fmt::Display for FlattenError<E> {
 impl<E: StdError + 'static> StdError for FlattenError<E> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
+            Self::Root => None,
             Self::Key(e) => Some(e),
             Self::Sink(e) => Some(e),
         }
