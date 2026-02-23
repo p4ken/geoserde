@@ -116,8 +116,8 @@ impl Serializer for Stringifier {
         Err(StringifyError::Empty)
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Ident(name))
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
+        Err(StringifyError::Empty)
     }
 
     fn serialize_unit_variant(
@@ -141,9 +141,9 @@ impl Serializer for Stringifier {
         _name: &'static str,
         _variant_index: u32,
         _variant: &'static str,
-        value: &T,
+        _value: &T,
     ) -> Result<Self::Ok, Self::Error> {
-        value.serialize(self)
+        Err(StringifyError::Nested)
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
