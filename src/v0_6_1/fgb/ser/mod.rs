@@ -1,3 +1,3 @@
 mod prop;
 
-pub use prop::PropertySerializer;
+pub use prop::PropertiesSerializer;
