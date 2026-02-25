@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{
         Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
         SerializeTupleStruct,
     },
+    Serialize, Serializer,
 };
 
 use crate::v0_6_1::ser::prop::{
-    FlattenError,
     node::{StringLike, Stringifier, StringifyError},
+    FlattenError,
 };
 
 pub struct Child<M> {
@@ -38,6 +38,7 @@ impl<M> Child<M> {
 impl<M: SerializeMap> Child<M> {
     fn serialize_field(&mut self, value: impl Serialize) -> Result<(), FlattenError<M::Error>> {
         let key = self.key_stack.join(".");
+        // TODO: serialize_property
         self.sink.serialize_entry(&key, &value)?;
         Ok(())
     }
