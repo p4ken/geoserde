@@ -3,8 +3,6 @@ use serde::{
     Serialize, Serializer,
 };
 
-#[derive(Serialize)]
-#[serde(untagged)]
 pub enum StringLike {
     Empty,
     Bool(bool),

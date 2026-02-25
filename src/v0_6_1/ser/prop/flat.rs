@@ -1,16 +1,19 @@
 use serde::{
-    Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
+    Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::{child::Child, node::StringifyError};
+use crate::v0_6_1::ser::prop::{
+    child::{Child, SerializeProperty},
+    node::StringifyError,
+};
 
-pub struct FlatProperties<M> {
-    child: Child<M>,
+pub struct FlatProperties<P> {
+    child: Child<P>,
 }
 
-impl<M> FlatProperties<M> {
-    pub fn new<S: Serializer<SerializeMap = M>>(ser: S) -> Self {
+impl<P> FlatProperties<P> {
+    pub fn new<S: Serializer<SerializeMap = P>>(ser: S) -> Self {
         let sink = ser.serialize_map(None).unwrap();
         Self {
             child: Child::new(sink),
@@ -18,9 +21,9 @@ impl<M> FlatProperties<M> {
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
-    type Ok = M::Ok;
-    type Error = FlattenError<M::Error>;
+impl<P: SerializeProperty<Error: 'static>> Serializer for FlatProperties<P> {
+    type Ok = ();
+    type Error = FlattenError<P::Error>;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
@@ -187,9 +190,9 @@ impl<M: SerializeMap<Error: 'static>> Serializer for FlatProperties<M> {
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> SerializeStruct for FlatProperties<M> {
-    type Ok = M::Ok;
-    type Error = FlattenError<M::Error>;
+impl<P: SerializeProperty<Error: 'static>> SerializeStruct for FlatProperties<P> {
+    type Ok = ();
+    type Error = FlattenError<P::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
@@ -199,13 +202,13 @@ impl<M: SerializeMap<Error: 'static>> SerializeStruct for FlatProperties<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self.child.into_table().end()?)
+        self.child.into_table().end().map_err(FlattenError::Sink)
     }
 }
 
-impl<M: SerializeMap<Error: 'static>> SerializeMap for FlatProperties<M> {
-    type Ok = M::Ok;
-    type Error = FlattenError<M::Error>;
+impl<P: SerializeProperty<Error: 'static>> SerializeMap for FlatProperties<P> {
+    type Ok = ();
+    type Error = FlattenError<P::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
@@ -222,7 +225,7 @@ impl<M: SerializeMap<Error: 'static>> SerializeMap for FlatProperties<M> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self.child.into_table().end()?)
+        self.child.into_table().end().map_err(FlattenError::Sink)
     }
 }
 
@@ -233,9 +236,9 @@ pub enum FlattenError<E> {
     Sink(E),
 }
 
-impl<E: Error> From<E> for FlattenError<E> {
-    fn from(e: E) -> Self {
-        Self::Sink(e)
+impl<E> From<StringifyError> for FlattenError<E> {
+    fn from(e: StringifyError) -> Self {
+        Self::Key(e)
     }
 }
 
