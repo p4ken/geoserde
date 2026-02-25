@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
+    Serialize, Serializer,
     ser::{
         Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
         SerializeTupleStruct,
     },
-    Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::flat::{
-    node::{StringLike, Stringifier, StringifyError},
+use crate::v0_6_1::ser::prop::{
     FlattenError,
+    node::{StringLike, Stringifier, StringifyError},
 };
 
 pub struct Child<M> {

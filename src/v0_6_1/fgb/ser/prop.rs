@@ -1,19 +1,22 @@
 use std::fmt::Display;
 
 use flatgeobuf::FgbWriter;
-use geojson::de;
 use serde::{
-    ser::{Error, StdError},
     Serializer,
+    ser::{Error, StdError},
 };
 
 pub struct PropertySerializer<'a> {
     writer: FgbWriter<'a>,
+    key: String,
 }
 
 impl<'a> PropertySerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
-        Self { writer }
+        Self {
+            writer,
+            key: String::new(),
+        }
     }
 
     pub fn into_inner(self) -> FgbWriter<'a> {

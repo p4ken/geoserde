@@ -1,9 +1,9 @@
 use serde::{
-    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
     Serialize, Serializer,
+    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
 };
 
-use crate::v0_6_1::ser::prop::flat::{child::Child, node::StringifyError};
+use crate::v0_6_1::ser::prop::{child::Child, node::StringifyError};
 
 pub struct FlatProperties<M> {
     child: Child<M>,
