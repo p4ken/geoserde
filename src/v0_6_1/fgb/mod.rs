@@ -1,6 +1,7 @@
 #![cfg(feature = "flatgeobuf")]
 
 pub mod de;
+pub mod ser;
 
 pub use de::from_feature_iter;
 
