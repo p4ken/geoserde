@@ -3,6 +3,8 @@ use serde::{
     Serialize, Serializer,
 };
 
+use crate::v0_6_1::ser::SourceError;
+
 pub enum StringLike {
     Empty,
     Bool(bool),
@@ -197,7 +199,7 @@ impl Serializer for Stringifier {
 pub enum StringifyError {
     Empty,
     Nested,
-    Source(Box<dyn StdError>),
+    Source(SourceError),
 }
 
 impl std::fmt::Display for StringifyError {
@@ -213,7 +215,7 @@ impl std::fmt::Display for StringifyError {
 impl StdError for StringifyError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
-            Self::Source(e) => Some(e.as_ref()),
+            Self::Source(e) => Some(e),
             _ => None,
         }
     }

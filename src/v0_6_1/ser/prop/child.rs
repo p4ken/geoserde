@@ -14,6 +14,7 @@ use crate::v0_6_1::ser::prop::{
 };
 
 pub trait SerializeProperties {
+    type Ok;
     type Error: Error;
 
     fn serialize_property<'a, S: Serialize>(
@@ -22,10 +23,11 @@ pub trait SerializeProperties {
         value: S,
     ) -> Result<(), Self::Error>;
 
-    fn end(self) -> Result<(), Self::Error>;
+    fn end(self) -> Result<Self::Ok, Self::Error>;
 }
 
 impl<M: SerializeMap> SerializeProperties for M {
+    type Ok = M::Ok;
     type Error = M::Error;
 
     fn serialize_property<'a, S: Serialize>(
@@ -36,9 +38,8 @@ impl<M: SerializeMap> SerializeProperties for M {
         self.serialize_entry(&key, &value)
     }
 
-    fn end(self) -> Result<(), Self::Error> {
-        self.end()?;
-        Ok(())
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.end()
     }
 }
 

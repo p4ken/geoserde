@@ -24,10 +24,13 @@ impl<P: SerializeProperties> FlatProperties<P> {
             child: Child::new(sink),
         }
     }
+    pub fn into_inner(self) -> P {
+        self.child.into_table()
+    }
 }
 
 impl<P: SerializeProperties<Error: 'static>> Serializer for FlatProperties<P> {
-    type Ok = ();
+    type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
@@ -196,7 +199,7 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for FlatProperties<P> {
 }
 
 impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlatProperties<P> {
-    type Ok = ();
+    type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -212,7 +215,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlatProperties<
 }
 
 impl<P: SerializeProperties<Error: 'static>> SerializeMap for FlatProperties<P> {
-    type Ok = ();
+    type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
