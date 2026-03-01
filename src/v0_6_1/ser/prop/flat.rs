@@ -4,7 +4,7 @@ use serde::{
 };
 
 use crate::v0_6_1::ser::prop::{
-    child::{Child, SerializeProperty},
+    child::{Child, SerializeProperties},
     node::StringifyError,
 };
 
@@ -12,8 +12,13 @@ pub struct FlatProperties<P> {
     child: Child<P>,
 }
 
-impl<P> FlatProperties<P> {
-    pub fn new<S: Serializer<SerializeMap = P>>(ser: S) -> Self {
+impl<P: SerializeProperties> FlatProperties<P> {
+    pub fn new(sink: P) -> Self {
+        Self {
+            child: Child::new(sink),
+        }
+    }
+    pub fn from_serializer<S: Serializer<SerializeMap = P>>(ser: S) -> Self {
         let sink = ser.serialize_map(None).unwrap();
         Self {
             child: Child::new(sink),
@@ -21,7 +26,7 @@ impl<P> FlatProperties<P> {
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> Serializer for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> Serializer for FlatProperties<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -190,7 +195,7 @@ impl<P: SerializeProperty<Error: 'static>> Serializer for FlatProperties<P> {
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeStruct for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlatProperties<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -206,7 +211,7 @@ impl<P: SerializeProperty<Error: 'static>> SerializeStruct for FlatProperties<P>
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeMap for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for FlatProperties<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 

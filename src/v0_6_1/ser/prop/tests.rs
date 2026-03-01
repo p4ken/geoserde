@@ -31,7 +31,7 @@ fn flatten_struct() {
 
     let mut buf = Vec::new();
     let mut json_ser = serde_json::Serializer::new(&mut buf);
-    let ser = FlatProperties::new(&mut json_ser);
+    let ser = FlatProperties::from_serializer(&mut json_ser);
     root.serialize(ser).unwrap();
     assert_eq!(
         r#"{"parent.child.text":"hello","child.text":"world"}"#,
@@ -45,7 +45,7 @@ fn flatten_map() {
 
     let mut buf = Vec::new();
     let mut json_ser = serde_json::Serializer::new(&mut buf);
-    let ser = FlatProperties::new(&mut json_ser);
+    let ser = FlatProperties::from_serializer(&mut json_ser);
     root.serialize(ser).unwrap();
     assert_eq!(
         r#"{"parent.child.text":"hello","child.text":"world"}"#,
@@ -87,7 +87,7 @@ fn flatten_struct_seq() {
 
     let mut buf = Vec::new();
     let mut json_ser = serde_json::Serializer::new(&mut buf);
-    let ser = FlatProperties::new(&mut json_ser);
+    let ser = FlatProperties::from_serializer(&mut json_ser);
     root.serialize(ser).unwrap();
     assert_eq!(
         r#"{"parent[0].child[0].text":"one","parent[0].child[1].text":"two","parent[0].child[2].text":"three","parent[1].child[0].text":"another"}"#,
@@ -115,7 +115,7 @@ fn flatten_value_seq() {
 
     let mut buf = Vec::new();
     let mut json_ser = serde_json::Serializer::new(&mut buf);
-    let ser = FlatProperties::new(&mut json_ser);
+    let ser = FlatProperties::from_serializer(&mut json_ser);
     root.serialize(ser).unwrap();
     assert_eq!(
         r#"{"child[0].text":"one,two,three"}"#,

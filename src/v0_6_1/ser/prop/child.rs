@@ -13,17 +13,34 @@ use crate::v0_6_1::ser::prop::{
     FlattenError,
 };
 
-pub trait SerializeProperty {
+pub trait SerializeProperties {
     type Error: Error;
+
     fn serialize_property<'a, S: Serialize>(
         &mut self,
         key: Cow<'a, str>,
-        field: S,
+        value: S,
     ) -> Result<(), Self::Error>;
+
     fn end(self) -> Result<(), Self::Error>;
 }
 
-impl<M: SerializeMap>
+impl<M: SerializeMap> SerializeProperties for M {
+    type Error = M::Error;
+
+    fn serialize_property<'a, S: Serialize>(
+        &mut self,
+        key: Cow<'a, str>,
+        value: S,
+    ) -> Result<(), Self::Error> {
+        self.serialize_entry(&key, &value)
+    }
+
+    fn end(self) -> Result<(), Self::Error> {
+        self.end()?;
+        Ok(())
+    }
+}
 
 pub struct Child<P> {
     sink: P,
@@ -47,7 +64,7 @@ impl<P> Child<P> {
     }
 }
 
-impl<P: SerializeProperty> Child<P> {
+impl<P: SerializeProperties> Child<P> {
     fn serialize_property(&mut self, value: impl Serialize) -> Result<(), FlattenError<P::Error>> {
         let key = self.key_stack.join(".");
         self.sink
@@ -56,7 +73,7 @@ impl<P: SerializeProperty> Child<P> {
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeSeq for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -110,7 +127,7 @@ impl<P: SerializeProperty<Error: 'static>> SerializeSeq for &mut Child<P> {
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeTuple for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -126,7 +143,7 @@ impl<P: SerializeProperty<Error: 'static>> SerializeTuple for &mut Child<P> {
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeTupleStruct for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -142,7 +159,7 @@ impl<P: SerializeProperty<Error: 'static>> SerializeTupleStruct for &mut Child<P
     }
 }
 
-impl<P: SerializeProperty<Error: 'static>> SerializeStruct for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -161,7 +178,7 @@ impl<P: SerializeProperty<Error: 'static>> SerializeStruct for &mut Child<P> {
     }
 }
 
-impl<'a, P: SerializeProperty<Error: 'static>> SerializeMap for &mut Child<P> {
+impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 
@@ -188,7 +205,7 @@ impl<'a, P: SerializeProperty<Error: 'static>> SerializeMap for &mut Child<P> {
     }
 }
 
-impl<'a, P: SerializeProperty<Error: 'static>> Serializer for &'a mut Child<P> {
+impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P> {
     type Ok = ();
     type Error = FlattenError<P::Error>;
 

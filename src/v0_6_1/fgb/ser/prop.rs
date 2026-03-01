@@ -6,6 +6,8 @@ use serde::{
     Serializer,
 };
 
+use crate::v0_6_1::ser::prop::{FlatProperties, SerializeProperties};
+
 pub struct PropertiesSerializer<'a> {
     writer: FgbWriter<'a>,
 }
@@ -20,9 +22,26 @@ impl<'a> PropertiesSerializer<'a> {
     }
 }
 
+impl SerializeProperties for PropertiesSerializer<'_> {
+    type Error = PropertiesError;
+
+    fn serialize_property<'a, S: serde::Serialize>(
+        &mut self,
+        key: std::borrow::Cow<'a, str>,
+        value: S,
+    ) -> Result<(), Self::Error> {
+        // self.writer.add_column(name, col_type, cfgfn);
+        todo!()
+    }
+
+    fn end(self) -> Result<(), Self::Error> {
+        todo!()
+    }
+}
+
 // TODO: Find index by key. If not found, increment index.
 
-impl Serializer for &mut PropertiesSerializer<'_> {
+impl Serializer for PropertiesSerializer<'_> {
     type Ok = ();
     type Error = PropertiesError;
 
@@ -31,7 +50,7 @@ impl Serializer for &mut PropertiesSerializer<'_> {
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Impossible<Self::Ok, Self::Error>;
-    type SerializeStruct = Impossible<Self::Ok, Self::Error>; // TODO
+    type SerializeStruct = FlatProperties<Self> // エラーを FlattenError 型にするのは避けたい
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -177,7 +196,7 @@ impl Serializer for &mut PropertiesSerializer<'_> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
-        todo!()
+        Ok(FlatProperties::new(self))
     }
 
     fn serialize_struct_variant(
@@ -192,7 +211,16 @@ impl Serializer for &mut PropertiesSerializer<'_> {
 }
 
 #[derive(Debug)]
-pub struct PropertiesError;
+pub enum PropertiesError {
+    Fgb(flatgeobuf::Error),
+    Source(Box<dyn StdError>),
+}
+
+impl From<flatgeobuf::Error> for PropertiesError {
+    fn from(error: flatgeobuf::Error) -> Self {
+        Self::Fgb(error)
+    }
+}
 
 impl Display for PropertiesError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -203,10 +231,10 @@ impl Display for PropertiesError {
 impl StdError for PropertiesError {}
 
 impl Error for PropertiesError {
-    fn custom<T>(_msg: T) -> Self
+    fn custom<T>(msg: T) -> Self
     where
         T: std::fmt::Display,
     {
-        Self
+        Self::Source(msg.to_string().into())
     }
 }
