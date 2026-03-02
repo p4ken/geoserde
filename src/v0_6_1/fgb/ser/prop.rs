@@ -1,15 +1,11 @@
 use std::{borrow::Cow, fmt::Display};
 
 use flatgeobuf::FgbWriter;
-use serde::{
-    ser::{Error, Impossible, StdError},
-    Serialize, Serializer,
-};
 
 use crate::v0_6_1::{
     fgb::ser::value,
     ser::{
-        prop::{value::FlatValue, FlatProperties, SerializeProperties},
+        prop::{value::FlatValue, SerializeProperties},
         SourceError,
     },
 };
@@ -81,9 +77,9 @@ impl Display for PropertiesError {
     }
 }
 
-impl StdError for PropertiesError {}
+impl std::error::Error for PropertiesError {}
 
-impl Error for PropertiesError {
+impl serde::ser::Error for PropertiesError {
     fn custom<T>(msg: T) -> Self
     where
         T: std::fmt::Display,
