@@ -43,6 +43,7 @@ impl<M: SerializeMap> SerializeProperties for M {
     }
 }
 
+/// Serializes fields with flattenning source structures recursively.
 pub struct FieldSerializer<P> {
     sink: P,
     index: usize,
@@ -67,6 +68,7 @@ impl<P> FieldSerializer<P> {
     fn build_key(&self) -> Cow<'static, str> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
+            // FIXME: The delimiter "." should be custmozed by users
             [multi @ ..] => Cow::Owned(multi.join(".")),
         }
     }
@@ -85,6 +87,32 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     }
 }
 
+impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
+    fn _serialize_element_with_index<T>(&mut self, value: &T) -> Result<(), TableError<P::Error>>
+    where
+        T: ?Sized + Serialize,
+    {
+        let parent_key = self.key_stack.pop(); // "parent"
+        let parent_index = self.index;
+
+        // FIXME: The delimiter "[ ]" should be custmozed by users
+        let key = Cow::Owned(format!(
+            "{}[{}]",
+            parent_key.as_ref().unwrap_or(&Cow::default()),
+            parent_index
+        ));
+        self.key_stack.push(key); // "parent[0]"
+        value.serialize(&mut *self)?;
+        self.key_stack.pop(); // "parent[0]"
+        if let Some(p) = parent_key {
+            self.key_stack.push(p); // "parent"
+        }
+
+        self.index = parent_index + 1;
+        Ok(())
+    }
+}
+
 impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
@@ -93,6 +121,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     where
         T: ?Sized + Serialize,
     {
+        // TODO: skip if value_seq.is_empty() != (self.index == 0)
         match value.serialize(Stringifier) {
             Ok(text) => {
                 self.value_seq.push(text);
@@ -102,31 +131,21 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 self.value_seq.push(StringLike::Empty);
                 return Ok(());
             }
-            // FIXME: Previous elements are not serialized if error
-            Err(_) => self.value_seq.clear(),
+            Err(_) => {
+                // Fallback to "key[0]=value" style
+                let value_seq = std::mem::take(&mut self.value_seq);
+                for v in &value_seq {
+                    self._serialize_element_with_index(v)?;
+                }
+            }
         }
 
-        let parent_index = self.index;
-
-        let parent_key = self.key_stack.pop();
-        let key = Cow::Owned(format!(
-            "{}[{}]",
-            parent_key.as_ref().unwrap_or(&Cow::default()),
-            parent_index
-        ));
-        self.key_stack.push(key);
-        value.serialize(&mut **self)?;
-        self.key_stack.pop();
-        if let Some(p) = parent_key {
-            self.key_stack.push(p);
-        }
-
-        self.index = parent_index + 1;
-        Ok(())
+        self._serialize_element_with_index(value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         if !self.value_seq.is_empty() {
+            // Flatten as "key=value0,value1" style
             let value = self
                 .value_seq
                 .drain(..)

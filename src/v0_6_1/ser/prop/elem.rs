@@ -8,6 +8,8 @@ use serde::{
 use crate::v0_6_1::ser::SourceError;
 
 // TODO: Separate KeyElement and SeqElement
+#[derive(Serialize)]
+#[serde(untagged)]
 pub enum StringLike {
     Empty,
     Bool(bool),
@@ -109,7 +111,7 @@ impl Serializer for Stringifier {
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
         match v {
             "" => Err(StringifyError::Empty),
-            _ => Ok(StringLike::String(v.into())),
+            _ => Ok(StringLike::String(v.to_owned())),
         }
     }
 
