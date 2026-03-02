@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::{
     ser::{Error, Impossible, StdError},
     Serialize, Serializer,
@@ -5,6 +7,7 @@ use serde::{
 
 use crate::v0_6_1::ser::SourceError;
 
+// TODO: Separate KeyElement and SeqElement
 pub enum StringLike {
     Empty,
     Bool(bool),
@@ -14,6 +17,16 @@ pub enum StringLike {
     Char(char),
     String(String),
     Ident(&'static str),
+}
+
+impl From<StringLike> for Cow<'static, str> {
+    fn from(source: StringLike) -> Self {
+        match source {
+            StringLike::String(string) => Cow::Owned(string),
+            StringLike::Ident(ident) => Cow::Borrowed(ident),
+            _ => Cow::Owned(source.to_string()),
+        }
+    }
 }
 
 impl std::fmt::Display for StringLike {

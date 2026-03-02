@@ -39,7 +39,7 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        todo!()
+        Ok(self.writer)
     }
 }
 

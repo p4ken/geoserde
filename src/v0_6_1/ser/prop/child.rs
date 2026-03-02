@@ -63,13 +63,20 @@ impl<P> Child<P> {
     pub fn into_table(self) -> P {
         self.sink
     }
+
+    fn build_key(&self) -> Cow<'static, str> {
+        match self.key_stack.as_slice() {
+            [Cow::Borrowed(single)] => Cow::Borrowed(*single),
+            [multi @ ..] => Cow::Owned(multi.join(".")),
+        }
+    }
 }
 
 impl<P: SerializeProperties> Child<P> {
     fn serialize_property(&mut self, value: impl Serialize) -> Result<(), FlattenError<P::Error>> {
-        let key = self.key_stack.join(".");
+        let key = self.build_key();
         self.sink
-            .serialize_property(Cow::Owned(key), value)
+            .serialize_property(key, value)
             .map_err(FlattenError::Sink)
     }
 }
@@ -188,7 +195,7 @@ impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut Child<P> 
         T: ?Sized + Serialize,
     {
         let key = key.serialize(Stringifier)?;
-        self.key_stack.push(Cow::Owned(key.to_string()));
+        self.key_stack.push(key.into());
         Ok(())
     }
 
