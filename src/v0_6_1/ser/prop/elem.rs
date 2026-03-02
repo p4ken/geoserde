@@ -7,15 +7,21 @@ use serde::{
 
 use crate::v0_6_1::ser::SourceError;
 
-// TODO: Separate KeyElement and SeqElement
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum StringLike {
     Empty,
     Bool(bool),
-    Signed(i64),
-    Unsigned(u64),
-    Float(f64),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    F32(f32),
+    F64(f64),
     Char(char),
     String(String),
     Ident(&'static str),
@@ -36,9 +42,16 @@ impl std::fmt::Display for StringLike {
         match self {
             Self::Empty => f.write_str(""),
             Self::Bool(v) => write!(f, "{v}"),
-            Self::Signed(v) => write!(f, "{v}"),
-            Self::Unsigned(v) => write!(f, "{v}"),
-            Self::Float(v) => write!(f, "{v}"),
+            Self::I8(v) => write!(f, "{v}"),
+            Self::I16(v) => write!(f, "{v}"),
+            Self::I32(v) => write!(f, "{v}"),
+            Self::I64(v) => write!(f, "{v}"),
+            Self::U8(v) => write!(f, "{v}"),
+            Self::U16(v) => write!(f, "{v}"),
+            Self::U32(v) => write!(f, "{v}"),
+            Self::U64(v) => write!(f, "{v}"),
+            Self::F32(v) => write!(f, "{v}"),
+            Self::F64(v) => write!(f, "{v}"),
             Self::Char(v) => write!(f, "{v}"),
             Self::String(v) => write!(f, "{v}"),
             Self::Ident(v) => write!(f, "{v}"),
@@ -65,43 +78,43 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(v.into())
+        Ok(StringLike::I8(v))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(v.into())
+        Ok(StringLike::I16(v))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_i64(v.into())
+        Ok(StringLike::I32(v))
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Signed(v))
+        Ok(StringLike::I64(v))
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(v.into())
+        Ok(StringLike::U8(v))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(v.into())
+        Ok(StringLike::U16(v))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u64(v.into())
+        Ok(StringLike::U32(v))
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Unsigned(v))
+        Ok(StringLike::U64(v))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_f64(v.into())
+        Ok(StringLike::F32(v))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        Ok(StringLike::Float(v))
+        Ok(StringLike::F64(v))
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
@@ -109,10 +122,7 @@ impl Serializer for Stringifier {
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        match v {
-            "" => Err(StringifyError::Empty),
-            _ => Ok(StringLike::String(v.to_owned())),
-        }
+        Ok(StringLike::String(v.to_owned()))
     }
 
     fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {

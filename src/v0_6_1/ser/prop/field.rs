@@ -319,11 +319,11 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Ok(())
+        self.serialize_none()
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Ok(())
+        self.serialize_none()
     }
 
     fn serialize_unit_variant(
