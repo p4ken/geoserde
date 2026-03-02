@@ -6,19 +6,25 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::{
-    prop::{value::FlatValue, FlatProperties, SerializeProperties},
-    SourceError,
+use crate::v0_6_1::{
+    fgb::ser::value,
+    ser::{
+        prop::{value::FlatValue, FlatProperties, SerializeProperties},
+        SourceError,
+    },
 };
 
 pub struct PropertiesSerializer<'a> {
     writer: FgbWriter<'a>,
-    // visited_key: Vec<
+    known_key: Vec<Cow<'static, str>>,
 }
 
 impl<'a> PropertiesSerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
-        Self { writer }
+        Self {
+            writer,
+            known_key: Vec::new(),
+        }
     }
 
     pub fn into_inner(self) -> FgbWriter<'a> {
@@ -32,11 +38,22 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
 
     fn serialize_property<'b>(
         &mut self,
-        key: Cow<'b, str>,
+        key: Cow<'static, str>,
         value: FlatValue<'b>,
     ) -> Result<(), Self::Error> {
-        // self.writer.add_column(name, col_type, cfgfn);
-        todo!()
+        let index_of_key = self.known_key.iter().position(|k| k == &key);
+        flatgeobuf::geozero::PropertyProcessor::property(
+            &mut self.writer,
+            index_of_key.unwrap_or_else(|| self.known_key.len()),
+            key.as_ref(),
+            &value::from_flat_value(value),
+        )
+        .unwrap();
+
+        if index_of_key.is_none() {
+            self.known_key.push(key);
+        };
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {

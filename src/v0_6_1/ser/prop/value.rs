@@ -14,9 +14,7 @@ pub enum FlatValue<'a> {
     U64(u64),
     F32(f32),
     F64(f64),
-    Char(char),
     Str(&'a str),
-    String(String),
     Bytes(&'a [u8]),
 }
 
@@ -86,21 +84,9 @@ impl From<f64> for FlatValue<'static> {
     }
 }
 
-impl From<char> for FlatValue<'static> {
-    fn from(value: char) -> Self {
-        Self::Char(value)
-    }
-}
-
 impl<'a> From<&'a str> for FlatValue<'a> {
     fn from(value: &'a str) -> Self {
         Self::Str(value)
-    }
-}
-
-impl From<String> for FlatValue<'static> {
-    fn from(value: String) -> Self {
-        Self::String(value)
     }
 }
 

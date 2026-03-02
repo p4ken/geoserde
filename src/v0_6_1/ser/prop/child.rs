@@ -20,7 +20,7 @@ pub trait SerializeProperties {
 
     fn serialize_property<'a>(
         &mut self,
-        key: Cow<'a, str>,
+        key: Cow<'static, str>,
         value: FlatValue<'a>,
     ) -> Result<(), Self::Error>;
 
@@ -33,7 +33,7 @@ impl<M: SerializeMap> SerializeProperties for M {
 
     fn serialize_property<'a>(
         &mut self,
-        key: Cow<'a, str>,
+        key: Cow<'static, str>,
         value: FlatValue<'a>,
     ) -> Result<(), Self::Error> {
         self.serialize_entry(&key, &value)
@@ -134,7 +134,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut Child<P> {
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            self._serialize_property(FlatValue::String(value))?;
+            self._serialize_property(FlatValue::Str(&value))?;
         }
         Ok(())
     }
@@ -275,7 +275,9 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P>
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        let mut buf = [0; 4];
+        let str = v.encode_utf8(&mut buf);
+        self._serialize_property(&*str)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
