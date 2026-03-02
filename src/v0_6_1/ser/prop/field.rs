@@ -121,21 +121,22 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     where
         T: ?Sized + Serialize,
     {
-        // TODO: skip if value_seq.is_empty() != (self.index == 0)
-        match value.serialize(Stringifier) {
-            Ok(text) => {
-                self.value_seq.push(text);
-                return Ok(());
-            }
-            Err(StringifyError::Empty) => {
-                self.value_seq.push(StringLike::Empty);
-                return Ok(());
-            }
-            Err(_) => {
-                // Fallback to "key[0]=value" style
-                let value_seq = std::mem::take(&mut self.value_seq);
-                for v in &value_seq {
-                    self._serialize_element_with_index(v)?;
+        if self.index == 0 {
+            match value.serialize(Stringifier) {
+                Ok(text) => {
+                    self.value_seq.push(text);
+                    return Ok(());
+                }
+                Err(StringifyError::Empty) => {
+                    self.value_seq.push(StringLike::Empty);
+                    return Ok(());
+                }
+                Err(_) => {
+                    // Fallback to "key[0]=value" style
+                    let value_seq = std::mem::take(&mut self.value_seq);
+                    for v in &value_seq {
+                        self._serialize_element_with_index(v)?;
+                    }
                 }
             }
         }

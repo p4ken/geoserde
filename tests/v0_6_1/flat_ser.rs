@@ -106,9 +106,12 @@ fn flatten_value_seq() {
     }
 
     let root = Root {
-        child: vec![Child {
-            text: vec!["one", "two", "three"],
-        }],
+        child: vec![
+            Child {
+                text: vec!["one", "two", "three"],
+            },
+            Child { text: vec!["four"] },
+        ],
     };
 
     let mut buf = Vec::new();
@@ -116,7 +119,7 @@ fn flatten_value_seq() {
     let ser = TableSerializer::from_serializer(&mut json_ser);
     root.serialize(ser).unwrap();
     assert_eq!(
-        r#"{"child[0].text":"one,two,three"}"#,
+        r#"{"child[0].text":"one,two,three","child[1].text":"four"}"#,
         String::from_utf8(buf).unwrap()
     );
 }
