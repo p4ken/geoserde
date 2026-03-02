@@ -3,10 +3,7 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::{
-    elem::StringifyError,
-    field::{FieldSerializer, SerializeProperties},
-};
+use crate::v0_6_1::ser::prop::{elem::StringifyError, field::FieldSerializer, SerializeProperties};
 
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,

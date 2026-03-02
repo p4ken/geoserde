@@ -3,7 +3,7 @@ use std::{borrow::Cow, fmt::Display};
 use flatgeobuf::FgbWriter;
 
 use crate::v0_6_1::ser::{
-    prop::{value::FieldValue, SerializeProperties},
+    prop::{FieldValue, SerializeProperties},
     SourceError,
 };
 

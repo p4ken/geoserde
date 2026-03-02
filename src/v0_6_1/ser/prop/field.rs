@@ -10,8 +10,7 @@ use serde::{
 
 use crate::v0_6_1::ser::prop::{
     elem::{StringLike, Stringifier, StringifyError},
-    value::FieldValue,
-    TableError,
+    FieldValue, TableError,
 };
 
 pub trait SerializeProperties {
