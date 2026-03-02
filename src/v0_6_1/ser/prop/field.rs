@@ -9,9 +9,9 @@ use serde::{
 };
 
 use crate::v0_6_1::ser::prop::{
-    node::{StringLike, Stringifier, StringifyError},
-    value::FlatValue,
-    FlattenError,
+    elem::{StringLike, Stringifier, StringifyError},
+    value::FieldValue,
+    TableError,
 };
 
 pub trait SerializeProperties {
@@ -21,7 +21,7 @@ pub trait SerializeProperties {
     fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
-        value: FlatValue<'_>,
+        value: FieldValue<'_>,
     ) -> Result<(), Self::Error>;
 
     fn end(self) -> Result<Self::Ok, Self::Error>;
@@ -34,7 +34,7 @@ impl<M: SerializeMap> SerializeProperties for M {
     fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
-        value: FlatValue<'_>,
+        value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
         self.serialize_entry(&key, &value)
     }
@@ -44,20 +44,20 @@ impl<M: SerializeMap> SerializeProperties for M {
     }
 }
 
-pub struct Child<P> {
+pub struct FieldSerializer<P> {
     sink: P,
     index: usize,
-    value_seq: Vec<StringLike>,
     key_stack: Vec<Cow<'static, str>>,
+    value_seq: Vec<StringLike>,
 }
 
-impl<P> Child<P> {
+impl<P> FieldSerializer<P> {
     pub fn new(sink: P) -> Self {
         Self {
             sink,
             index: 0,
-            value_seq: Vec::new(),
             key_stack: Vec::new(),
+            value_seq: Vec::new(),
         }
     }
 
@@ -73,22 +73,22 @@ impl<P> Child<P> {
     }
 }
 
-impl<P: SerializeProperties> Child<P> {
+impl<P: SerializeProperties> FieldSerializer<P> {
     fn _serialize_property<'a>(
         &mut self,
-        value: impl Into<FlatValue<'a>>,
-    ) -> Result<(), FlattenError<P::Error>> {
+        value: impl Into<FieldValue<'a>>,
+    ) -> Result<(), TableError<P::Error>> {
         let key = self.build_key();
         let value = value.into();
         self.sink
             .serialize_property(key, value)
-            .map_err(FlattenError::Sink)
+            .map_err(TableError::Sink)
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -134,15 +134,15 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut Child<P> {
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            self._serialize_property(FlatValue::Str(&value))?;
+            self._serialize_property(FieldValue::Str(&value))?;
         }
         Ok(())
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -156,9 +156,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut Child<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
     where
@@ -172,9 +172,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut Child
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut Child<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
     where
@@ -191,9 +191,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut Child<P> {
     }
 }
 
-impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut Child<P> {
+impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
     where
@@ -218,9 +218,9 @@ impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut Child<P> 
     }
 }
 
-impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P> {
+impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSerializer<P> {
     type Ok = ();
-    type Error = FlattenError<P::Error>;
+    type Error = TableError<P::Error>;
 
     type SerializeSeq = Self;
     type SerializeTuple = Self;

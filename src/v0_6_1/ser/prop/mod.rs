@@ -1,8 +1,7 @@
-mod child;
-mod node;
-mod root;
-mod tests;
+mod elem;
+mod field;
+mod table;
 pub mod value;
 
-pub use child::SerializeProperties;
-pub use root::{FlattenError, FlattenSerializer};
+pub use field::SerializeProperties;
+pub use table::{TableError, TableSerializer};
