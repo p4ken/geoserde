@@ -10,6 +10,7 @@ use serde::{
 
 use crate::v0_6_1::ser::prop::{
     node::{StringLike, Stringifier, StringifyError},
+    value::FlatValue,
     FlattenError,
 };
 
@@ -17,10 +18,10 @@ pub trait SerializeProperties {
     type Ok;
     type Error: Error;
 
-    fn serialize_property<'a, S: Serialize>(
+    fn serialize_property<'a>(
         &mut self,
         key: Cow<'a, str>,
-        value: S,
+        value: FlatValue<'a>,
     ) -> Result<(), Self::Error>;
 
     fn end(self) -> Result<Self::Ok, Self::Error>;
@@ -30,10 +31,10 @@ impl<M: SerializeMap> SerializeProperties for M {
     type Ok = M::Ok;
     type Error = M::Error;
 
-    fn serialize_property<'a, S: Serialize>(
+    fn serialize_property<'a>(
         &mut self,
         key: Cow<'a, str>,
-        value: S,
+        value: FlatValue<'a>,
     ) -> Result<(), Self::Error> {
         self.serialize_entry(&key, &value)
     }
@@ -73,8 +74,12 @@ impl<P> Child<P> {
 }
 
 impl<P: SerializeProperties> Child<P> {
-    fn serialize_property(&mut self, value: impl Serialize) -> Result<(), FlattenError<P::Error>> {
+    fn _serialize_property<'a>(
+        &mut self,
+        value: impl Into<FlatValue<'a>>,
+    ) -> Result<(), FlattenError<P::Error>> {
         let key = self.build_key();
+        let value = value.into();
         self.sink
             .serialize_property(key, value)
             .map_err(FlattenError::Sink)
@@ -129,7 +134,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut Child<P> {
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            self.serialize_property(&value)?;
+            self._serialize_property(FlatValue::String(value))?;
         }
         Ok(())
     }
@@ -226,59 +231,59 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P>
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(v)
+        self._serialize_property(v)
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
@@ -289,7 +294,7 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P>
     where
         T: ?Sized + Serialize,
     {
-        self.serialize_property(value)
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
@@ -306,7 +311,7 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut Child<P>
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_property(variant)
+        self._serialize_property(variant)
     }
 
     fn serialize_newtype_struct<T>(

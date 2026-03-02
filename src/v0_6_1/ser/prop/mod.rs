@@ -1,7 +1,8 @@
 mod child;
-mod flat;
 mod node;
+mod root;
 mod tests;
+pub mod value;
 
-pub use child::{Child, SerializeProperties};
-pub use flat::{FlatProperties, FlattenError};
+pub use child::SerializeProperties;
+pub use root::{FlatProperties, FlattenError};

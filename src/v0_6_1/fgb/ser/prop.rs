@@ -1,18 +1,19 @@
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
 use flatgeobuf::FgbWriter;
 use serde::{
     ser::{Error, Impossible, StdError},
-    Serializer,
+    Serialize, Serializer,
 };
 
 use crate::v0_6_1::ser::{
-    prop::{FlatProperties, SerializeProperties},
+    prop::{value::FlatValue, FlatProperties, SerializeProperties},
     SourceError,
 };
 
 pub struct PropertiesSerializer<'a> {
     writer: FgbWriter<'a>,
+    // visited_key: Vec<
 }
 
 impl<'a> PropertiesSerializer<'a> {
@@ -29,10 +30,10 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
     type Ok = FgbWriter<'a>;
     type Error = PropertiesError;
 
-    fn serialize_property<'b, S: serde::Serialize>(
+    fn serialize_property<'b>(
         &mut self,
-        key: std::borrow::Cow<'b, str>,
-        value: S,
+        key: Cow<'b, str>,
+        value: FlatValue<'b>,
     ) -> Result<(), Self::Error> {
         // self.writer.add_column(name, col_type, cfgfn);
         todo!()
