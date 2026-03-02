@@ -18,10 +18,10 @@ pub trait SerializeProperties {
     type Ok;
     type Error: Error;
 
-    fn serialize_property<'a>(
+    fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
-        value: FlatValue<'a>,
+        value: FlatValue<'_>,
     ) -> Result<(), Self::Error>;
 
     fn end(self) -> Result<Self::Ok, Self::Error>;
@@ -31,10 +31,10 @@ impl<M: SerializeMap> SerializeProperties for M {
     type Ok = M::Ok;
     type Error = M::Error;
 
-    fn serialize_property<'a>(
+    fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
-        value: FlatValue<'a>,
+        value: FlatValue<'_>,
     ) -> Result<(), Self::Error> {
         self.serialize_entry(&key, &value)
     }

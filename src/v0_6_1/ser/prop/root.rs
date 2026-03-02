@@ -8,28 +8,30 @@ use crate::v0_6_1::ser::prop::{
     node::StringifyError,
 };
 
-pub struct FlatProperties<P> {
+pub struct FlattenSerializer<P> {
     child: Child<P>,
 }
 
-impl<P: SerializeProperties> FlatProperties<P> {
+impl<P: SerializeProperties> FlattenSerializer<P> {
     pub fn new(sink: P) -> Self {
         Self {
             child: Child::new(sink),
         }
     }
+
     pub fn from_serializer<S: Serializer<SerializeMap = P>>(ser: S) -> Self {
         let sink = ser.serialize_map(None).unwrap();
         Self {
             child: Child::new(sink),
         }
     }
+
     pub fn into_inner(self) -> P {
         self.child.into_table()
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> Serializer for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> Serializer for FlattenSerializer<P> {
     type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 
@@ -198,7 +200,7 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for FlatProperties<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlattenSerializer<P> {
     type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 
@@ -214,7 +216,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for FlatProperties<
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for FlatProperties<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for FlattenSerializer<P> {
     type Ok = P::Ok;
     type Error = FlattenError<P::Error>;
 

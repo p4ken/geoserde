@@ -50,6 +50,7 @@ pub trait ParseFeature {
 // }
 
 #[cfg(test)]
+#[cfg(feature = "geo-types")]
 mod tests {
     use super::*;
     use geo_types::{Geometry, Point};

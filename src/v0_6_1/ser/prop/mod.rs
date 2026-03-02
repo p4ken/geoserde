@@ -5,4 +5,4 @@ mod tests;
 pub mod value;
 
 pub use child::SerializeProperties;
-pub use root::{FlattenError, FlatProperties};
+pub use root::{FlattenError, FlattenSerializer};

@@ -2,12 +2,9 @@ use std::{borrow::Cow, fmt::Display};
 
 use flatgeobuf::FgbWriter;
 
-use crate::v0_6_1::{
-    fgb::ser::value,
-    ser::{
-        prop::{value::FlatValue, SerializeProperties},
-        SourceError,
-    },
+use crate::v0_6_1::ser::{
+    prop::{value::FlatValue, SerializeProperties},
+    SourceError,
 };
 
 pub struct PropertiesSerializer<'a> {
@@ -22,29 +19,24 @@ impl<'a> PropertiesSerializer<'a> {
             known_key: Vec::new(),
         }
     }
-
-    pub fn into_inner(self) -> FgbWriter<'a> {
-        self.writer
-    }
 }
 
 impl<'a> SerializeProperties for PropertiesSerializer<'a> {
     type Ok = FgbWriter<'a>;
     type Error = PropertiesError;
 
-    fn serialize_property<'b>(
+    fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
-        value: FlatValue<'b>,
+        value: FlatValue<'_>,
     ) -> Result<(), Self::Error> {
         let index_of_key = self.known_key.iter().position(|k| k == &key);
         flatgeobuf::geozero::PropertyProcessor::property(
             &mut self.writer,
             index_of_key.unwrap_or_else(|| self.known_key.len()),
             key.as_ref(),
-            &value::from_flat_value(value),
-        )
-        .unwrap();
+            &_to_column_value(value),
+        )?;
 
         if index_of_key.is_none() {
             self.known_key.push(key);
@@ -57,17 +49,40 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
     }
 }
 
-// TODO: Find index by key. If not found, increment index.
+fn _to_column_value(source: FlatValue<'_>) -> flatgeobuf::geozero::ColumnValue<'_> {
+    match source {
+        FlatValue::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(v),
+        FlatValue::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(v),
+        FlatValue::I16(v) => flatgeobuf::geozero::ColumnValue::Short(v),
+        FlatValue::I32(v) => flatgeobuf::geozero::ColumnValue::Int(v),
+        FlatValue::I64(v) => flatgeobuf::geozero::ColumnValue::Long(v),
+        FlatValue::U8(v) => flatgeobuf::geozero::ColumnValue::UByte(v),
+        FlatValue::U16(v) => flatgeobuf::geozero::ColumnValue::UShort(v),
+        FlatValue::U32(v) => flatgeobuf::geozero::ColumnValue::UInt(v),
+        FlatValue::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(v),
+        FlatValue::F32(v) => flatgeobuf::geozero::ColumnValue::Float(v),
+        FlatValue::F64(v) => flatgeobuf::geozero::ColumnValue::Double(v),
+        FlatValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
+        FlatValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
+    }
+}
 
 #[derive(Debug)]
 pub enum PropertiesError {
     Fgb(flatgeobuf::Error),
+    Geozero(flatgeobuf::geozero::error::GeozeroError),
     Source(SourceError),
 }
 
 impl From<flatgeobuf::Error> for PropertiesError {
     fn from(error: flatgeobuf::Error) -> Self {
         Self::Fgb(error)
+    }
+}
+
+impl From<flatgeobuf::geozero::error::GeozeroError> for PropertiesError {
+    fn from(error: flatgeobuf::geozero::error::GeozeroError) -> Self {
+        Self::Geozero(error)
     }
 }
 

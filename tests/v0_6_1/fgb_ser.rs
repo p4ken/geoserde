@@ -23,7 +23,7 @@ fn properties_ser_test() -> anyhow::Result<()> {
 
     let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
     let prop_ser = geoserde::v0_6_1::fgb::ser::PropertiesSerializer::new(fgb_writer);
-    let flat_ser = geoserde::v0_6_1::ser::prop::FlatProperties::new(prop_ser);
+    let flat_ser = geoserde::v0_6_1::ser::prop::FlattenSerializer::new(prop_ser);
     let mut fgb_writer = root.serialize(flat_ser)?;
     flatgeobuf::geozero::FeatureProcessor::feature_end(&mut fgb_writer, 0)?;
 
