@@ -1,9 +1,9 @@
 use serde::{
-    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
     Serialize, Serializer,
+    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
 };
 
-use crate::v0_6_1::ser::prop::{elem::StringifyError, field::FieldSerializer, SerializeProperties};
+use crate::v0_6_1::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer};
 
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,
@@ -24,12 +24,12 @@ impl<P: SerializeProperties> TableSerializer<P> {
     }
 
     pub fn into_inner(self) -> P {
-        self.child.into_table()
+        self.child.into_inner()
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
-    type Ok = P::Ok;
+impl<P: SerializeProperties<Error: 'static>> Serializer for &mut TableSerializer<P> {
+    type Ok = ();
     type Error = TableError<P::Error>;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
@@ -197,8 +197,8 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<P> {
-    type Ok = P::Ok;
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut TableSerializer<P> {
+    type Ok = ();
     type Error = TableError<P::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -209,12 +209,12 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.child.into_table().end().map_err(TableError::Sink)
+        Ok(())
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P> {
-    type Ok = P::Ok;
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut TableSerializer<P> {
+    type Ok = ();
     type Error = TableError<P::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
@@ -232,7 +232,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.child.into_table().end().map_err(TableError::Sink)
+        Ok(())
     }
 }
 

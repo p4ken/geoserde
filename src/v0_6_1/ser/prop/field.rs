@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
+    Serialize, Serializer,
     ser::{
         Error, Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
         SerializeTupleStruct,
     },
-    Serialize, Serializer,
 };
 
 use crate::v0_6_1::ser::prop::{
-    elem::{StringLike, Stringifier, StringifyError},
     FieldValue, TableError,
+    elem::{StringLike, Stringifier, StringifyError},
 };
 
 pub trait SerializeProperties {
@@ -51,7 +51,7 @@ pub struct FieldSerializer<P> {
     value_seq: Vec<StringLike>,
 }
 
-impl<P> FieldSerializer<P> {
+impl<P: SerializeProperties> FieldSerializer<P> {
     pub fn new(sink: P) -> Self {
         Self {
             sink,
@@ -61,7 +61,7 @@ impl<P> FieldSerializer<P> {
         }
     }
 
-    pub fn into_table(self) -> P {
+    pub fn into_inner(self) -> P {
         self.sink
     }
 

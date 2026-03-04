@@ -3,8 +3,8 @@ use std::{borrow::Cow, fmt::Display};
 use flatgeobuf::FgbWriter;
 
 use crate::v0_6_1::ser::{
-    prop::{FieldValue, SerializeProperties},
     SourceError,
+    prop::{FieldValue, SerializeProperties},
 };
 
 pub struct PropertiesSerializer<'a> {
@@ -19,10 +19,19 @@ impl<'a> PropertiesSerializer<'a> {
             known_key: Vec::new(),
         }
     }
+
+    // TODO: Delegate to FeatureSerializer
+    pub fn mut_inner(&mut self) -> &mut FgbWriter<'a> {
+        &mut self.writer
+    }
+
+    pub fn into_inner(self) -> FgbWriter<'a> {
+        self.writer
+    }
 }
 
-impl<'a> SerializeProperties for PropertiesSerializer<'a> {
-    type Ok = FgbWriter<'a>;
+impl<'a> SerializeProperties for &mut PropertiesSerializer<'a> {
+    type Ok = ();
     type Error = PropertiesError;
 
     fn serialize_property(
@@ -46,7 +55,7 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(self.writer)
+        Ok(())
     }
 }
 

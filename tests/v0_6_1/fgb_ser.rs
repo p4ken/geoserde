@@ -22,17 +22,24 @@ fn properties_ser_test() -> anyhow::Result<()> {
     };
 
     let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
-    let prop_ser = geoserde::v0_6_1::fgb::ser::PropertiesSerializer::new(fgb_writer);
-    let flat_ser = geoserde::v0_6_1::ser::prop::TableSerializer::new(prop_ser);
-    let mut fgb_writer = root.serialize(flat_ser)?;
-    flatgeobuf::geozero::FeatureProcessor::feature_end(&mut fgb_writer, 0)?;
+    let mut prop_ser = geoserde::v0_6_1::fgb::ser::PropertiesSerializer::new(fgb_writer);
+    for _ in 0..2 {
+        {
+            let mut flat_ser = geoserde::v0_6_1::ser::prop::TableSerializer::new(&mut prop_ser);
+            root.serialize(&mut flat_ser)?;
+        }
+        flatgeobuf::geozero::FeatureProcessor::feature_end(prop_ser.mut_inner(), 0)?;
+    }
 
     let mut fgb_buf = Vec::new();
-    fgb_writer.write(&mut fgb_buf)?;
+    prop_ser.into_inner().write(&mut fgb_buf)?;
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();
     let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
     let exp_props = HashMap::from([("parent.text".to_string(), "hello".to_string())]);
     assert_eq!(props, exp_props);
+
+    assert!(fgb_iter.next()?.is_some());
+    assert!(fgb_iter.next()?.is_none());
     Ok(())
 }
