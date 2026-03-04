@@ -28,7 +28,7 @@ impl<P: SerializeProperties> TableSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> Serializer for &mut TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -197,7 +197,7 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for &mut TableSerializer
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -213,7 +213,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut TableSeria
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 

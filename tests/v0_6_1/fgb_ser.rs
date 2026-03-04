@@ -24,10 +24,8 @@ fn properties_ser_test() -> anyhow::Result<()> {
     let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
     let mut prop_ser = geoserde::v0_6_1::fgb::ser::PropertiesSerializer::new(fgb_writer);
     for _ in 0..2 {
-        {
-            let mut flat_ser = geoserde::v0_6_1::ser::prop::TableSerializer::new(&mut prop_ser);
-            root.serialize(&mut flat_ser)?;
-        }
+        let flat_ser = geoserde::v0_6_1::ser::prop::TableSerializer::new(&mut prop_ser);
+        root.serialize(flat_ser)?;
         flatgeobuf::geozero::FeatureProcessor::feature_end(prop_ser.mut_inner(), 0)?;
     }
 
