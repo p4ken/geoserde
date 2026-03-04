@@ -31,9 +31,10 @@ impl<'a> SerializeProperties for PropertiesSerializer<'a> {
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
         let index_of_key = self.known_key.iter().position(|k| k == &key);
+        let index_to_write = index_of_key.unwrap_or_else(|| self.known_key.len());
         flatgeobuf::geozero::PropertyProcessor::property(
             &mut self.writer,
-            index_of_key.unwrap_or_else(|| self.known_key.len()),
+            index_to_write,
             key.as_ref(),
             &_to_column_value(value),
         )?;
