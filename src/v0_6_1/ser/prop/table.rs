@@ -22,14 +22,10 @@ impl<P: SerializeProperties> TableSerializer<P> {
             child: FieldSerializer::new(sink),
         }
     }
-
-    pub fn into_inner(self) -> P {
-        self.child.into_inner()
-    }
 }
 
-impl<P: SerializeProperties<Ok = (), Error: 'static>> Serializer for TableSerializer<P> {
-    type Ok = ();
+impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
+    type Ok = P::Ok;
     type Error = TableError<P::Error>;
 
     type SerializeSeq = Impossible<Self::Ok, Self::Error>;
@@ -197,8 +193,8 @@ impl<P: SerializeProperties<Ok = (), Error: 'static>> Serializer for TableSerial
     }
 }
 
-impl<P: SerializeProperties<Ok = (), Error: 'static>> SerializeStruct for TableSerializer<P> {
-    type Ok = ();
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<P> {
+    type Ok = P::Ok;
     type Error = TableError<P::Error>;
 
     fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
@@ -213,8 +209,8 @@ impl<P: SerializeProperties<Ok = (), Error: 'static>> SerializeStruct for TableS
     }
 }
 
-impl<P: SerializeProperties<Ok = (), Error: 'static>> SerializeMap for TableSerializer<P> {
-    type Ok = ();
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P> {
+    type Ok = P::Ok;
     type Error = TableError<P::Error>;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>

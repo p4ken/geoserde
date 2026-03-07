@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{
         Error, Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
         SerializeTupleStruct,
     },
+    Serialize, Serializer,
 };
 
 use crate::v0_6_1::ser::prop::{
-    FieldValue, TableError,
     elem::{StringLike, Stringifier, StringifyError},
+    FieldValue, TableError,
 };
 
 pub trait SerializeProperties {
