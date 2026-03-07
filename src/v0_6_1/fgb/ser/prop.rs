@@ -3,8 +3,8 @@ use std::{borrow::Cow, fmt::Display};
 use flatgeobuf::FgbWriter;
 
 use crate::v0_6_1::ser::{
-    SourceError,
     prop::{FieldValue, SerializeProperties},
+    SourceError,
 };
 
 pub struct PropertiesSerializer<'a> {
@@ -85,30 +85,39 @@ pub enum PropertiesError {
 }
 
 impl From<flatgeobuf::Error> for PropertiesError {
-    fn from(error: flatgeobuf::Error) -> Self {
-        Self::Fgb(error)
+    fn from(e: flatgeobuf::Error) -> Self {
+        Self::Fgb(e)
     }
 }
 
 impl From<flatgeobuf::geozero::error::GeozeroError> for PropertiesError {
-    fn from(error: flatgeobuf::geozero::error::GeozeroError) -> Self {
-        Self::Geozero(error)
+    fn from(e: flatgeobuf::geozero::error::GeozeroError) -> Self {
+        Self::Geozero(e)
     }
 }
 
 impl Display for PropertiesError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Properties serialization error")
+        match self {
+            PropertiesError::Fgb(_) => f.write_str("flatgeobuf writer failed"),
+            PropertiesError::Geozero(_) => f.write_str("flatgeobuf::geozero error"),
+            PropertiesError::Source(_) => f.write_str("serialize impl for source type failed"),
+        }
     }
 }
 
-impl std::error::Error for PropertiesError {}
+impl std::error::Error for PropertiesError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            PropertiesError::Fgb(e) => Some(e),
+            PropertiesError::Geozero(e) => Some(e),
+            PropertiesError::Source(e) => Some(e),
+        }
+    }
+}
 
 impl serde::ser::Error for PropertiesError {
-    fn custom<T>(msg: T) -> Self
-    where
-        T: std::fmt::Display,
-    {
+    fn custom<T: Display>(msg: T) -> Self {
         Self::Source(msg.to_string().into())
     }
 }

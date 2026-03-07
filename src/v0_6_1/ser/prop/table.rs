@@ -1,9 +1,9 @@
 use serde::{
-    Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
+    Serialize, Serializer,
 };
 
-use crate::v0_6_1::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer};
+use crate::v0_6_1::ser::prop::{elem::StringifyError, field::FieldSerializer, SerializeProperties};
 
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,
@@ -240,7 +240,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 pub enum TableError<E> {
     Root,
     Key(StringifyError),
-    Sink(E),
+    Sink(E), // FIXME: may be Source?
 }
 
 impl<E> From<StringifyError> for TableError<E> {
