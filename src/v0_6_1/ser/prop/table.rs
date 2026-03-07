@@ -28,7 +28,7 @@ impl<P: SerializeProperties> TableSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
+impl<P: SerializeProperties<Ok = (), Error: 'static>> Serializer for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -197,7 +197,7 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<P> {
+impl<P: SerializeProperties<Ok = (), Error: 'static>> SerializeStruct for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -209,11 +209,11 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(())
+        self.child.into_inner().end().map_err(TableError::Sink)
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P> {
+impl<P: SerializeProperties<Ok = (), Error: 'static>> SerializeMap for TableSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -232,7 +232,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(())
+        self.child.into_inner().end().map_err(TableError::Sink)
     }
 }
 
