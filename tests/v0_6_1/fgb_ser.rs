@@ -31,9 +31,10 @@ fn properties_ser_test() -> anyhow::Result<()> {
         ROOT.serialize(flat_ser)?;
         flatgeobuf::geozero::FeatureProcessor::feature_end(prop_ser.mut_inner(), 0)?;
     }
+    let fgb_writer = prop_ser.into_inner();
 
     let mut fgb_buf = Vec::new();
-    prop_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_writer.write(&mut fgb_buf)?;
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();
     let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
@@ -42,5 +43,17 @@ fn properties_ser_test() -> anyhow::Result<()> {
 
     assert!(fgb_iter.next()?.is_some());
     assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+#[ignore]
+fn geometries_ser_test() -> anyhow::Result<()> {
+    let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
+    for _ in 0..2 {
+        let geom_ser = geoserde::v0_6_1::fgb::ser::GeometrySerializer::new(fgb_writer);
+        // geoserde::v0_6_1::SerializeGeometry::serialize_geometry(&POINT, geom_ser)?;
+        fgb_writer = geom_ser.into_inner();
+    }
     Ok(())
 }

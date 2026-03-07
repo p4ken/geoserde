@@ -14,7 +14,7 @@ pub fn serialize<S: serde::Serializer>(
     geom: impl SerializeGeometry,
     ser: S,
 ) -> Result<S::Ok, S::Error> {
-    geom.serialize(ser)
+    geom.serialize_geometry(ser)
 }
 
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
@@ -23,9 +23,14 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     G::deserialize_geometry(de)
 }
 
-pub trait SerializeGeometry: Serialize {}
-// impl SerializeGeometry for geo_types::Point {}
-impl<T: SerializeGeometry> SerializeGeometry for &T {}
+pub trait SerializeGeometry {
+    fn serialize_geometry<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error>;
+}
+impl SerializeGeometry for geo_types::Point {
+    fn serialize_geometry<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+        todo!()
+    }
+}
 
 pub trait DeserializeGeometry: Sized {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
