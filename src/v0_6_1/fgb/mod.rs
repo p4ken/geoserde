@@ -1,4 +1,4 @@
-#![cfg(feature = "flatgeobuf")]
+#![cfg(feature = "flatgeobuf")] // TODO: feature shoud be same as mod name
 
 pub mod de;
 pub mod ser;
