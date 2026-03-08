@@ -4,21 +4,17 @@ use serde::{ser::Impossible, Serializer};
 
 use crate::v0_6_1::ser::SourceError;
 
-pub struct GeometrySerializer<'a> {
-    fgb_writer: flatgeobuf::FgbWriter<'a>,
+pub struct GeometrySerializer<'a, 'fbs> {
+    fgb_writer: &'a flatgeobuf::FgbWriter<'fbs>,
 }
 
-impl<'a> GeometrySerializer<'a> {
-    pub fn new(fgb_writer: flatgeobuf::FgbWriter<'a>) -> Self {
+impl<'a, 'fbs> GeometrySerializer<'a, 'fbs> {
+    pub fn new(fgb_writer: &'a flatgeobuf::FgbWriter<'fbs>) -> Self {
         Self { fgb_writer }
     }
-
-    pub fn into_inner(self) -> flatgeobuf::FgbWriter<'a> {
-        self.fgb_writer
-    }
 }
 
-impl Serializer for GeometrySerializer<'_> {
+impl Serializer for GeometrySerializer<'_, '_> {
     type Ok = ();
     type Error = GeometryError;
 

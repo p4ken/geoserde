@@ -51,9 +51,8 @@ fn properties_ser_test() -> anyhow::Result<()> {
 fn geometries_ser_test() -> anyhow::Result<()> {
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
     for _ in 0..2 {
-        let geom_ser = geoserde::v0_6_1::fgb::ser::GeometrySerializer::new(fgb_writer);
-        // geoserde::v0_6_1::SerializeGeometry::serialize_geometry(&POINT, geom_ser)?;
-        fgb_writer = geom_ser.into_inner();
+        let geom_ser = geoserde::v0_6_1::fgb::ser::GeometrySerializer::new(&mut fgb_writer);
+        geoserde::v0_6_1::SerializeGeometry::serialize_geometry(&POINT, geom_ser)?;
     }
     Ok(())
 }
