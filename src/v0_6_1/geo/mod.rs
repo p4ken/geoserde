@@ -1,3 +1,4 @@
-#![cfg(feature = "geo-types")]
+#![cfg(feature = "geo-types")] // TODO: geo
 
 mod de;
+mod ser;

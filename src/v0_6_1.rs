@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 pub mod de;
 pub mod fgb;
 mod geo;
@@ -26,18 +24,13 @@ pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
 pub trait SerializeGeometry {
     fn serialize_geometry<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error>;
 }
-impl SerializeGeometry for geo_types::Point {
-    fn serialize_geometry<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
-        todo!()
-    }
-}
 
 pub trait DeserializeGeometry: Sized {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 
 /// Feature to deserialize a geometry with no properties
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct GeometrySink<G: DeserializeGeometry> {
     #[serde(deserialize_with = "deserialize")]
     #[serde(rename = "geoserde::geometry")]
@@ -66,6 +59,17 @@ pub struct Point {
     pub m: Option<f64>,
 }
 
+impl serde::Serialize for Point {
+    fn serialize<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+        let mut sink = ser.serialize_struct(POINT, 4)?;
+        serde::ser::SerializeStruct::serialize_field(&mut sink, "x", &self.x)?;
+        serde::ser::SerializeStruct::serialize_field(&mut sink, "y", &self.y)?;
+        serde::ser::SerializeStruct::serialize_field(&mut sink, "z", &self.z)?;
+        serde::ser::SerializeStruct::serialize_field(&mut sink, "m", &self.m)?;
+        serde::ser::SerializeStruct::end(sink)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for Point {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         serde::Deserializer::deserialize_struct(
@@ -88,7 +92,7 @@ impl<'de> serde::de::IntoDeserializer<'de> for Point {
 #[derive(Debug, Clone, Default)]
 pub struct LineString<T>(pub T);
 
-impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
+impl<'de, T: de::FromPointSeq> serde::Deserialize<'de> for LineString<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         de.deserialize_newtype_struct(LINE_STRING, de::LineStringVisitor::new())
     }
@@ -97,7 +101,7 @@ impl<'de, T: de::FromPointSeq> Deserialize<'de> for LineString<T> {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
 
-impl<'de, T: de::FromLineStringSeq> Deserialize<'de> for Polygon<T> {
+impl<'de, T: de::FromLineStringSeq> serde::Deserialize<'de> for Polygon<T> {
     fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         de.deserialize_newtype_struct(POLYGON, de::PolygonVisitor::new())
     }
