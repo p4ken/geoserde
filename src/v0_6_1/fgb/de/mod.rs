@@ -3,7 +3,7 @@ mod feat;
 mod geom;
 mod prop;
 
-pub use feat::{from_feature_iter, FeatureAccess, FeatureError};
+pub use feat::{FeatureAccess, FeatureError, from_feature_iter};
 
 // pub struct FeatureIter {
 //     header: Own

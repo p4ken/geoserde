@@ -21,7 +21,7 @@ impl<'a> FeatureSerializer<'a> {
         properties: impl serde::Serialize,
     ) -> Result<(), flatgeobuf::Error> {
         // TODO
-        geozero::FeatureProcessor::feature_end(&mut self.writer, 0).unwrap(); // TODO
+        flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0).unwrap(); // TODO
         Ok(())
     }
 }
