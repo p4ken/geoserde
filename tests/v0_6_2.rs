@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::Cursor};
 
 use flatgeobuf::FallibleStreamingIterator;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 const POINT: geo_types::Point = geo_types::Point(geo_types::Coord { x: 1.0, y: 2.0 });
 const PROPS: Props = Props {
@@ -9,7 +9,7 @@ const PROPS: Props = Props {
     value: 42,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct Props {
     name: &'static str,
     value: i32,

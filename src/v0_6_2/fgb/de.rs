@@ -1,3 +1,5 @@
+use crate::v0_6_2::de::DeserializeGeometry;
+
 pub struct FeatureDeserializer<R> {
     fgb_reader: flatgeobuf::FgbReader<R>,
 }
@@ -7,7 +9,9 @@ impl<R> FeatureDeserializer<R> {
         Self { fgb_reader }
     }
 
-    pub fn deserialize_feature<G, P>(&mut self) -> Result<(G, P), flatgeobuf::Error> {
+    pub fn deserialize_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(
+        &mut self,
+    ) -> Result<(G, P), flatgeobuf::Error> {
         todo!()
     }
 }
