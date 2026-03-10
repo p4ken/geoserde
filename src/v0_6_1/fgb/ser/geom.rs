@@ -5,12 +5,14 @@ use serde::{ser::Impossible, Serializer};
 use crate::v0_6_1::ser::SourceError;
 
 pub struct GeometrySerializer<'a, 'fbs> {
-    fgb_writer: &'a flatgeobuf::FgbWriter<'fbs>,
+    _fgb_writer: &'a flatgeobuf::FgbWriter<'fbs>,
 }
 
 impl<'a, 'fbs> GeometrySerializer<'a, 'fbs> {
     pub fn new(fgb_writer: &'a flatgeobuf::FgbWriter<'fbs>) -> Self {
-        Self { fgb_writer }
+        Self {
+            _fgb_writer: fgb_writer,
+        }
     }
 }
 
