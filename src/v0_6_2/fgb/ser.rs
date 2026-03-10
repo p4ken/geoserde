@@ -15,6 +15,10 @@ impl<'a> FeatureSerializer<'a> {
         }
     }
 
+    pub fn into_inner(self) -> FgbWriter<'a> {
+        self.writer
+    }
+
     pub fn serialize_feature(
         &mut self,
         geometry: impl geo_traits::GeometryTrait,
