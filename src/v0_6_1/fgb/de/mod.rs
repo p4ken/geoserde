@@ -3,7 +3,7 @@ mod feat;
 mod geom;
 mod prop;
 
-pub use feat::{FeatureAccess, FeatureError, from_feature_iter};
+pub use feat::{from_feature_iter, FeatureAccess, FeatureError, PropertyError};
 
 // pub struct FeatureIter {
 //     header: Own
@@ -14,7 +14,7 @@ pub use feat::{FeatureAccess, FeatureError, from_feature_iter};
 /// - `flatgeobuf::FeatureIter::next()` takes `&mut self` which contains the header.
 /// - `flatgeobuf::FgbFeature::header()` is private.
 pub struct OwnedHeader {
-    cols: Vec<OwnedColumn>,
+    pub(crate) cols: Vec<OwnedColumn>,
     geom_type: flatgeobuf::GeometryType,
 }
 
@@ -29,9 +29,9 @@ impl From<flatgeobuf::Header<'_>> for OwnedHeader {
     }
 }
 
-struct OwnedColumn {
-    name: String,
-    col_type: flatgeobuf::ColumnType,
+pub(crate) struct OwnedColumn {
+    pub(crate) name: String,
+    pub(crate) col_type: flatgeobuf::ColumnType,
 }
 
 impl From<flatgeobuf::Column<'_>> for OwnedColumn {

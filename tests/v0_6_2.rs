@@ -62,7 +62,7 @@ fn de_test() -> anyhow::Result<()> {
     )?;
     fgb_writer.write(&mut fgb_buf)?;
 
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let mut fgb_de = geoserde::v0_6_2::fgb::de::FeatureDeserializer::new(fgb_reader);
     let (geom, props) = fgb_de.deserialize_feature::<geo_types::Point, Props>()?;
     Ok(())
