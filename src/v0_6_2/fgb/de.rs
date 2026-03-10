@@ -81,8 +81,48 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
         V: serde::de::DeserializeSeed<'de>,
     {
         match self.col_type.unwrap() {
+            flatgeobuf::ColumnType::Byte => {
+                let v = self.take_prop(1)?[0] as i8;
+                seed.deserialize(v.into_deserializer())
+            }
+            flatgeobuf::ColumnType::UByte => {
+                let v = self.take_prop(1)?[0];
+                seed.deserialize(v.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Bool => {
+                let v = self.take_prop(1)?[0] != 0;
+                seed.deserialize(v.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Short => {
+                let n = i16::from_le_bytes(self.take_prop(2)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::UShort => {
+                let n = u16::from_le_bytes(self.take_prop(2)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::UInt => {
+                let n = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Float => {
+                let n = f32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
             flatgeobuf::ColumnType::Int => {
                 let n = i32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Long => {
+                let n = i64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::ULong => {
+                let n = u64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
+                seed.deserialize(n.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Double => {
+                let n = f64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
                 seed.deserialize(n.into_deserializer())
             }
             flatgeobuf::ColumnType::String => {
@@ -91,133 +131,19 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
                     .map_err(crate::v0_6_1::fgb::de::PropertyError::from)?;
                 seed.deserialize(s.into_deserializer())
             }
+            flatgeobuf::ColumnType::Json | flatgeobuf::ColumnType::DateTime => {
+                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let s = std::str::from_utf8(self.take_prop(len)?)
+                    .map_err(crate::v0_6_1::fgb::de::PropertyError::from)?;
+                seed.deserialize(s.into_deserializer())
+            }
+            flatgeobuf::ColumnType::Binary => {
+                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let b = self.take_prop(len)?;
+                seed.deserialize(b.into_deserializer())
+            }
             x => panic!("{}", x.0),
         }
-
-        // let column = &columns_meta.get(column_idx);
-        // match column.type_() {
-        //     ColumnType::Long => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Long(LittleEndian::read_i64(&bytes[offset..offset + 8])),
-        //         )?;
-        //         offset += size_of::<i64>();
-        //     }
-        //     ColumnType::ULong => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::ULong(LittleEndian::read_u64(&bytes[offset..offset + 8])),
-        //         )?;
-        //         offset += size_of::<u64>();
-        //     }
-        //     ColumnType::Double => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Double(LittleEndian::read_f64(&bytes[offset..offset + 8])),
-        //         )?;
-        //         offset += size_of::<f64>();
-        //     }
-        //     ColumnType::Byte => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Byte(bytes[offset] as i8),
-        //         )?;
-        //         offset += size_of::<i8>();
-        //     }
-        //     ColumnType::UByte => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::UByte(bytes[offset]),
-        //         )?;
-        //         offset += size_of::<u8>();
-        //     }
-        //     ColumnType::Bool => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Bool(bytes[offset] != 0),
-        //         )?;
-        //         offset += size_of::<u8>();
-        //     }
-        //     ColumnType::Short => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Short(LittleEndian::read_i16(&bytes[offset..offset + 2])),
-        //         )?;
-        //         offset += size_of::<i16>();
-        //     }
-        //     ColumnType::UShort => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::UShort(LittleEndian::read_u16(&bytes[offset..offset + 2])),
-        //         )?;
-        //         offset += size_of::<u16>();
-        //     }
-        //     ColumnType::UInt => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::UInt(LittleEndian::read_u32(&bytes[offset..offset + 4])),
-        //         )?;
-        //         offset += size_of::<u32>();
-        //     }
-        //     ColumnType::Float => {
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Float(LittleEndian::read_f32(&bytes[offset..offset + 4])),
-        //         )?;
-        //         offset += size_of::<f32>();
-        //     }
-        //     ColumnType::Json => {
-        //         let len = LittleEndian::read_u32(&bytes[offset..offset + 4]) as usize;
-        //         offset += size_of::<u32>();
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Json(
-        //                 // JSON may be represented using UTF-8, UTF-16, or UTF-32. The default encoding is UTF-8.
-        //                 str::from_utf8(&bytes[offset..offset + len]).map_err(|_| {
-        //                     GeozeroError::Property("Invalid UTF-8 encoding".to_string())
-        //                 })?,
-        //             ),
-        //         )?;
-        //         offset += len;
-        //     }
-        //     ColumnType::DateTime => {
-        //         let len = LittleEndian::read_u32(&bytes[offset..offset + 4]) as usize;
-        //         offset += size_of::<u32>();
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::DateTime(
-        //                 // unsafe variant without UTF-8 checking would be faster...
-        //                 str::from_utf8(&bytes[offset..offset + len]).map_err(|_| {
-        //                     GeozeroError::Property("Invalid UTF-8 encoding".to_string())
-        //                 })?,
-        //             ),
-        //         )?;
-        //         offset += len;
-        //     }
-        //     ColumnType::Binary => {
-        //         let len = LittleEndian::read_u32(&bytes[offset..offset + 4]) as usize;
-        //         offset += size_of::<u32>();
-        //         finish = reader.property(
-        //             column_idx,
-        //             column.name(),
-        //             &ColumnValue::Binary(&bytes[offset..offset + len]),
-        //         )?;
-        //         offset += len;
-        //     }
-        //     ColumnType(_) => {}
-        // }
     }
 }
 
