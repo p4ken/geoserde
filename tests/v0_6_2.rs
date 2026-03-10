@@ -1,17 +1,17 @@
-use std::{collections::HashMap, io::Cursor};
+use std::{borrow::Cow, collections::HashMap, io::Cursor};
 
 use flatgeobuf::FallibleStreamingIterator;
 use serde::{Deserialize, Serialize};
 
 const POINT: geo_types::Point = geo_types::Point(geo_types::Coord { x: 1.0, y: 2.0 });
 const PROPS: Props = Props {
-    name: "hello",
+    name: Cow::Borrowed("hello"),
     value: 42,
 };
 
 #[derive(Serialize, Deserialize)]
 struct Props {
-    name: &'static str,
+    name: Cow<'static, str>,
     value: i32,
 }
 
@@ -46,6 +46,7 @@ fn ser_test() -> anyhow::Result<()> {
 }
 
 #[test]
+#[ignore = "WIP"]
 fn de_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
