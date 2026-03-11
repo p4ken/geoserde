@@ -1,3 +1,5 @@
+#![cfg(feature = "geo")]
+
 use crate::v0_6_2::de::DeserializeGeometry;
 use geo_traits::{CoordTrait, GeometryType, PointTrait};
 

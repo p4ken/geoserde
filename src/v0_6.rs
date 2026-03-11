@@ -1,6 +1,6 @@
 #[cfg(feature = "flatgeobuf")]
 pub mod fgb;
-#[cfg(feature = "geo-types")]
+#[cfg(feature = "geo")]
 pub mod geo;
 #[cfg(feature = "geojson")]
 pub mod json;
@@ -50,7 +50,7 @@ pub trait ParseFeature {
 // }
 
 #[cfg(test)]
-#[cfg(feature = "geo-types")]
+#[cfg(feature = "geo")]
 mod tests {
     use super::*;
     use geo_types::{Geometry, Point};

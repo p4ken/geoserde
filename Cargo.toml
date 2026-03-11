@@ -22,11 +22,12 @@ default = [
     "shapefile",
     "geojson",
     "flatgeobuf",
-    "geo-types",
+    "geo",
     "geozero",
     "macros",
 ]
 shapefile = ["dep:shapefile", "dbase"]
+geo = ["dep:geo-types"]
 macros = ["dep:geoserde-macros"]
 
 [dependencies]

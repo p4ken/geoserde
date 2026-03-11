@@ -15,6 +15,8 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
         Self { fgb_iter, header }
     }
 
+    // pub fn with_bbox
+
     pub fn deserialize_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(
         &mut self,
     ) -> Result<(G, P), flatgeobuf::Error> {
