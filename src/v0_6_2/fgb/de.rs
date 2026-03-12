@@ -10,12 +10,11 @@ pub struct FeatureDeserializer<R> {
 }
 
 impl<R: Read + Seek> FeatureDeserializer<R> {
-    pub fn new(fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>) -> Self {
-        let header = todo!();
-        Self { fgb_iter, header }
+    pub fn new(fgb_reader: flatgeobuf::FgbReader<R>) -> Result<Self, flatgeobuf::Error> {
+        let fgb_iter = fgb_reader.select_all()?;
+        let header = fgb_iter.header().into();
+        Ok(Self { fgb_iter, header })
     }
-
-    // pub fn with_bbox
 
     pub fn deserialize_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(
         &mut self,

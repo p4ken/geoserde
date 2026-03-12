@@ -57,13 +57,24 @@ fn de_test() -> anyhow::Result<()> {
     flatgeobuf::geozero::PropertyProcessor::property(
         &mut fgb_writer,
         0,
+        "name",
+        &flatgeobuf::geozero::ColumnValue::String("hello"),
+    )?;
+    flatgeobuf::geozero::PropertyProcessor::property(
+        &mut fgb_writer,
+        1,
         "value",
         &flatgeobuf::geozero::ColumnValue::Int(42),
     )?;
+    flatgeobuf::geozero::FeatureProcessor::feature_end(&mut fgb_writer, 0)?;
     fgb_writer.write(&mut fgb_buf)?;
 
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
-    let mut fgb_de = geoserde::v0_6_2::fgb::de::FeatureDeserializer::new(fgb_reader);
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::v0_6_2::fgb::de::FeatureDeserializer::new(fgb_reader)?;
     let (geom, props) = fgb_de.deserialize_feature::<geo_types::Point, Props>()?;
+
+    assert_eq!(geom, POINT);
+    assert_eq!(props.name, "hello");
+    assert_eq!(props.value, 42);
     Ok(())
 }

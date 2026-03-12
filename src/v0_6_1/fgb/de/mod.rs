@@ -3,12 +3,12 @@ mod feat;
 mod geom;
 mod prop;
 
-pub use feat::{from_feature_iter, FeatureAccess, FeatureError, PropertyError};
+pub use feat::{FeatureAccess, FeatureError, PropertyError, from_feature_iter};
 
 // pub struct FeatureIter {
 //     header: Own
 
-/// Owened clones of fbs header.
+/// Owned clones of fbs header.
 ///
 /// Why deep copy is needed:
 /// - `flatgeobuf::FeatureIter::next()` takes `&mut self` which contains the header.
