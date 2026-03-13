@@ -18,7 +18,7 @@ struct Props {
 #[test]
 fn ser_test() -> anyhow::Result<()> {
     let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
-    let mut fgb_ser = geoserde::v0_6_2::fgb::ser::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde::v0_6_2::fgb::FeatureSerializer::new(fgb_writer);
 
     let geom = geo_types::Geometry::Point(POINT);
     fgb_ser.serialize_feature(&geom, &PROPS)?;
@@ -46,7 +46,6 @@ fn ser_test() -> anyhow::Result<()> {
 }
 
 #[test]
-#[ignore = "WIP"]
 fn de_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
@@ -70,7 +69,7 @@ fn de_test() -> anyhow::Result<()> {
     fgb_writer.write(&mut fgb_buf)?;
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::v0_6_2::fgb::de::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde::v0_6_2::fgb::FeatureDeserializer::new(fgb_reader)?;
     let (geom, props) = fgb_de.deserialize_feature::<geo_types::Point, Props>()?;
 
     assert_eq!(geom, POINT);

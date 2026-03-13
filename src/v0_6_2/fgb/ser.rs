@@ -9,6 +9,7 @@ use geo_traits::{
 
 use crate::v0_6_1::ser::prop::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
+/// FlatGeobuf feature serializer
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,
