@@ -69,12 +69,12 @@
 
 mod v0_5;
 #[allow(warnings)]
-pub mod v0_6;
+pub mod v0_6_0;
 pub mod v0_6_1;
 pub mod v0_6_2;
 
 pub use crate::v0_5::*;
-pub use crate::v0_6::{DeserializeFeature, ParseFeature};
+pub use crate::v0_6_0::{DeserializeFeature, ParseFeature};
 #[cfg(feature = "macros")]
 pub use geoserde_macros::*;
 pub use serde;

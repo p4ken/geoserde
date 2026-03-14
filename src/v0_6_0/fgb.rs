@@ -4,7 +4,7 @@ mod prop;
 use flatgeobuf::FgbFeature;
 use prop::PropertiesAdapter;
 
-use crate::v0_6::{DeserializeGeometry, DeserializeProperties, ParseFeature};
+use crate::v0_6_0::{DeserializeGeometry, DeserializeProperties, ParseFeature};
 
 pub struct FeatureParser<'a> {
     feature: &'a FgbFeature,

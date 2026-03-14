@@ -2,7 +2,7 @@
 
 use shapefile::ReadableShape;
 
-use crate::v0_6::DeserializeGeometry;
+use crate::v0_6_0::DeserializeGeometry;
 
 // impl<R0, R1> ParseLayer for shapefile::Reader<R0, R1> {}
 
