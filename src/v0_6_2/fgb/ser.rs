@@ -9,6 +9,33 @@ use geo_traits::{
 
 use crate::v0_6_1::ser::prop::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
+pub trait SerializeFeature {}
+
+pub struct LayerSerializer<'a> {
+    writer: FgbWriter<'a>,
+    pre_orderd_key: Vec<Cow<'static, str>>,
+}
+
+impl<'a> LayerSerializer<'a> {
+    pub fn new(writer: FgbWriter<'a>) -> Self {
+        Self {
+            writer,
+            pre_orderd_key: Vec::new(),
+        }
+    }
+
+    pub fn serialize_layer(
+        &mut self,
+        layer: &impl IntoIterator<Item = impl SerializeFeature>,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    pub fn into_inner(self) -> FgbWriter<'a> {
+        self.writer
+    }
+}
+
 /// FlatGeobuf feature serializer
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
