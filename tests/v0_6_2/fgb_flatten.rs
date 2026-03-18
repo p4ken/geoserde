@@ -3,16 +3,18 @@ use std::{borrow::Cow, collections::HashMap, io::Cursor};
 use flatgeobuf::FallibleStreamingIterator;
 use serde::{Deserialize, Serialize};
 
-const POINT: geo_types::Point = geo_types::Point(geo_types::Coord { x: 1.0, y: 2.0 });
-const PROPS: Props = Props {
-    name: Cow::Borrowed("hello"),
-    value: 42,
-};
+#[derive(Serialize, Deserialize)]
+struct Feat {
+    name: Cow<'static, str>,
+    #[serde(flatten)]
+    child: Child,
+}
 
 #[derive(Serialize, Deserialize)]
-struct Props {
-    name: Cow<'static, str>,
+struct Child {
     value: i32,
+    #[serde(skip, default = "geo_types::LineString::empty")]
+    shape: geo_types::LineString,
 }
 
 #[test]
@@ -20,9 +22,15 @@ fn ser_test() -> anyhow::Result<()> {
     let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
     let mut fgb_ser = geoserde::v0_6_2::fgb::FeatureSerializer::new(fgb_writer);
 
-    let geom = geo_types::Geometry::Point(POINT);
-    fgb_ser.serialize_feature(&geom, &PROPS)?;
-    fgb_ser.serialize_feature(&geom, &PROPS)?;
+    let feat = Feat {
+        name: "hello".into(),
+        child: Child {
+            value: 42,
+            shape: crate::testing::ls(1),
+        },
+    };
+    fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
+    fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -48,9 +56,9 @@ fn ser_test() -> anyhow::Result<()> {
 #[test]
 fn de_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
-    let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
+    let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::LineString)?;
     flatgeobuf::geozero::GeozeroGeometry::process_geom(
-        &geo_types::Geometry::Point(POINT),
+        &geo_types::Geometry::LineString(crate::testing::ls(1)),
         &mut fgb_writer,
     )?;
     flatgeobuf::geozero::PropertyProcessor::property(
@@ -70,10 +78,10 @@ fn de_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::v0_6_2::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (geom, props) = fgb_de.deserialize_feature::<geo_types::Point, Props>()?;
+    let (geom, props) = fgb_de.deserialize_feature::<geo_types::LineString, Feat>()?;
 
-    assert_eq!(geom, POINT);
+    assert_eq!(geom, crate::testing::ls(1));
     assert_eq!(props.name, "hello");
-    assert_eq!(props.value, 42);
+    assert_eq!(props.child.value, 42);
     Ok(())
 }
