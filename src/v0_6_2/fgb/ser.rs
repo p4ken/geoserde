@@ -13,20 +13,18 @@ pub trait SerializeFeature {}
 
 pub struct LayerSerializer<'a> {
     writer: FgbWriter<'a>,
-    pre_orderd_key: Vec<Cow<'static, str>>,
+    // No, it is not a fgb matter, but HashMap's matter
+    // pre_orderd_key: Vec<Cow<'static, str>>,
 }
 
 impl<'a> LayerSerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
-        Self {
-            writer,
-            pre_orderd_key: Vec::new(),
-        }
+        Self { writer }
     }
 
     pub fn serialize_layer(
         &mut self,
-        layer: &impl IntoIterator<Item = impl SerializeFeature>,
+        _layer: &impl IntoIterator<Item = impl SerializeFeature>,
     ) -> Result<(), Error> {
         Ok(())
     }

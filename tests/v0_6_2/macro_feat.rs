@@ -15,7 +15,7 @@ struct Feat {
 }
 
 impl Feat {
-    fn serialize(&self, ser: &mut fgb::FeatureSerializer) -> Result<(), fgb::ser::Error> {
+    fn _serialize(&self, ser: &mut fgb::FeatureSerializer) -> Result<(), fgb::ser::Error> {
         ser.serialize_feature(&self.child, &self)
     }
 }
@@ -96,7 +96,7 @@ impl<'a> GeometryTrait for &'a Child {
 #[test]
 #[ignore = "WIP"]
 fn ser_test() {
-    let feat = Feat {
+    let _feat = Feat {
         name: "Hello".into(),
         child: Child {
             shape: crate::testing::ls(0),
