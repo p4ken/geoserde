@@ -5,6 +5,13 @@ use serde::{
 
 use crate::v0_6_1::ser::prop::{elem::StringifyError, field::FieldSerializer, SerializeProperties};
 
+// TODO: like https://gdal.org/en/stable/drivers/vector/geojson.html#open-options
+pub struct _Config {
+    flatten_nested_attribute: bool,
+    nested_attribute_separator: &'static str,
+    array_as_string: bool,
+}
+
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,
 }

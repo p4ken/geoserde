@@ -127,6 +127,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                     self.value_seq.push(text);
                     return Ok(());
                 }
+                // FIXME: Some formats may accept empty keys
                 Err(StringifyError::Empty) => {
                     self.value_seq.push(StringLike::Empty);
                     return Ok(());
