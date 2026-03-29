@@ -5,11 +5,49 @@ use serde::{
 
 use crate::v0_6_1::ser::prop::{elem::StringifyError, field::FieldSerializer, SerializeProperties};
 
-// TODO: like https://gdal.org/en/stable/drivers/vector/geojson.html#open-options
-pub struct _Config {
+pub struct FlattenOption {
+    // Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options
     flatten_nested_attribute: bool,
     nested_attribute_separator: &'static str,
     array_as_string: bool,
+    // Our original options
+    array_element_separator: &'static str,
+    flatten_nested_array: bool,
+    nested_array_index_prefix: &'static str,
+    nested_array_index_suffix: &'static str,
+}
+
+impl FlattenOption {
+    pub const fn full() -> Self {
+        Self {
+            flatten_nested_attribute: true,
+            nested_attribute_separator: ".",
+            array_as_string: true,
+            array_element_separator: ",",
+            flatten_nested_array: true,
+            nested_array_index_prefix: "[",
+            nested_array_index_suffix: "]",
+        }
+    }
+
+    pub const fn object(mut self, sep: &'static str) -> Self {
+        self.flatten_nested_attribute = true;
+        self.nested_attribute_separator = sep;
+        self
+    }
+
+    pub const fn simple_array(mut self, sep: &'static str) -> Self {
+        self.array_as_string = true;
+        self.array_element_separator = sep;
+        self
+    }
+
+    pub const fn object_array(mut self, prefix: &'static str, suffix: &'static str) -> Self {
+        self.flatten_nested_array = true;
+        self.nested_array_index_prefix = prefix;
+        self.nested_array_index_suffix = suffix;
+        self
+    }
 }
 
 pub struct TableSerializer<P> {

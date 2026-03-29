@@ -7,25 +7,44 @@ use geo_traits::{
     TriangleTrait,
 };
 
-use crate::v0_6_1::ser::prop::{FieldValue, SerializeProperties, TableError, TableSerializer};
+use crate::v0_6_1::ser::prop::{
+    FieldValue, FlattenOption, SerializeProperties, TableError, TableSerializer,
+};
 
 pub trait SerializeFeature {}
 
 pub struct LayerSerializer<'a> {
     writer: FgbWriter<'a>,
-    // No, it is not a fgb matter, but HashMap's matter
-    // pre_orderd_key: Vec<Cow<'static, str>>,
+    pre_orderd_key: Vec<Cow<'static, str>>,
+    _flatten_opt: FlattenOption,
 }
 
 impl<'a> LayerSerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
-        Self { writer }
+        LayerSerializer {
+            writer,
+            pre_orderd_key: Vec::new(),
+            _flatten_opt: FlattenOption::full(),
+        }
+    }
+
+    pub fn sort_keys(
+        &mut self,
+        layer: impl IntoIterator<Item = impl SerializeFeature>,
+    ) -> Result<(), Error> {
+        for _feat in layer.into_iter() {
+            //
+        }
+        Ok(())
     }
 
     pub fn serialize_layer(
         &mut self,
-        _layer: &impl IntoIterator<Item = impl SerializeFeature>,
+        layer: impl IntoIterator<Item = impl SerializeFeature>,
     ) -> Result<(), Error> {
+        for _feat in layer.into_iter() {
+            //
+        }
         Ok(())
     }
 
