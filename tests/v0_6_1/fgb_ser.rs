@@ -1,4 +1,4 @@
-#![cfg(feature = "flatgeobuf")]
+#![cfg(feature = "fgb")]
 
 use std::{collections::HashMap, io::Cursor};
 

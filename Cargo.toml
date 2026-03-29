@@ -21,7 +21,7 @@ exclude.workspace = true
 default = [
     "shapefile",
     "geojson",
-    "flatgeobuf",
+    "fgb",
     "geo",
     "geozero",
     "macros",
@@ -29,6 +29,7 @@ default = [
 shapefile = ["dep:shapefile", "dbase"]
 geo = ["dep:geo-types"]
 macros = ["dep:geoserde-macros"]
+fgb = ["dep:flatgeobuf"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }

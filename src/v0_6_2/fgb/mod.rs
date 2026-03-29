@@ -1,4 +1,8 @@
-#![cfg(feature = "flatgeobuf")]
+#![cfg(feature = "fgb")]
+//! SerDe implementation for FlatGeobuf.
+//!
+//! It might be better to separate this module into other crate
+//! like "geoserde-fgb" (or the official "flatgeobuf" crate).
 
 pub mod de;
 pub mod ser;

@@ -1,4 +1,4 @@
-#[cfg(feature = "flatgeobuf")]
+#[cfg(feature = "fgb")]
 pub mod fgb;
 #[cfg(feature = "geo")]
 pub mod geo;
