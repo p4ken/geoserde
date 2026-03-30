@@ -2,10 +2,7 @@ use std::{borrow::Cow, fmt::Display};
 
 use flatgeobuf::FgbWriter;
 
-use crate::v0_6_1::ser::{
-    prop::{FieldValue, SerializeProperties},
-    SourceError,
-};
+use crate::v0_6_1::ser::{FieldValue, SerializeProperties, SourceError};
 
 pub struct PropertiesSerializer<'a> {
     writer: FgbWriter<'a>,

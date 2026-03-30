@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use geoserde::v0_6_1::ser::prop::TableSerializer;
+use geoserde::v0_6_1::ser::TableSerializer;
 
 #[test]
 fn flatten_struct() {

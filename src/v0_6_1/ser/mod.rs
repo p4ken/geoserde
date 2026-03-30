@@ -1,4 +1,6 @@
-pub mod prop;
+mod prop;
+
+pub use prop::*;
 
 #[derive(Debug)]
 pub struct SourceError(String);

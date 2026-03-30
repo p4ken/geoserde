@@ -7,8 +7,9 @@ use geo_traits::{
     TriangleTrait,
 };
 
-use crate::v0_6_1::ser::prop::{
-    FieldValue, FlattenOption, SerializeProperties, TableError, TableSerializer,
+use crate::v0_6_1::ser::{
+    AsFeature, FieldValue, FlattenOption, PreOrderedKeys, SerializeProperties, TableError,
+    TableSerializer,
 };
 
 pub trait SerializeFeature {}
