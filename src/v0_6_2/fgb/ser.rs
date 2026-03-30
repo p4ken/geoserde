@@ -12,11 +12,9 @@ use crate::v0_6_1::ser::{
     TableSerializer,
 };
 
-pub trait SerializeFeature {}
-
 pub struct LayerSerializer<'a> {
     writer: FgbWriter<'a>,
-    pre_orderd_key: Vec<Cow<'static, str>>,
+    pre_orderd_keys: PreOrderedKeys,
     _flatten_opt: FlattenOption,
 }
 
@@ -24,25 +22,18 @@ impl<'a> LayerSerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
         LayerSerializer {
             writer,
-            pre_orderd_key: Vec::new(),
+            pre_orderd_keys: PreOrderedKeys::new(),
             _flatten_opt: FlattenOption::full(),
         }
     }
 
-    pub fn sort_keys(
-        &mut self,
-        layer: impl IntoIterator<Item = impl SerializeFeature>,
-    ) -> Result<(), Error> {
+    pub fn serialize_layer(&mut self, layer: &[impl AsFeature]) -> Result<(), Error> {
+        // first loop
         for _feat in layer.into_iter() {
             //
         }
-        Ok(())
-    }
 
-    pub fn serialize_layer(
-        &mut self,
-        layer: impl IntoIterator<Item = impl SerializeFeature>,
-    ) -> Result<(), Error> {
+        // second loop
         for _feat in layer.into_iter() {
             //
         }
