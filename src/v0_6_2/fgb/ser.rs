@@ -8,13 +8,13 @@ use geo_traits::{
 };
 
 use crate::v0_6_1::ser::{
-    AsFeature, FieldValue, FlattenOption, PreOrderedKeys, SerializeProperties, TableError,
+    AsFeature, FieldValue, FlattenOption, OrderedColumns, SerializeProperties, TableError,
     TableSerializer,
 };
 
 pub struct LayerSerializer<'a> {
     writer: FgbWriter<'a>,
-    pre_orderd_keys: PreOrderedKeys,
+    ordered_columns: OrderedColumns,
     _flatten_opt: FlattenOption,
 }
 
@@ -22,15 +22,15 @@ impl<'a> LayerSerializer<'a> {
     pub fn new(writer: FgbWriter<'a>) -> Self {
         LayerSerializer {
             writer,
-            pre_orderd_keys: PreOrderedKeys::new(),
+            ordered_columns: OrderedColumns::new(),
             _flatten_opt: FlattenOption::full(),
         }
     }
 
     pub fn serialize_layer(&mut self, layer: &[impl AsFeature]) -> Result<(), Error> {
         // first loop
-        for _feat in layer.into_iter() {
-            //
+        for feat in layer.into_iter() {
+            self.ordered_columns.merge(feat.as_properties());
         }
 
         // second loop
