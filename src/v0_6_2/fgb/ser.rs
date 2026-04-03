@@ -59,10 +59,6 @@ impl<'a> FeatureSerializer<'a> {
         }
     }
 
-    pub fn into_inner(self) -> FgbWriter<'a> {
-        self.writer
-    }
-
     pub fn serialize_feature(
         &mut self,
         geometry: impl GeometryTrait<T = f64>,
@@ -73,6 +69,10 @@ impl<'a> FeatureSerializer<'a> {
         properties.serialize(prop_ser)?;
         flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0)?;
         Ok(())
+    }
+
+    pub fn into_inner(self) -> FgbWriter<'a> {
+        self.writer
     }
 }
 
