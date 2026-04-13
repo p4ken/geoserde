@@ -1,9 +1,7 @@
 mod feat;
-mod layer;
 mod prop;
 
 pub use feat::AsFeature;
-pub use layer::OrderedColumns;
 pub use prop::*;
 
 #[derive(Debug)]

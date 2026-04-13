@@ -8,40 +8,82 @@ use geo_traits::{
 };
 
 use crate::v0_6_1::ser::{
-    AsFeature, FieldValue, FlattenOption, OrderedColumns, SerializeProperties, TableError,
-    TableSerializer,
+    FieldValue, FlatProperties, SerializeProperties, TableError, TableSerializer,
 };
 
-pub struct LayerSerializer<'a> {
-    writer: FgbWriter<'a>,
-    ordered_columns: OrderedColumns,
-    _flatten_opt: FlattenOption,
+/// FlatGeobuf layer serializer.
+///
+/// Collects features in two phases:
+/// 1. `add_feature()` flattens each feature's properties and stores them with geometry.
+/// 2. After sorting `keys()`, call `write_features()` with an `FgbWriter` to emit all features.
+pub struct LayerSerializer {
+    /// Union of all keys seen across all features, in insertion order.
+    all_keys: Vec<String>,
+    key_set: std::collections::BTreeSet<String>,
+    /// Per-feature geometry.
+    geometries: Vec<geo_types::Geometry<f64>>,
+    /// Per-feature flattened properties.
+    features: Vec<FlatProperties>,
 }
 
-impl<'a> LayerSerializer<'a> {
-    pub fn new(writer: FgbWriter<'a>) -> Self {
+impl LayerSerializer {
+    pub fn new() -> Self {
         LayerSerializer {
-            writer,
-            ordered_columns: OrderedColumns::new(),
-            _flatten_opt: FlattenOption::full(),
+            all_keys: Vec::new(),
+            key_set: std::collections::BTreeSet::new(),
+            geometries: Vec::new(),
+            features: Vec::new(),
         }
     }
 
-    pub fn serialize_layer(&mut self, layer: &[impl AsFeature]) -> Result<(), Error> {
-        // first loop
-        for feat in layer.into_iter() {
-            self.ordered_columns.merge(feat.as_properties());
+    /// Add a feature (geometry + properties) to this layer.
+    pub fn add_feature(
+        &mut self,
+        geometry: impl GeometryTrait<T = f64>,
+        properties: impl serde::Serialize,
+    ) {
+        let flat = FlatProperties::flatten(properties).unwrap();
+        for key in flat.keys() {
+            if self.key_set.insert(key.to_owned()) {
+                self.all_keys.push(key.to_owned());
+            }
         }
+        let geo = geo_traits::to_geo::ToGeoGeometry::try_to_geometry(&geometry).unwrap();
+        self.geometries.push(geo);
+        self.features.push(flat);
+    }
 
-        // second loop
-        for _feat in layer.into_iter() {
-            //
+    /// Returns an iterator over the union of all flattened keys.
+    pub fn keys(&self) -> impl Iterator<Item = &str> {
+        self.all_keys.iter().map(|s| s.as_str())
+    }
+
+    /// Set the column order to use when writing features.
+    pub fn set_columns(&mut self, columns: Vec<String>) {
+        self.all_keys = columns;
+    }
+
+    /// Write all collected features to the FgbWriter using the current key order.
+    pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
+        for i in 0..self.features.len() {
+            process_geometry(&self.geometries[i], writer)?;
+            let feat = &self.features[i];
+            for (idx, key) in self.all_keys.iter().enumerate() {
+                // TODO: use null instead of empty string for missing properties.
+                let column_value = match feat.get(key) {
+                    Some(value) => to_column_value(value.as_field_value()),
+                    None => flatgeobuf::geozero::ColumnValue::String(""),
+                };
+                flatgeobuf::geozero::PropertyProcessor::property(
+                    writer,
+                    idx,
+                    key.as_ref(),
+                    &column_value,
+                )?;
+            }
+            flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
         }
         Ok(())
-    }
-
-    pub fn into_inner(self) -> FgbWriter<'a> {
-        self.writer
     }
 }
 
