@@ -37,9 +37,15 @@ impl LayerSerializer {
     }
 
     /// Add a feature (geometry + properties) to this layer.
+    ///
+    /// 引数を `impl Into<geo_types::Geometry<f64>>` に閉じることで、
+    /// `geo_traits::to_geo::ToGeoGeometry` の blanket impl 経由の trait solver 再帰
+    /// (rustc #128887 / georust/geo #1385) を回避している。
+    /// 任意の `GeometryTrait` 実装を受けたい場合は呼び出し側で
+    /// `geo_types::Geometry::<f64>` に変換してから渡す。
     pub fn add_feature(
         &mut self,
-        geometry: impl GeometryTrait<T = f64>,
+        geometry: impl Into<geo_types::Geometry<f64>>,
         properties: impl serde::Serialize,
     ) {
         let flat = FlatProperties::flatten(properties).unwrap();
@@ -48,8 +54,7 @@ impl LayerSerializer {
                 self.all_keys.push(key.to_owned());
             }
         }
-        let geo = geo_traits::to_geo::ToGeoGeometry::try_to_geometry(&geometry).unwrap();
-        self.geometries.push(geo);
+        self.geometries.push(geometry.into());
         self.features.push(flat);
     }
 
