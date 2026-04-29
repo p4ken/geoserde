@@ -8,7 +8,7 @@ use geo_traits::{
 };
 
 use crate::v0_6_1::ser::{
-    FieldValue, FlatProperties, SerializeProperties, TableError, TableSerializer,
+    FieldValue, FlatProperties, PropertyValue, SerializeProperties, TableError, TableSerializer,
 };
 
 /// FlatGeobuf layer serializer.
@@ -69,15 +69,28 @@ impl LayerSerializer {
     }
 
     /// Write all collected features to the FgbWriter using the current key order.
+    ///
+    /// `FgbWriter::property` は連番idxでしか列を auto-declare しない仕様のため、
+    /// 全 feature を書く前に `add_column` で列を宣言してしまう。型は各 key の
+    /// 全 feature 中で最初に現れた値の型を採用し、以降の衝突は無視する。
+    /// 全 feature で値が無い列は String として宣言（実際には誰も書かないので無害）。
     pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
+        for key in &self.all_keys {
+            let col_type = self
+                .features
+                .iter()
+                .find_map(|f| f.get(key).map(property_column_type))
+                .unwrap_or(flatgeobuf::ColumnType::String);
+            writer.add_column(key, col_type, |_, _| {});
+        }
+
         for i in 0..self.features.len() {
             process_geometry(&self.geometries[i], writer)?;
             let feat = &self.features[i];
             for (idx, key) in self.all_keys.iter().enumerate() {
-                // TODO: use null instead of empty string for missing properties.
                 let column_value = match feat.get(key) {
                     Some(value) => to_column_value(value.as_field_value()),
-                    None => flatgeobuf::geozero::ColumnValue::String(""),
+                    None => continue,
                 };
                 flatgeobuf::geozero::PropertyProcessor::property(
                     writer,
@@ -336,6 +349,26 @@ fn process_line(
 }
 
 // --- FieldValue → ColumnValue ---
+
+// --- FieldValue → ColumnValue ---
+
+fn property_column_type(value: &PropertyValue) -> flatgeobuf::ColumnType {
+    match value {
+        PropertyValue::Bool(_) => flatgeobuf::ColumnType::Bool,
+        PropertyValue::I8(_) => flatgeobuf::ColumnType::Byte,
+        PropertyValue::I16(_) => flatgeobuf::ColumnType::Short,
+        PropertyValue::I32(_) => flatgeobuf::ColumnType::Int,
+        PropertyValue::I64(_) => flatgeobuf::ColumnType::Long,
+        PropertyValue::U8(_) => flatgeobuf::ColumnType::UByte,
+        PropertyValue::U16(_) => flatgeobuf::ColumnType::UShort,
+        PropertyValue::U32(_) => flatgeobuf::ColumnType::UInt,
+        PropertyValue::U64(_) => flatgeobuf::ColumnType::ULong,
+        PropertyValue::F32(_) => flatgeobuf::ColumnType::Float,
+        PropertyValue::F64(_) => flatgeobuf::ColumnType::Double,
+        PropertyValue::String(_) => flatgeobuf::ColumnType::String,
+        PropertyValue::Bytes(_) => flatgeobuf::ColumnType::Binary,
+    }
+}
 
 fn to_column_value(source: FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'_> {
     match source {
