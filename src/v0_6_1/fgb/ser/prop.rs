@@ -42,7 +42,7 @@ impl<'a> SerializeProperties for &mut PropertiesSerializer<'a> {
             &mut self.writer,
             index_to_write,
             key.as_ref(),
-            &_to_column_value(value),
+            &to_column_value(&value),
         )?;
 
         if index_of_key.is_none() {
@@ -56,21 +56,39 @@ impl<'a> SerializeProperties for &mut PropertiesSerializer<'a> {
     }
 }
 
-fn _to_column_value(source: FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'_> {
+pub fn to_column_type(source: &FieldValue<'_>) -> flatgeobuf::ColumnType {
     match source {
-        FieldValue::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(v),
-        FieldValue::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(v),
-        FieldValue::I16(v) => flatgeobuf::geozero::ColumnValue::Short(v),
-        FieldValue::I32(v) => flatgeobuf::geozero::ColumnValue::Int(v),
-        FieldValue::I64(v) => flatgeobuf::geozero::ColumnValue::Long(v),
-        FieldValue::U8(v) => flatgeobuf::geozero::ColumnValue::UByte(v),
-        FieldValue::U16(v) => flatgeobuf::geozero::ColumnValue::UShort(v),
-        FieldValue::U32(v) => flatgeobuf::geozero::ColumnValue::UInt(v),
-        FieldValue::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(v),
-        FieldValue::F32(v) => flatgeobuf::geozero::ColumnValue::Float(v),
-        FieldValue::F64(v) => flatgeobuf::geozero::ColumnValue::Double(v),
-        FieldValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
-        FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
+        FieldValue::Bool(_) => flatgeobuf::ColumnType::Bool,
+        FieldValue::I8(_) => flatgeobuf::ColumnType::Byte,
+        FieldValue::I16(_) => flatgeobuf::ColumnType::Short,
+        FieldValue::I32(_) => flatgeobuf::ColumnType::Int,
+        FieldValue::I64(_) => flatgeobuf::ColumnType::Long,
+        FieldValue::U8(_) => flatgeobuf::ColumnType::UByte,
+        FieldValue::U16(_) => flatgeobuf::ColumnType::UShort,
+        FieldValue::U32(_) => flatgeobuf::ColumnType::UInt,
+        FieldValue::U64(_) => flatgeobuf::ColumnType::ULong,
+        FieldValue::F32(_) => flatgeobuf::ColumnType::Float,
+        FieldValue::F64(_) => flatgeobuf::ColumnType::Double,
+        FieldValue::Str(_) => flatgeobuf::ColumnType::String,
+        FieldValue::Bytes(_) => flatgeobuf::ColumnType::Binary,
+    }
+}
+
+pub fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'a> {
+    match source {
+        FieldValue::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(*v),
+        FieldValue::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(*v),
+        FieldValue::I16(v) => flatgeobuf::geozero::ColumnValue::Short(*v),
+        FieldValue::I32(v) => flatgeobuf::geozero::ColumnValue::Int(*v),
+        FieldValue::I64(v) => flatgeobuf::geozero::ColumnValue::Long(*v),
+        FieldValue::U8(v) => flatgeobuf::geozero::ColumnValue::UByte(*v),
+        FieldValue::U16(v) => flatgeobuf::geozero::ColumnValue::UShort(*v),
+        FieldValue::U32(v) => flatgeobuf::geozero::ColumnValue::UInt(*v),
+        FieldValue::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(*v),
+        FieldValue::F32(v) => flatgeobuf::geozero::ColumnValue::Float(*v),
+        FieldValue::F64(v) => flatgeobuf::geozero::ColumnValue::Double(*v),
+        FieldValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s.as_ref()),
+        FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b.as_ref()),
     }
 }
 

@@ -154,7 +154,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            self._serialize_property(FieldValue::Str(&value))?;
+            self._serialize_property(value.as_str())?;
         }
         Ok(())
     }

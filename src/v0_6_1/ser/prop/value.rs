@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -14,8 +16,28 @@ pub enum FieldValue<'a> {
     U64(u64),
     F32(f32),
     F64(f64),
-    Str(&'a str),
-    Bytes(&'a [u8]),
+    Str(Cow<'a, str>),
+    Bytes(Cow<'a, [u8]>),
+}
+
+impl FieldValue<'_> {
+    pub fn into_owned(self) -> FieldValue<'static> {
+        match self {
+            Self::Bool(v) => FieldValue::Bool(v),
+            Self::I8(v) => FieldValue::I8(v),
+            Self::I16(v) => FieldValue::I16(v),
+            Self::I32(v) => FieldValue::I32(v),
+            Self::I64(v) => FieldValue::I64(v),
+            Self::U8(v) => FieldValue::U8(v),
+            Self::U16(v) => FieldValue::U16(v),
+            Self::U32(v) => FieldValue::U32(v),
+            Self::U64(v) => FieldValue::U64(v),
+            Self::F32(v) => FieldValue::F32(v),
+            Self::F64(v) => FieldValue::F64(v),
+            Self::Str(s) => FieldValue::Str(Cow::Owned(s.into_owned())),
+            Self::Bytes(b) => FieldValue::Bytes(Cow::Owned(b.into_owned())),
+        }
+    }
 }
 
 impl From<bool> for FieldValue<'static> {
@@ -86,12 +108,24 @@ impl From<f64> for FieldValue<'static> {
 
 impl<'a> From<&'a str> for FieldValue<'a> {
     fn from(value: &'a str) -> Self {
-        Self::Str(value)
+        Self::Str(Cow::Borrowed(value))
     }
 }
 
 impl<'a> From<&'a [u8]> for FieldValue<'a> {
     fn from(value: &'a [u8]) -> Self {
-        Self::Bytes(value)
+        Self::Bytes(Cow::Borrowed(value))
+    }
+}
+
+impl From<String> for FieldValue<'static> {
+    fn from(value: String) -> Self {
+        Self::Str(Cow::Owned(value))
+    }
+}
+
+impl From<Vec<u8>> for FieldValue<'static> {
+    fn from(value: Vec<u8>) -> Self {
+        Self::Bytes(Cow::Owned(value))
     }
 }

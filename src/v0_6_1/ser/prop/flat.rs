@@ -4,63 +4,6 @@ use serde::Serialize;
 
 use super::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
-/// Owned representation of a field value.
-pub enum PropertyValue {
-    Bool(bool),
-    I8(i8),
-    I16(i16),
-    I32(i32),
-    I64(i64),
-    U8(u8),
-    U16(u16),
-    U32(u32),
-    U64(u64),
-    F32(f32),
-    F64(f64),
-    String(String),
-    Bytes(Vec<u8>),
-}
-
-impl PropertyValue {
-    pub fn as_field_value(&self) -> FieldValue<'_> {
-        match self {
-            Self::Bool(v) => FieldValue::Bool(*v),
-            Self::I8(v) => FieldValue::I8(*v),
-            Self::I16(v) => FieldValue::I16(*v),
-            Self::I32(v) => FieldValue::I32(*v),
-            Self::I64(v) => FieldValue::I64(*v),
-            Self::U8(v) => FieldValue::U8(*v),
-            Self::U16(v) => FieldValue::U16(*v),
-            Self::U32(v) => FieldValue::U32(*v),
-            Self::U64(v) => FieldValue::U64(*v),
-            Self::F32(v) => FieldValue::F32(*v),
-            Self::F64(v) => FieldValue::F64(*v),
-            Self::String(s) => FieldValue::Str(s),
-            Self::Bytes(b) => FieldValue::Bytes(b),
-        }
-    }
-}
-
-impl From<FieldValue<'_>> for PropertyValue {
-    fn from(v: FieldValue<'_>) -> Self {
-        match v {
-            FieldValue::Bool(v) => Self::Bool(v),
-            FieldValue::I8(v) => Self::I8(v),
-            FieldValue::I16(v) => Self::I16(v),
-            FieldValue::I32(v) => Self::I32(v),
-            FieldValue::I64(v) => Self::I64(v),
-            FieldValue::U8(v) => Self::U8(v),
-            FieldValue::U16(v) => Self::U16(v),
-            FieldValue::U32(v) => Self::U32(v),
-            FieldValue::U64(v) => Self::U64(v),
-            FieldValue::F32(v) => Self::F32(v),
-            FieldValue::F64(v) => Self::F64(v),
-            FieldValue::Str(s) => Self::String(s.to_owned()),
-            FieldValue::Bytes(b) => Self::Bytes(b.to_owned()),
-        }
-    }
-}
-
 /// Flatten a serializable value and collect only its keys, discarding values.
 pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<Error>> {
     let mut keys = KeySink(Vec::new());
@@ -94,7 +37,7 @@ impl SerializeProperties for &mut KeySink {
 /// Uses `TableSerializer` to recursively flatten nested structures into
 /// dot-separated key-value pairs (e.g. `extra.z_col`).
 pub struct FlatProperties {
-    entries: Vec<(Cow<'static, str>, PropertyValue)>,
+    entries: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
 impl FlatProperties {
@@ -114,7 +57,7 @@ impl FlatProperties {
     }
 
     /// Look up a value by key name.
-    pub fn get(&self, key: &str) -> Option<&PropertyValue> {
+    pub fn get(&self, key: &str) -> Option<&FieldValue<'static>> {
         self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }
 }
@@ -128,7 +71,7 @@ impl SerializeProperties for &mut FlatProperties {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
-        self.entries.push((key, PropertyValue::from(value)));
+        self.entries.push((key, value.into_owned()));
         Ok(())
     }
 
