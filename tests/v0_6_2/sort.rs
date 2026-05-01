@@ -77,7 +77,6 @@ fn partial_sort_test() -> anyhow::Result<()> {
         HashMap::from([
             ("name".to_owned(), "hello".to_owned()),
             ("a_col".to_owned(), "v2".to_owned()),
-            ("m_col".to_owned(), "".to_owned()), // feat1 has no m_col → empty string (TODO: null)
             ("z_col".to_owned(), "v1".to_owned()),
         ])
     );
@@ -91,7 +90,6 @@ fn partial_sort_test() -> anyhow::Result<()> {
             ("name".to_owned(), "world".to_owned()),
             ("a_col".to_owned(), "v4".to_owned()),
             ("m_col".to_owned(), "v3".to_owned()),
-            ("z_col".to_owned(), "".to_owned()), // feat2 has no z_col → empty string (TODO: null)
         ])
     );
 
