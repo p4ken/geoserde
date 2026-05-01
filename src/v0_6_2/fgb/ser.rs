@@ -110,15 +110,18 @@ impl LayerSerializer {
     /// `FgbWriter::property` は連番 idx でしか列を auto-declare しない仕様のため、
     /// 全 feature を書く前に `add_column` で列を宣言してしまう。
     ///
-    /// `self` を消費しつつ geometry と properties を 1 feature ずつ drop することで、
-    /// 蓄積した分のメモリを解放しながら writer に流し込む（OOM 回避）。
+    /// メモリ戦略:
+    /// - `geometries` / `prop_pool` を一度 `reverse()` してから `pop()` で末尾から消費。
+    ///   `into_iter()` だと IntoIter が backing buffer (capacity × size_of) を関数末尾まで
+    ///   保持してしまい、要素 heap を drop しても slot 領域が残って OOM の原因になる。
+    /// - 容量が len の倍以上になったら `shrink_to_fit()` で実バッファを縮める（償却 O(N)）。
     pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
         let LayerSerializer {
             column_idx: _,
             columns,
             column_types,
-            geometries,
-            prop_pool,
+            mut geometries,
+            mut prop_pool,
             prop_offsets,
         } = self;
 
@@ -126,13 +129,19 @@ impl LayerSerializer {
             writer.add_column(key, ty, |_, _| {});
         }
 
-        let mut prop_iter = prop_pool.into_iter();
-        for (i, geom) in geometries.into_iter().enumerate() {
+        // pop() で原順序になるよう一度反転（in-place, 追加 alloc なし）。
+        geometries.reverse();
+        prop_pool.reverse();
+
+        let n_features = prop_offsets.len() - 1;
+        for i in 0..n_features {
+            let geom = geometries.pop().expect("geometries/prop_offsets mismatch");
             process_geometry(&geom, writer)?;
             drop(geom);
+
             let count = (prop_offsets[i + 1] - prop_offsets[i]) as usize;
             for _ in 0..count {
-                let (idx, val) = prop_iter.next().expect("prop_pool/offsets mismatch");
+                let (idx, val) = prop_pool.pop().expect("prop_pool/offsets mismatch");
                 flatgeobuf::geozero::PropertyProcessor::property(
                     writer,
                     idx as usize,
@@ -141,6 +150,16 @@ impl LayerSerializer {
                 )?;
             }
             flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
+
+            // 1024 features ごとに backing buffer を縮小して OS にメモリを返す。
+            // mmap バックの大きな Vec では shrink_to_fit は realloc コピーを伴わず
+            // mremap/munmap による page decommit になるため O(1)。
+            // これにより dead capacity は常に最大 1024 slot 分（geometries で 64KB、
+            // prop_pool で 32KB×列数）に抑えられ、OOM を回避できる。
+            if (i + 1) % 1024 == 0 {
+                geometries.shrink_to_fit();
+                prop_pool.shrink_to_fit();
+            }
         }
         Ok(())
     }
