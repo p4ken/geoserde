@@ -69,8 +69,8 @@ pub fn to_column_type(source: &FieldValue<'_>) -> flatgeobuf::ColumnType {
         FieldValue::U64(_) => flatgeobuf::ColumnType::ULong,
         FieldValue::F32(_) => flatgeobuf::ColumnType::Float,
         FieldValue::F64(_) => flatgeobuf::ColumnType::Double,
-        FieldValue::Str(_) => flatgeobuf::ColumnType::String,
-        FieldValue::Bytes(_) => flatgeobuf::ColumnType::Binary,
+        FieldValue::Str(_) | FieldValue::BoxedStr(_) => flatgeobuf::ColumnType::String,
+        FieldValue::Bytes(_) | FieldValue::BoxedBytes(_) => flatgeobuf::ColumnType::Binary,
     }
 }
 
@@ -87,8 +87,10 @@ pub fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::C
         FieldValue::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(*v),
         FieldValue::F32(v) => flatgeobuf::geozero::ColumnValue::Float(*v),
         FieldValue::F64(v) => flatgeobuf::geozero::ColumnValue::Double(*v),
-        FieldValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s.as_ref()),
-        FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b.as_ref()),
+        FieldValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
+        FieldValue::BoxedStr(s) => flatgeobuf::geozero::ColumnValue::String(s),
+        FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
+        FieldValue::BoxedBytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
     }
 }
 

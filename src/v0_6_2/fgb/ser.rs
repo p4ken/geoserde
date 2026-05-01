@@ -19,7 +19,7 @@ use crate::v0_6_1::ser::{
 ///
 /// メモリ最適化:
 /// - キー文字列は layer 全体で 1 度だけ heap に持つ（`columns`）
-/// - 各 entry の値は `OwnedFieldValue` で 24B (vs `FieldValue<'static>` の 32B)
+/// - 値は `FieldValue<'static>` (24B) を直接保持（`Box<str>`/`Box<[u8]>` の variant 経由）
 /// - 各 feature の entry 列は外側 `Vec<Vec<_>>` ではなく 1 本の flat pool +
 ///   feature 境界 offset で表現（inner Vec の heap オーバーヘッドを削減）
 pub struct LayerSerializer {
@@ -29,87 +29,11 @@ pub struct LayerSerializer {
     column_types: Vec<flatgeobuf::ColumnType>,
     geometries: Vec<geo_types::Geometry<f64>>,
     /// 全 feature の entry を連結した flat pool。
-    prop_pool: Vec<(u32, OwnedFieldValue)>,
+    prop_pool: Vec<(u32, FieldValue<'static>)>,
     /// 各 feature の entry が `prop_pool` 上で終わる位置（cumulative）。
     /// feature `i` の range は `prop_offsets[i]..prop_offsets[i+1]`。
     /// 番兵として最後に `prop_pool.len()` を push する。
     prop_offsets: Vec<u32>,
-}
-
-/// Owned-only variant of `FieldValue`.
-///
-/// `Cow<str>`/`Cow<[u8]>` を使う `FieldValue<'static>` (32B) に対し、
-/// `Box<str>`/`Box<[u8]>` で 24B に縮める。LayerSerializer の中間表現用。
-enum OwnedFieldValue {
-    Bool(bool),
-    I8(i8),
-    I16(i16),
-    I32(i32),
-    I64(i64),
-    U8(u8),
-    U16(u16),
-    U32(u32),
-    U64(u64),
-    F32(f32),
-    F64(f64),
-    Str(Box<str>),
-    Bytes(Box<[u8]>),
-}
-
-impl OwnedFieldValue {
-    fn from_field_value(v: FieldValue<'_>) -> Self {
-        match v {
-            FieldValue::Bool(v) => Self::Bool(v),
-            FieldValue::I8(v) => Self::I8(v),
-            FieldValue::I16(v) => Self::I16(v),
-            FieldValue::I32(v) => Self::I32(v),
-            FieldValue::I64(v) => Self::I64(v),
-            FieldValue::U8(v) => Self::U8(v),
-            FieldValue::U16(v) => Self::U16(v),
-            FieldValue::U32(v) => Self::U32(v),
-            FieldValue::U64(v) => Self::U64(v),
-            FieldValue::F32(v) => Self::F32(v),
-            FieldValue::F64(v) => Self::F64(v),
-            FieldValue::Str(s) => Self::Str(s.into_owned().into_boxed_str()),
-            FieldValue::Bytes(b) => Self::Bytes(b.into_owned().into_boxed_slice()),
-        }
-    }
-
-    fn column_type(&self) -> flatgeobuf::ColumnType {
-        match self {
-            Self::Bool(_) => flatgeobuf::ColumnType::Bool,
-            Self::I8(_) => flatgeobuf::ColumnType::Byte,
-            Self::I16(_) => flatgeobuf::ColumnType::Short,
-            Self::I32(_) => flatgeobuf::ColumnType::Int,
-            Self::I64(_) => flatgeobuf::ColumnType::Long,
-            Self::U8(_) => flatgeobuf::ColumnType::UByte,
-            Self::U16(_) => flatgeobuf::ColumnType::UShort,
-            Self::U32(_) => flatgeobuf::ColumnType::UInt,
-            Self::U64(_) => flatgeobuf::ColumnType::ULong,
-            Self::F32(_) => flatgeobuf::ColumnType::Float,
-            Self::F64(_) => flatgeobuf::ColumnType::Double,
-            Self::Str(_) => flatgeobuf::ColumnType::String,
-            Self::Bytes(_) => flatgeobuf::ColumnType::Binary,
-        }
-    }
-
-    fn as_column_value(&self) -> flatgeobuf::geozero::ColumnValue<'_> {
-        match self {
-            Self::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(*v),
-            Self::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(*v),
-            Self::I16(v) => flatgeobuf::geozero::ColumnValue::Short(*v),
-            Self::I32(v) => flatgeobuf::geozero::ColumnValue::Int(*v),
-            Self::I64(v) => flatgeobuf::geozero::ColumnValue::Long(*v),
-            Self::U8(v) => flatgeobuf::geozero::ColumnValue::UByte(*v),
-            Self::U16(v) => flatgeobuf::geozero::ColumnValue::UShort(*v),
-            Self::U32(v) => flatgeobuf::geozero::ColumnValue::UInt(*v),
-            Self::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(*v),
-            Self::F32(v) => flatgeobuf::geozero::ColumnValue::Float(*v),
-            Self::F64(v) => flatgeobuf::geozero::ColumnValue::Double(*v),
-            Self::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
-            Self::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
-        }
-    }
 }
 
 impl LayerSerializer {
@@ -138,7 +62,6 @@ impl LayerSerializer {
     ) {
         let entries = FlatProperties::flatten(properties).unwrap().into_entries();
         for (key, value) in entries {
-            let value = OwnedFieldValue::from_field_value(value);
             let idx = self
                 .column_idx
                 .get(key.as_ref())
@@ -147,7 +70,8 @@ impl LayerSerializer {
                     let i = self.columns.len() as u32;
                     let owned = key.into_owned();
                     self.columns.push(owned.clone());
-                    self.column_types.push(value.column_type());
+                    self.column_types
+                        .push(crate::v0_6_1::fgb::ser::prop::to_column_type(&value));
                     self.column_idx.insert(owned, i);
                     i
                 });
@@ -198,7 +122,7 @@ impl LayerSerializer {
                     writer,
                     *idx as usize,
                     self.columns[*idx as usize].as_ref(),
-                    &val.as_column_value(),
+                    &crate::v0_6_1::fgb::ser::prop::to_column_value(val),
                 )?;
             }
             flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
