@@ -1,13 +1,20 @@
+// CLEANUP-v0.6: this `de` submodule serves the virtual-enum geometry approach replaced by v0_6_2; remove
 pub mod de;
 pub mod fgb;
+// CLEANUP-v0.6: replaced by v0_6_2::geo (uses the new DeserializeGeometry trait); remove
 mod geo;
 pub mod ser;
 
+// CLEANUP-v0.6: virtual-enum geometry name constants are unused by v0_6_2; remove
 pub const POINT: &str = "geoserde::Point";
+// CLEANUP-v0.6: virtual-enum geometry name constants are unused by v0_6_2; remove
 pub const LINE_STRING: &str = "geoserde::LineString";
+// CLEANUP-v0.6: virtual-enum geometry name constants are unused by v0_6_2; remove
 pub const POLYGON: &str = "geoserde::Polygon";
+// CLEANUP-v0.6: virtual-enum geometry name constants are unused by v0_6_2; remove
 pub const GEOMETRY: &str = "geoserde::Geometry";
 
+// CLEANUP-v0.6: serde-bridge helpers for the virtual-enum geometry; v0_6_2 takes geometry as a separate type parameter
 pub fn serialize<S: serde::Serializer>(
     geom: impl SerializeGeometry,
     ser: S,
@@ -15,20 +22,24 @@ pub fn serialize<S: serde::Serializer>(
     geom.serialize_geometry(ser)
 }
 
+// CLEANUP-v0.6: serde-bridge helpers for the virtual-enum geometry; v0_6_2 takes geometry as a separate type parameter
 pub fn deserialize<'a, D: serde::Deserializer<'a>, G: DeserializeGeometry>(
     de: D,
 ) -> Result<G, D::Error> {
     G::deserialize_geometry(de)
 }
 
+// CLEANUP-v0.6: superseded by v0_6_2::de::DeserializeGeometry (uses GeometryTrait directly, no serde plumbing)
 pub trait SerializeGeometry {
     fn serialize_geometry<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error>;
 }
 
+// CLEANUP-v0.6: superseded by v0_6_2::de::DeserializeGeometry (uses GeometryTrait directly, no serde plumbing)
 pub trait DeserializeGeometry: Sized {
     fn deserialize_geometry<'a, D: serde::Deserializer<'a>>(de: D) -> Result<Self, D::Error>;
 }
 
+// CLEANUP-v0.6: workaround type for v0_6_1's geometry-as-virtual-enum design; not needed in v0_6_2
 /// Feature to deserialize a geometry with no properties
 #[derive(Debug, serde::Deserialize)]
 pub struct GeometrySink<G: DeserializeGeometry> {
@@ -47,6 +58,7 @@ pub struct GeometrySink<G: DeserializeGeometry> {
 //     LineString(LineString<T>),
 // }
 
+// CLEANUP-v0.6: bespoke geometry types tied to the virtual-enum approach; users are expected to use geo_types directly with v0_6_2
 /// Point representation to support new data structures or data formats.
 /// Named as [`geoserde::POINT`](POINT) during (de)serialization.
 ///
@@ -89,6 +101,7 @@ impl<'de> serde::de::IntoDeserializer<'de> for Point {
     }
 }
 
+// CLEANUP-v0.6: bespoke geometry types tied to the virtual-enum approach; users are expected to use geo_types directly with v0_6_2
 #[derive(Debug, Clone, Default)]
 pub struct LineString<T>(pub T);
 
@@ -98,6 +111,7 @@ impl<'de, T: de::FromPointSeq> serde::Deserialize<'de> for LineString<T> {
     }
 }
 
+// CLEANUP-v0.6: bespoke geometry types tied to the virtual-enum approach; users are expected to use geo_types directly with v0_6_2
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Polygon<T>(pub T);
 

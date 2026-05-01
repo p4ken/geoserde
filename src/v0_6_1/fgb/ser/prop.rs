@@ -4,6 +4,7 @@ use flatgeobuf::FgbWriter;
 
 use crate::v0_6_1::ser::{FieldValue, SerializeProperties, SourceError};
 
+// CLEANUP-v0.6: superseded by v0_6_2::fgb::ser::FeatureSerializer; the helpers `to_column_type` / `to_column_value` below are still used by v0_6_2 and should stay
 pub struct PropertiesSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,

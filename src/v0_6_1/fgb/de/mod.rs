@@ -3,6 +3,7 @@ mod feat;
 mod geom;
 mod prop;
 
+// CLEANUP-v0.6: `FeatureAccess` and `from_feature_iter` are unused by v0_6_2 (which has its own FeatureDeserializer / FeatureAccess); keep only `OwnedHeader`, `PropertyError`, `FeatureError` -- those are still referenced from v0_6_2
 pub use feat::{FeatureAccess, FeatureError, PropertyError, from_feature_iter};
 
 // pub struct FeatureIter {

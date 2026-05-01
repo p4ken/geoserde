@@ -3,8 +3,10 @@
 pub mod de;
 pub mod ser;
 
+// CLEANUP-v0.6: helper iterator API for the v0_6_1 serde-driven flow; v0_6_2 exposes FeatureDeserializer instead
 pub use de::from_feature_iter;
 
+// CLEANUP-v0.6: error wrapper used only by `from_feature_iter`; remove together with the helper above
 #[derive(Debug)]
 pub enum Error {
     Fgb(flatgeobuf::Error),

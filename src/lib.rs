@@ -68,6 +68,7 @@
 //! ```
 
 mod v0_5;
+// CLEANUP-v0.6: superseded by v0_6_2 / v0_6_1; remove this whole module before v0.6 release
 #[allow(warnings)]
 pub mod v0_6_0;
 pub mod v0_6_1;
