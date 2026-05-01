@@ -21,4 +21,3 @@ mod geo;
 pub mod ser;
 
 pub use de::DeserializeGeometry;
-pub use serde;
