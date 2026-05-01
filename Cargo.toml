@@ -19,12 +19,8 @@ exclude.workspace = true
 
 [features]
 default = [
-    "shapefile",
-    "geojson",
     "fgb",
     "geo",
-    "geozero",
-    "macros",
 ]
 shapefile = ["dep:shapefile", "dbase"]
 geo = ["dep:geo-types"]
@@ -43,14 +39,13 @@ geojson = { version = "0.24.2", optional = true }
 flatgeobuf = { version = "6.0.1", default-features = false, optional = true }
 # Should be re-exported by flatgeobuf
 flatbuffers = { version = "24", default-features = false }
-# TODO: Remove with v0_5
-geozero = { version = "0.15.0", optional = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 flatgeobuf = { version = "6.0.1", default-features = false }
 geo-types = { version = "0.7.11", features = ["serde"] }
 geojson = { version = "0.24.2" }
+geozero = { version = "0.15.0", features = ["with-geo"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["preserve_order"] }
 shapefile = { version = "0.6.0", features = ["geo-types"] }

@@ -64,24 +64,14 @@ There was no deserialization API in v0.5.
 
 **After (v0.6)**
 
-Derive `serde::Deserialize` on your struct. Use `geoserde::fgb::FeatureDeserializer` for typed access separating geometry and properties:
+`geoserde::fgb::FeatureDeserializer` separates geometry and properties at the type level:
 
 ```rust
 let mut de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 let (geom, props) = de.deserialize_feature::<geo_types::Point, MyProps>()?;
 ```
 
-For `serde`-driven deserialization of a whole iterator, annotate the geometry field with `#[serde(with = "geoserde")]` and `#[serde(rename = "geoserde::geometry")]`:
-
-```rust
-#[derive(serde::Deserialize)]
-struct MyFeature {
-    #[serde(with = "geoserde")]
-    #[serde(rename = "geoserde::geometry")]
-    geom: geo_types::Point,
-    name: String,
-}
-```
+The geometry type must implement `geoserde::DeserializeGeometry`. Implementations for `geo_types::Point` and `geo_types::LineString` are provided when the `geo` feature is enabled. The properties type only needs `serde::Deserialize`, so `#[serde(flatten)]` works as expected.
 
 #### Serializing to GeoJSON / WKT / other geozero formats
 
