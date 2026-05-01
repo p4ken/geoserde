@@ -17,17 +17,99 @@ use crate::v0_6_1::ser::{
 /// 1. `add_feature()` flattens each feature's properties and stores them with geometry.
 /// 2. After sorting `keys()`, call `write_features()` with an `FgbWriter` to emit all features.
 ///
-/// プロパティのキーは layer 全体で一度だけ heap に持ち、各 feature は
-/// `(column_idx, value)` の疎なリストとして保持する。これにより同一キーの
-/// 文字列が feature ごとに複製されず、メモリ消費を抑えられる。
+/// メモリ最適化:
+/// - キー文字列は layer 全体で 1 度だけ heap に持つ（`columns`）
+/// - 各 entry の値は `OwnedFieldValue` で 24B (vs `FieldValue<'static>` の 32B)
+/// - 各 feature の entry 列は外側 `Vec<Vec<_>>` ではなく 1 本の flat pool +
+///   feature 境界 offset で表現（inner Vec の heap オーバーヘッドを削減）
 pub struct LayerSerializer {
-    column_idx: std::collections::HashMap<String, usize>,
+    column_idx: std::collections::HashMap<String, u32>,
     columns: Vec<String>,
     /// 各列の型。各列で最初に登場した値の型を採用する。
     column_types: Vec<flatgeobuf::ColumnType>,
     geometries: Vec<geo_types::Geometry<f64>>,
-    /// Per-feature sparse properties: `(column_idx, value)` のリスト。
-    features: Vec<Vec<(usize, FieldValue<'static>)>>,
+    /// 全 feature の entry を連結した flat pool。
+    prop_pool: Vec<(u32, OwnedFieldValue)>,
+    /// 各 feature の entry が `prop_pool` 上で終わる位置（cumulative）。
+    /// feature `i` の range は `prop_offsets[i]..prop_offsets[i+1]`。
+    /// 番兵として最後に `prop_pool.len()` を push する。
+    prop_offsets: Vec<u32>,
+}
+
+/// Owned-only variant of `FieldValue`.
+///
+/// `Cow<str>`/`Cow<[u8]>` を使う `FieldValue<'static>` (32B) に対し、
+/// `Box<str>`/`Box<[u8]>` で 24B に縮める。LayerSerializer の中間表現用。
+enum OwnedFieldValue {
+    Bool(bool),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    F32(f32),
+    F64(f64),
+    Str(Box<str>),
+    Bytes(Box<[u8]>),
+}
+
+impl OwnedFieldValue {
+    fn from_field_value(v: FieldValue<'_>) -> Self {
+        match v {
+            FieldValue::Bool(v) => Self::Bool(v),
+            FieldValue::I8(v) => Self::I8(v),
+            FieldValue::I16(v) => Self::I16(v),
+            FieldValue::I32(v) => Self::I32(v),
+            FieldValue::I64(v) => Self::I64(v),
+            FieldValue::U8(v) => Self::U8(v),
+            FieldValue::U16(v) => Self::U16(v),
+            FieldValue::U32(v) => Self::U32(v),
+            FieldValue::U64(v) => Self::U64(v),
+            FieldValue::F32(v) => Self::F32(v),
+            FieldValue::F64(v) => Self::F64(v),
+            FieldValue::Str(s) => Self::Str(s.into_owned().into_boxed_str()),
+            FieldValue::Bytes(b) => Self::Bytes(b.into_owned().into_boxed_slice()),
+        }
+    }
+
+    fn column_type(&self) -> flatgeobuf::ColumnType {
+        match self {
+            Self::Bool(_) => flatgeobuf::ColumnType::Bool,
+            Self::I8(_) => flatgeobuf::ColumnType::Byte,
+            Self::I16(_) => flatgeobuf::ColumnType::Short,
+            Self::I32(_) => flatgeobuf::ColumnType::Int,
+            Self::I64(_) => flatgeobuf::ColumnType::Long,
+            Self::U8(_) => flatgeobuf::ColumnType::UByte,
+            Self::U16(_) => flatgeobuf::ColumnType::UShort,
+            Self::U32(_) => flatgeobuf::ColumnType::UInt,
+            Self::U64(_) => flatgeobuf::ColumnType::ULong,
+            Self::F32(_) => flatgeobuf::ColumnType::Float,
+            Self::F64(_) => flatgeobuf::ColumnType::Double,
+            Self::Str(_) => flatgeobuf::ColumnType::String,
+            Self::Bytes(_) => flatgeobuf::ColumnType::Binary,
+        }
+    }
+
+    fn as_column_value(&self) -> flatgeobuf::geozero::ColumnValue<'_> {
+        match self {
+            Self::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(*v),
+            Self::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(*v),
+            Self::I16(v) => flatgeobuf::geozero::ColumnValue::Short(*v),
+            Self::I32(v) => flatgeobuf::geozero::ColumnValue::Int(*v),
+            Self::I64(v) => flatgeobuf::geozero::ColumnValue::Long(*v),
+            Self::U8(v) => flatgeobuf::geozero::ColumnValue::UByte(*v),
+            Self::U16(v) => flatgeobuf::geozero::ColumnValue::UShort(*v),
+            Self::U32(v) => flatgeobuf::geozero::ColumnValue::UInt(*v),
+            Self::U64(v) => flatgeobuf::geozero::ColumnValue::ULong(*v),
+            Self::F32(v) => flatgeobuf::geozero::ColumnValue::Float(*v),
+            Self::F64(v) => flatgeobuf::geozero::ColumnValue::Double(*v),
+            Self::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
+            Self::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
+        }
+    }
 }
 
 impl LayerSerializer {
@@ -37,7 +119,8 @@ impl LayerSerializer {
             columns: Vec::new(),
             column_types: Vec::new(),
             geometries: Vec::new(),
-            features: Vec::new(),
+            prop_pool: Vec::new(),
+            prop_offsets: vec![0],
         }
     }
 
@@ -54,27 +137,24 @@ impl LayerSerializer {
         properties: impl serde::Serialize,
     ) {
         let entries = FlatProperties::flatten(properties).unwrap().into_entries();
-        let feat_vals = entries
-            .into_iter()
-            .map(|(key, value)| {
-                let idx = self
-                    .column_idx
-                    .get(key.as_ref())
-                    .copied()
-                    .unwrap_or_else(|| {
-                        let i = self.columns.len();
-                        let owned = key.into_owned();
-                        self.columns.push(owned.clone());
-                        self.column_types
-                            .push(crate::v0_6_1::fgb::ser::prop::to_column_type(&value));
-                        self.column_idx.insert(owned, i);
-                        i
-                    });
-                (idx, value)
-            })
-            .collect();
+        for (key, value) in entries {
+            let value = OwnedFieldValue::from_field_value(value);
+            let idx = self
+                .column_idx
+                .get(key.as_ref())
+                .copied()
+                .unwrap_or_else(|| {
+                    let i = self.columns.len() as u32;
+                    let owned = key.into_owned();
+                    self.columns.push(owned.clone());
+                    self.column_types.push(value.column_type());
+                    self.column_idx.insert(owned, i);
+                    i
+                });
+            self.prop_pool.push((idx, value));
+        }
         self.geometries.push(geometry.into());
-        self.features.push(feat_vals);
+        self.prop_offsets.push(self.prop_pool.len() as u32);
     }
 
     /// Returns an iterator over the union of all flattened keys.
@@ -86,17 +166,15 @@ impl LayerSerializer {
     ///
     /// `columns` には既存の全列を含めること（順序入れ替えのみ可、列の追加・削除は不可）。
     pub fn set_columns(&mut self, columns: Vec<String>) {
-        let new_idx: std::collections::HashMap<String, usize> =
-            columns.iter().cloned().zip(0..).collect();
-        let remap: Vec<usize> = self.columns.iter().map(|k| new_idx[k]).collect();
+        let new_idx: std::collections::HashMap<String, u32> =
+            columns.iter().cloned().zip(0u32..).collect();
+        let remap: Vec<u32> = self.columns.iter().map(|k| new_idx[k]).collect();
         let mut new_types = vec![flatgeobuf::ColumnType::String; columns.len()];
         for (old, &ty) in self.column_types.iter().enumerate() {
-            new_types[remap[old]] = ty;
+            new_types[remap[old] as usize] = ty;
         }
-        for feat in &mut self.features {
-            for (idx, _) in feat {
-                *idx = remap[*idx];
-            }
+        for (idx, _) in &mut self.prop_pool {
+            *idx = remap[*idx as usize];
         }
         self.columns = columns;
         self.column_idx = new_idx;
@@ -111,14 +189,16 @@ impl LayerSerializer {
         for (key, &ty) in self.columns.iter().zip(self.column_types.iter()) {
             writer.add_column(key, ty, |_, _| {});
         }
-        for (feat, geom) in self.features.iter().zip(self.geometries.iter()) {
+        for (i, geom) in self.geometries.iter().enumerate() {
             process_geometry(geom, writer)?;
-            for (idx, val) in feat {
+            let start = self.prop_offsets[i] as usize;
+            let end = self.prop_offsets[i + 1] as usize;
+            for (idx, val) in &self.prop_pool[start..end] {
                 flatgeobuf::geozero::PropertyProcessor::property(
                     writer,
-                    *idx,
-                    self.columns[*idx].as_ref(),
-                    &crate::v0_6_1::fgb::ser::prop::to_column_value(val),
+                    *idx as usize,
+                    self.columns[*idx as usize].as_ref(),
+                    &val.as_column_value(),
                 )?;
             }
             flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
