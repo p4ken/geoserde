@@ -281,7 +281,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 pub enum TableError<E> {
     Root,
     Key(StringifyError),
-    Sink(E), // FIXME: may be Source?
+    Sink(E),
 }
 
 impl<E> From<StringifyError> for TableError<E> {

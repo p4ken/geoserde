@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use serde::{
     Serialize, Serializer,
     ser::{
-        Error, Impossible, SerializeMap, SerializeSeq, SerializeStruct, SerializeTuple,
-        SerializeTupleStruct,
+        Error, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
+        SerializeTupleStruct, SerializeTupleVariant,
     },
 };
 
@@ -238,6 +238,46 @@ impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSeri
     }
 }
 
+pub struct VariantSerializer<'a, P> {
+    inner: &'a mut FieldSerializer<P>,
+}
+
+impl<P: SerializeProperties<Error: 'static>> SerializeTupleVariant for VariantSerializer<'_, P> {
+    type Ok = ();
+    type Error = TableError<P::Error>;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        SerializeSeq::serialize_element(&mut self.inner, value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        let inner = self.inner;
+        SerializeSeq::end(&mut *inner)?;
+        inner.key_stack.pop();
+        Ok(())
+    }
+}
+
+impl<P: SerializeProperties<Error: 'static>> SerializeStructVariant for VariantSerializer<'_, P> {
+    type Ok = ();
+    type Error = TableError<P::Error>;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        SerializeStruct::serialize_field(&mut self.inner, key, value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.inner.key_stack.pop();
+        Ok(())
+    }
+}
+
 impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
@@ -245,10 +285,10 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
     type SerializeSeq = Self;
     type SerializeTuple = Self;
     type SerializeTupleStruct = Self;
-    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = VariantSerializer<'a, P>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
-    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = VariantSerializer<'a, P>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         self._serialize_property(v)
@@ -351,13 +391,16 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
-        _value: &T,
+        variant: &'static str,
+        value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize,
     {
-        todo!()
+        self.key_stack.push(Cow::Borrowed(variant));
+        value.serialize(&mut *self)?;
+        self.key_stack.pop();
+        Ok(())
     }
 
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -381,10 +424,12 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        todo!()
+        self.key_stack.push(Cow::Borrowed(variant));
+        self.index = 0;
+        Ok(VariantSerializer { inner: self })
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
@@ -403,9 +448,10 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
         self,
         _name: &'static str,
         _variant_index: u32,
-        _variant: &'static str,
+        variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        todo!()
+        self.key_stack.push(Cow::Borrowed(variant));
+        Ok(VariantSerializer { inner: self })
     }
 }
