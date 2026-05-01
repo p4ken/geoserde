@@ -16,21 +16,26 @@ use crate::v0_6_1::ser::{
 /// Collects features in two phases:
 /// 1. `add_feature()` flattens each feature's properties and stores them with geometry.
 /// 2. After sorting `keys()`, call `write_features()` with an `FgbWriter` to emit all features.
+///
+/// プロパティのキーは layer 全体で一度だけ heap に持ち、各 feature は
+/// `(column_idx, value)` の疎なリストとして保持する。これにより同一キーの
+/// 文字列が feature ごとに複製されず、メモリ消費を抑えられる。
 pub struct LayerSerializer {
-    /// Union of all keys seen across all features, in insertion order.
-    all_keys: Vec<String>,
-    key_set: std::collections::BTreeSet<String>,
-    /// Per-feature geometry.
+    column_idx: std::collections::HashMap<String, usize>,
+    columns: Vec<String>,
+    /// 各列の型。各列で最初に登場した値の型を採用する。
+    column_types: Vec<flatgeobuf::ColumnType>,
     geometries: Vec<geo_types::Geometry<f64>>,
-    /// Per-feature flattened properties.
-    features: Vec<FlatProperties>,
+    /// Per-feature sparse properties: `(column_idx, value)` のリスト。
+    features: Vec<Vec<(usize, FieldValue<'static>)>>,
 }
 
 impl LayerSerializer {
     pub fn new() -> Self {
         LayerSerializer {
-            all_keys: Vec::new(),
-            key_set: std::collections::BTreeSet::new(),
+            column_idx: std::collections::HashMap::new(),
+            columns: Vec::new(),
+            column_types: Vec::new(),
             geometries: Vec::new(),
             features: Vec::new(),
         }
@@ -48,55 +53,72 @@ impl LayerSerializer {
         geometry: impl Into<geo_types::Geometry<f64>>,
         properties: impl serde::Serialize,
     ) {
-        let flat = FlatProperties::flatten(properties).unwrap();
-        for key in flat.keys() {
-            if self.key_set.insert(key.to_owned()) {
-                self.all_keys.push(key.to_owned());
-            }
-        }
+        let entries = FlatProperties::flatten(properties).unwrap().into_entries();
+        let feat_vals = entries
+            .into_iter()
+            .map(|(key, value)| {
+                let idx = self
+                    .column_idx
+                    .get(key.as_ref())
+                    .copied()
+                    .unwrap_or_else(|| {
+                        let i = self.columns.len();
+                        let owned = key.into_owned();
+                        self.columns.push(owned.clone());
+                        self.column_types
+                            .push(crate::v0_6_1::fgb::ser::prop::to_column_type(&value));
+                        self.column_idx.insert(owned, i);
+                        i
+                    });
+                (idx, value)
+            })
+            .collect();
         self.geometries.push(geometry.into());
-        self.features.push(flat);
+        self.features.push(feat_vals);
     }
 
     /// Returns an iterator over the union of all flattened keys.
     pub fn keys(&self) -> impl Iterator<Item = &str> {
-        self.all_keys.iter().map(|s| s.as_str())
+        self.columns.iter().map(|s| s.as_str())
     }
 
     /// Set the column order to use when writing features.
+    ///
+    /// `columns` には既存の全列を含めること（順序入れ替えのみ可、列の追加・削除は不可）。
     pub fn set_columns(&mut self, columns: Vec<String>) {
-        self.all_keys = columns;
+        let new_idx: std::collections::HashMap<String, usize> =
+            columns.iter().cloned().zip(0..).collect();
+        let remap: Vec<usize> = self.columns.iter().map(|k| new_idx[k]).collect();
+        let mut new_types = vec![flatgeobuf::ColumnType::String; columns.len()];
+        for (old, &ty) in self.column_types.iter().enumerate() {
+            new_types[remap[old]] = ty;
+        }
+        for feat in &mut self.features {
+            for (idx, _) in feat {
+                *idx = remap[*idx];
+            }
+        }
+        self.columns = columns;
+        self.column_idx = new_idx;
+        self.column_types = new_types;
     }
 
     /// Write all collected features to the FgbWriter using the current key order.
     ///
-    /// `FgbWriter::property` は連番idxでしか列を auto-declare しない仕様のため、
-    /// 全 feature を書く前に `add_column` で列を宣言してしまう。型は各 key の
-    /// 全 feature 中で最初に現れた値の型を採用し、以降の衝突は無視する。
-    /// 全 feature で値が無い列は String として宣言（実際には誰も書かないので無害）。
+    /// `FgbWriter::property` は連番 idx でしか列を auto-declare しない仕様のため、
+    /// 全 feature を書く前に `add_column` で列を宣言してしまう。
     pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
-        for key in &self.all_keys {
-            let col_type = self
-                .features
-                .iter()
-                .find_map(|f| f.get(key).map(crate::v0_6_1::fgb::ser::prop::to_column_type))
-                .unwrap_or(flatgeobuf::ColumnType::String);
-            writer.add_column(key, col_type, |_, _| {});
+        for (key, &ty) in self.columns.iter().zip(self.column_types.iter()) {
+            writer.add_column(key, ty, |_, _| {});
         }
-
-        for i in 0..self.features.len() {
-            process_geometry(&self.geometries[i], writer)?;
-            let feat = &self.features[i];
-            for (idx, key) in self.all_keys.iter().enumerate() {
-                let column_value = match feat.get(key) {
-                    Some(value) => crate::v0_6_1::fgb::ser::prop::to_column_value(value),
-                    None => continue,
-                };
+        for (feat, geom) in self.features.iter().zip(self.geometries.iter()) {
+            process_geometry(geom, writer)?;
+            for (idx, val) in feat {
                 flatgeobuf::geozero::PropertyProcessor::property(
                     writer,
-                    idx,
-                    key.as_ref(),
-                    &column_value,
+                    *idx,
+                    self.columns[*idx].as_ref(),
+                    &crate::v0_6_1::fgb::ser::prop::to_column_value(val),
                 )?;
             }
             flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;

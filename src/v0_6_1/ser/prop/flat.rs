@@ -60,6 +60,11 @@ impl FlatProperties {
     pub fn get(&self, key: &str) -> Option<&FieldValue<'static>> {
         self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }
+
+    /// Consume the flattened properties, returning the underlying entries.
+    pub fn into_entries(self) -> Vec<(Cow<'static, str>, FieldValue<'static>)> {
+        self.entries
+    }
 }
 
 impl SerializeProperties for &mut FlatProperties {
