@@ -3,6 +3,8 @@ use std::{borrow::Cow, collections::HashMap, io::Cursor};
 use flatgeobuf::FallibleStreamingIterator;
 use serde::Serialize;
 
+mod testing;
+
 #[derive(Serialize)]
 struct Feat {
     name: Cow<'static, str>,
@@ -25,7 +27,7 @@ fn ser_test() -> anyhow::Result<()> {
         name: "hello".into(),
         child: Child {
             value: 42,
-            shape: crate::testing::ls(1),
+            shape: testing::ls(1),
         },
     };
     fgb_ser.serialize_feature(&feat.child.shape, &feat)?;

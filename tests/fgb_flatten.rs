@@ -3,6 +3,8 @@ use std::{borrow::Cow, collections::HashMap, io::Cursor};
 use flatgeobuf::FallibleStreamingIterator;
 use serde::{Deserialize, Serialize};
 
+mod testing;
+
 #[derive(Serialize, Deserialize)]
 struct Feat {
     name: Cow<'static, str>,
@@ -26,7 +28,7 @@ fn ser_test() -> anyhow::Result<()> {
         name: "hello".into(),
         child: Child {
             value: 42,
-            shape: crate::testing::ls(1),
+            shape: testing::ls(1),
         },
     };
     fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
@@ -58,7 +60,7 @@ fn de_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::LineString)?;
     flatgeobuf::geozero::GeozeroGeometry::process_geom(
-        &geo_types::Geometry::LineString(crate::testing::ls(1)),
+        &geo_types::Geometry::LineString(testing::ls(1)),
         &mut fgb_writer,
     )?;
     flatgeobuf::geozero::PropertyProcessor::property(
@@ -80,7 +82,7 @@ fn de_test() -> anyhow::Result<()> {
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
     let (geom, props) = fgb_de.deserialize_feature::<geo_types::LineString, Feat>()?;
 
-    assert_eq!(geom, crate::testing::ls(1));
+    assert_eq!(geom, testing::ls(1));
     assert_eq!(props.name, "hello");
     assert_eq!(props.child.value, 42);
     Ok(())
