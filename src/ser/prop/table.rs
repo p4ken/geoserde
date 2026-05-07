@@ -50,6 +50,7 @@ impl FlattenOption {
     }
 }
 
+#[derive(Debug)]
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,
 }

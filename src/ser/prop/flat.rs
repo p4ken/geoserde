@@ -12,6 +12,7 @@ pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<Er
     Ok(keys.0.into_iter().map(|k| k.into_owned()).collect())
 }
 
+#[derive(Debug)]
 struct KeySink(Vec<Cow<'static, str>>);
 
 impl SerializeProperties for &mut KeySink {

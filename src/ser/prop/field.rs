@@ -44,6 +44,7 @@ impl<M: SerializeMap> SerializeProperties for M {
 }
 
 /// Serializes fields with flattenning source structures recursively.
+#[derive(Debug)]
 pub struct FieldSerializer<P> {
     sink: P,
     index: usize,

@@ -7,7 +7,7 @@ use serde::{
 
 use crate::ser::SourceError;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum StringLike {
     Empty,
