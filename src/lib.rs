@@ -14,10 +14,7 @@
 //! * `geo` - `DeserializeGeometry` impls for `geo_types`. Enabled by default.
 
 pub mod de;
-#[cfg(feature = "fgb")]
 pub mod fgb;
-#[cfg(feature = "geo")]
-mod geo;
 pub mod ser;
 
 pub use de::DeserializeGeometry;

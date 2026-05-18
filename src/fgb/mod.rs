@@ -1,4 +1,5 @@
 #![cfg(feature = "fgb")]
+
 //! SerDe implementation for FlatGeobuf.
 //!
 //! It might be better to separate this module into other crate

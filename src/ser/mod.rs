@@ -1,4 +1,4 @@
-pub mod prop;
+mod prop;
 
 pub use prop::{
     FieldValue, FlatProperties, FlattenOption, SerializeProperties, TableError, TableSerializer,
