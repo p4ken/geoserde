@@ -12,7 +12,7 @@ mod testing;
 fn point_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
-        let mut w = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
         Geometry::Point(testing::p(0)).process_geom(&mut w)?;
         w.feature_end(0)?;
         w.write(&mut fgb_buf)?;
@@ -32,7 +32,7 @@ fn point_test() -> anyhow::Result<()> {
 fn line_string_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
-        let mut w = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::LineString)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
         Geometry::LineString(testing::ls(0)).process_geom(&mut w)?;
         w.feature_end(0)?;
         w.write(&mut fgb_buf)?;
@@ -52,7 +52,7 @@ fn line_string_test() -> anyhow::Result<()> {
 fn feature_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
-        let mut w = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
         Geometry::Point(testing::p(0)).process_geom(&mut w)?;
         w.property(0, "name", &ColumnValue::String("gamma"))?;
         w.property(1, "count", &ColumnValue::Int(5))?;
@@ -78,7 +78,7 @@ fn feature_test() -> anyhow::Result<()> {
 fn features_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
-        let mut w = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
 
         Geometry::Point(testing::p(0)).process_geom(&mut w)?;
         w.property(0, "seq", &ColumnValue::Int(1))?;
@@ -113,7 +113,7 @@ fn features_test() -> anyhow::Result<()> {
 fn float_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
-        let mut w = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
         Geometry::Point(testing::p(0)).process_geom(&mut w)?;
         w.property(0, "ratio", &ColumnValue::Double(1.5))?;
         w.feature_end(0)?;

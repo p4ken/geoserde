@@ -17,7 +17,7 @@ struct Feat {
 
 #[test]
 fn point_test() -> anyhow::Result<()> {
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
@@ -45,7 +45,7 @@ fn point_test() -> anyhow::Result<()> {
 
 #[test]
 fn line_string_test() -> anyhow::Result<()> {
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::LineString)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
@@ -73,7 +73,7 @@ fn line_string_test() -> anyhow::Result<()> {
 
 #[test]
 fn properties_test() -> anyhow::Result<()> {
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
@@ -102,10 +102,7 @@ fn properties_test() -> anyhow::Result<()> {
 
 #[test]
 fn features_test() -> anyhow::Result<()> {
-    let mut fgb_opt = flatgeobuf::FgbWriterOptions::default();
-    fgb_opt.write_index = false;
-    let fgb_writer =
-        flatgeobuf::FgbWriter::create_with_options("", flatgeobuf::GeometryType::Point, fgb_opt)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(
@@ -151,7 +148,7 @@ fn bool_test() -> anyhow::Result<()> {
         active: bool,
     }
 
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(&testing::p(0), &FeatWithBool { active: true })?;

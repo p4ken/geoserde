@@ -20,7 +20,7 @@ struct Child {
 
 #[test]
 fn ser_test() -> anyhow::Result<()> {
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Unknown);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {

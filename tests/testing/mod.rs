@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub fn c(i: i32) -> geo_types::Coord {
     let x = f64::from(i);
     [x, x + 0.1].into()
@@ -27,4 +29,12 @@ pub fn donut(i: i32) -> geo_types::Polygon {
     let mut donut = rect(i + 2).to_polygon();
     donut.interiors_push(rect(i + 1).to_polygon().into_inner().0);
     donut
+}
+
+pub fn fgb_writer(geom_type: flatgeobuf::GeometryType) -> flatgeobuf::FgbWriter<'static> {
+    let opt = flatgeobuf::FgbWriterOptions {
+        write_index: false,
+        ..Default::default()
+    };
+    flatgeobuf::FgbWriter::create_with_options("", geom_type, opt).unwrap()
 }

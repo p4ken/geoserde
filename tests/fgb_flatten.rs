@@ -21,7 +21,7 @@ struct Child {
 
 #[test]
 fn ser_test() -> anyhow::Result<()> {
-    let fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Unknown)?;
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Unknown);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
@@ -58,7 +58,7 @@ fn ser_test() -> anyhow::Result<()> {
 #[test]
 fn de_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
-    let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::LineString)?;
+    let mut fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
     flatgeobuf::geozero::GeozeroGeometry::process_geom(
         &geo_types::Geometry::LineString(testing::ls(1)),
         &mut fgb_writer,
