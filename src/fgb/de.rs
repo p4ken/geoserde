@@ -20,7 +20,8 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
         &mut self,
     ) -> Result<(G, P), flatgeobuf::Error> {
         let fgb_feat = flatgeobuf::FallibleStreamingIterator::next(&mut self.fgb_iter)?.unwrap();
-        let geom = G::deserialize_geometry(fgb_feat.geometry_trait().unwrap().unwrap());
+        let geom = G::deserialize_geometry(fgb_feat.geometry_trait().unwrap().unwrap())
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
         let prop_de = FeatureAccess::new(&self.header, &fgb_feat).into_deserializer();
         let prop = P::deserialize(prop_de).unwrap();
         Ok((geom, prop))

@@ -5,7 +5,7 @@ use geo_traits::{
     to_geo::{ToGeoLineString, ToGeoPoint, ToGeoPolygon},
 };
 
-use crate::de::DeserializeGeometry;
+use crate::de::{DeserializeGeometry, GeometryTypeMismatch};
 
 // `ToGeoGeometry::try_to_geometry` を直接呼ばないのは、`impl GeometryTrait<T=f64>` を
 // 経由した呼び出しが trait solver の再帰展開で overflow するため
@@ -14,28 +14,34 @@ use crate::de::DeserializeGeometry;
 // blanket impl は、その内部で `GeometryTrait` を辿らないので再帰しない。
 
 impl DeserializeGeometry for geo_types::Point {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Self {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
+        source: T,
+    ) -> Result<Self, GeometryTypeMismatch> {
         match source.as_type() {
-            GeometryType::Point(p) => p.to_point(),
-            _ => panic!("DeserializeGeometry for Point: source is not a Point"),
+            GeometryType::Point(p) => Ok(p.to_point()),
+            _ => Err(GeometryTypeMismatch::new("Point")),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::LineString {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Self {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
+        source: T,
+    ) -> Result<Self, GeometryTypeMismatch> {
         match source.as_type() {
-            GeometryType::LineString(ls) => ls.to_line_string(),
-            _ => panic!("DeserializeGeometry for LineString: source is not a LineString"),
+            GeometryType::LineString(ls) => Ok(ls.to_line_string()),
+            _ => Err(GeometryTypeMismatch::new("LineString")),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::Polygon {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Self {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
+        source: T,
+    ) -> Result<Self, GeometryTypeMismatch> {
         match source.as_type() {
-            GeometryType::Polygon(p) => p.to_polygon(),
-            _ => panic!("DeserializeGeometry for Polygon: source is not a Polygon"),
+            GeometryType::Polygon(p) => Ok(p.to_polygon()),
+            _ => Err(GeometryTypeMismatch::new("Polygon")),
         }
     }
 }

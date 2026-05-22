@@ -17,4 +17,4 @@ pub mod de;
 pub mod fgb;
 pub mod ser;
 
-pub use de::DeserializeGeometry;
+pub use de::{DeserializeGeometry, GeometryTypeMismatch};
