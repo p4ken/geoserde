@@ -109,7 +109,6 @@ fn features_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(any())] // DeserializeGeometry for Polygon not yet implemented
 #[test]
 fn polygon_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();

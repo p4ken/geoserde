@@ -2,7 +2,7 @@
 
 use geo_traits::{
     GeometryTrait, GeometryType,
-    to_geo::{ToGeoLineString, ToGeoPoint},
+    to_geo::{ToGeoLineString, ToGeoPoint, ToGeoPolygon},
 };
 
 use crate::de::DeserializeGeometry;
@@ -27,6 +27,15 @@ impl DeserializeGeometry for geo_types::LineString {
         match source.as_type() {
             GeometryType::LineString(ls) => ls.to_line_string(),
             _ => panic!("DeserializeGeometry for LineString: source is not a LineString"),
+        }
+    }
+}
+
+impl DeserializeGeometry for geo_types::Polygon {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Self {
+        match source.as_type() {
+            GeometryType::Polygon(p) => p.to_polygon(),
+            _ => panic!("DeserializeGeometry for Polygon: source is not a Polygon"),
         }
     }
 }
