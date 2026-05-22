@@ -3,7 +3,7 @@
 use std::{collections::HashMap, io::Cursor};
 
 use flatgeobuf::FallibleStreamingIterator;
-use geo_traits::to_geo::{ToGeoLineString, ToGeoPoint};
+use geo_traits::to_geo::{ToGeoLineString, ToGeoPoint, ToGeoPolygon};
 use geo_traits::{GeometryTrait, GeometryType};
 use serde::Serialize;
 
@@ -142,16 +142,71 @@ fn features_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn bool_test() -> anyhow::Result<()> {
+fn polygon_test() -> anyhow::Result<()> {
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Polygon);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let feat = Feat {
+        name: "c".into(),
+        count: 0,
+    };
+    fgb_ser.serialize_feature(&testing::donut(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    fgb_ser.into_inner().write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let poly = match geom.as_type() {
+            GeometryType::Polygon(p) => p.to_polygon(),
+            _ => panic!("expected Polygon"),
+        };
+        assert_eq!(poly, testing::donut(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn primitive_test() -> anyhow::Result<()> {
     #[derive(Serialize)]
-    struct FeatWithBool {
-        active: bool,
+    struct Prim {
+        v_bool: bool,
+        v_i8: i8,
+        v_i16: i16,
+        v_i32: i32,
+        v_i64: i64,
+        v_u8: u8,
+        v_u16: u16,
+        v_u32: u32,
+        v_u64: u64,
+        v_f32: f32,
+        v_f64: f64,
+        v_str: &'static str,
     }
 
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
 
-    fgb_ser.serialize_feature(&testing::p(0), &FeatWithBool { active: true })?;
+    fgb_ser.serialize_feature(
+        &testing::p(0),
+        &Prim {
+            v_bool: true,
+            v_i8: -1,
+            v_i16: -200,
+            v_i32: -30000,
+            v_i64: -4000000000,
+            v_u8: 255,
+            v_u16: 60000,
+            v_u32: 4000000000,
+            v_u64: 10000000000,
+            v_f32: 1.5,
+            v_f64: 2.5,
+            v_str: "hello",
+        },
+    )?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -159,8 +214,18 @@ fn bool_test() -> anyhow::Result<()> {
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();
     let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
-    assert_eq!(props.len(), 1);
-    assert_eq!(props["active"], "true");
+    assert_eq!(props["v_bool"], "true");
+    assert_eq!(props["v_i8"], "-1");
+    assert_eq!(props["v_i16"], "-200");
+    assert_eq!(props["v_i32"], "-30000");
+    assert_eq!(props["v_i64"], "-4000000000");
+    assert_eq!(props["v_u8"], "255");
+    assert_eq!(props["v_u16"], "60000");
+    assert_eq!(props["v_u32"], "4000000000");
+    assert_eq!(props["v_u64"], "10000000000");
+    assert_eq!(props["v_f32"], "1.5");
+    assert_eq!(props["v_f64"], "2.5");
+    assert_eq!(props["v_str"], "hello");
 
     assert!(fgb_iter.next()?.is_none());
     Ok(())
