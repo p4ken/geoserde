@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use serde::Serialize;
 
 use super::{FieldValue, SerializeProperties, TableError, TableSerializer};
+use crate::ser::SourceError;
 
 /// Flatten a serializable value and collect only its keys, discarding values.
-pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<Error>> {
+pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<SourceError>> {
     let mut keys = KeySink(Vec::new());
     let table_ser = TableSerializer::new(&mut keys);
     source.serialize(table_ser)?;
@@ -17,7 +18,7 @@ struct KeySink(Vec<Cow<'static, str>>);
 
 impl SerializeProperties for &mut KeySink {
     type Ok = ();
-    type Error = Error;
+    type Error = SourceError;
 
     fn serialize_property(
         &mut self,
@@ -43,7 +44,7 @@ pub struct FlatProperties {
 
 impl FlatProperties {
     /// Flatten a serializable value into key-value pairs.
-    pub fn flatten(source: impl Serialize) -> Result<Self, TableError<Error>> {
+    pub fn flatten(source: impl Serialize) -> Result<Self, TableError<SourceError>> {
         let mut collector = FlatProperties {
             entries: Vec::new(),
         };
@@ -70,7 +71,7 @@ impl FlatProperties {
 
 impl SerializeProperties for &mut FlatProperties {
     type Ok = ();
-    type Error = Error;
+    type Error = SourceError;
 
     fn serialize_property(
         &mut self,
@@ -83,22 +84,5 @@ impl SerializeProperties for &mut FlatProperties {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct Error(String);
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl serde::ser::Error for Error {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self(msg.to_string())
     }
 }

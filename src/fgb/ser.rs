@@ -7,7 +7,8 @@ use geo_traits::{
     TriangleTrait,
 };
 
-use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableError, TableSerializer};
+use crate::fgb::Error;
+use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableSerializer};
 
 /// FlatGeobuf layer serializer.
 ///
@@ -57,8 +58,8 @@ impl LayerSerializer {
         &mut self,
         geometry: impl Into<geo_types::Geometry<f64>>,
         properties: impl serde::Serialize,
-    ) {
-        let entries = FlatProperties::flatten(properties).unwrap().into_entries();
+    ) -> Result<(), Error> {
+        let entries = FlatProperties::flatten(properties)?.into_entries();
         for (key, value) in entries {
             let idx = self
                 .column_idx
@@ -76,6 +77,7 @@ impl LayerSerializer {
         }
         self.geometries.push(geometry.into());
         self.prop_offsets.push(self.prop_pool.len() as u32);
+        Ok(())
     }
 
     /// Returns an iterator over the union of all flattened keys.
@@ -405,53 +407,6 @@ fn process_line(
     processor.linestring_end(true, idx)
 }
 
-// --- Error type ---
-
-#[derive(Debug)]
-pub enum Error {
-    Geozero(flatgeobuf::geozero::error::GeozeroError),
-    Source(String),
-}
-
-impl From<flatgeobuf::geozero::error::GeozeroError> for Error {
-    fn from(e: flatgeobuf::geozero::error::GeozeroError) -> Self {
-        Self::Geozero(e)
-    }
-}
-
-impl From<TableError<Error>> for Error {
-    fn from(e: TableError<Error>) -> Self {
-        match e {
-            TableError::Sink(e) => e,
-            other => Self::Source(other.to_string()),
-        }
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Geozero(_) => f.write_str("geozero processing failed"),
-            Error::Source(msg) => f.write_str(msg),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Error::Geozero(e) => Some(e),
-            Error::Source(_) => None,
-        }
-    }
-}
-
-impl serde::ser::Error for Error {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Source(msg.to_string())
-    }
-}
-
 // --- FieldValue → flatgeobuf bridge ---
 
 fn to_column_type(source: &FieldValue<'_>) -> flatgeobuf::ColumnType {
@@ -472,9 +427,7 @@ fn to_column_type(source: &FieldValue<'_>) -> flatgeobuf::ColumnType {
     }
 }
 
-fn to_column_value<'a>(
-    source: &'a FieldValue<'_>,
-) -> flatgeobuf::geozero::ColumnValue<'a> {
+fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'a> {
     match source {
         FieldValue::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(*v),
         FieldValue::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(*v),

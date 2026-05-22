@@ -80,7 +80,7 @@ fn de_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (geom, props) = fgb_de.deserialize_feature::<geo_types::LineString, Feat>()?;
+    let (geom, props) = fgb_de.deserialize_feature::<geo_types::LineString, Feat>()?.unwrap();
 
     assert_eq!(geom, testing::ls(1));
     assert_eq!(props.name, "hello");

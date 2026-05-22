@@ -3,6 +3,7 @@ use std::io::{Read, Seek};
 use serde::de::IntoDeserializer;
 
 use crate::de::DeserializeGeometry;
+use crate::fgb::Error;
 
 pub struct FeatureDeserializer<R> {
     fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
@@ -10,7 +11,7 @@ pub struct FeatureDeserializer<R> {
 }
 
 impl<R: Read + Seek> FeatureDeserializer<R> {
-    pub fn new(fgb_reader: flatgeobuf::FgbReader<R>) -> Result<Self, flatgeobuf::Error> {
+    pub fn new(fgb_reader: flatgeobuf::FgbReader<R>) -> Result<Self, Error> {
         let fgb_iter = fgb_reader.select_all()?;
         let header = fgb_iter.header().into();
         Ok(Self { fgb_iter, header })
@@ -18,13 +19,16 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
 
     pub fn deserialize_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(
         &mut self,
-    ) -> Result<(G, P), flatgeobuf::Error> {
-        let fgb_feat = flatgeobuf::FallibleStreamingIterator::next(&mut self.fgb_iter)?.unwrap();
-        let geom = G::deserialize_geometry(fgb_feat.geometry_trait().unwrap().unwrap())
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        let prop_de = FeatureAccess::new(&self.header, &fgb_feat).into_deserializer();
-        let prop = P::deserialize(prop_de).unwrap();
-        Ok((geom, prop))
+    ) -> Result<Option<(G, P)>, Error> {
+        let fgb_feat = match flatgeobuf::FallibleStreamingIterator::next(&mut self.fgb_iter)? {
+            Some(f) => f,
+            None => return Ok(None),
+        };
+        let geom_trait = fgb_feat.geometry_trait()?.ok_or(Error::MissingGeometry)?;
+        let geom = G::deserialize_geometry(geom_trait)?;
+        let prop_de = FeatureAccess::new(&self.header, fgb_feat).into_deserializer();
+        let prop = P::deserialize(prop_de)?;
+        Ok(Some((geom, prop)))
     }
 }
 
@@ -141,7 +145,7 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
                 let b = self.take_prop(len)?;
                 seed.deserialize(b.into_deserializer())
             }
-            x => panic!("{}", x.0),
+            x => Err(FeatureError::UnsupportedColumnType(x.0)),
         }
     }
 }
@@ -191,6 +195,7 @@ impl From<flatgeobuf::Column<'_>> for OwnedColumn {
 pub enum FeatureError {
     Key(serde::de::value::Error),
     Property(PropertyError),
+    UnsupportedColumnType(u8),
     Deserialize(serde::de::value::Error),
 }
 
@@ -205,7 +210,7 @@ impl std::error::Error for FeatureError {
         Some(match self {
             Self::Key(e) => e,
             Self::Deserialize(e) => e,
-            Self::Property(_) => None?,
+            Self::Property(_) | Self::UnsupportedColumnType(_) => return None,
         })
     }
 }
@@ -215,6 +220,7 @@ impl std::fmt::Display for FeatureError {
         match self {
             Self::Key(_) => write!(f, "attribute key deserializer failed"),
             Self::Property(_) => write!(f, "properties deserializer failed"),
+            Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
             Self::Deserialize(_) => write!(f, "deserialize impl failed"),
         }
     }

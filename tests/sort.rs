@@ -35,8 +35,8 @@ fn partial_sort_test() -> anyhow::Result<()> {
 
     // 2. Feed features into LayerSerializer
     let mut ser = LayerSerializer::new();
-    ser.add_feature(geom, &feat1);
-    ser.add_feature(geom, &feat2);
+    ser.add_feature(geom, &feat1)?;
+    ser.add_feature(geom, &feat2)?;
 
     // 3. extra_keys に含まれないキー(ソートしない) → 含まれるキー(ソート済み)
     let mut columns: Vec<String> = ser
