@@ -9,7 +9,7 @@ pub mod de;
 mod error;
 pub mod ser;
 
-pub use de::FeatureDeserializer;
+pub use de::{FeatureDeserializer, Features};
 pub use error::Error;
 pub use ser::{FeatureSerializer, LayerSerializer};
 

@@ -30,6 +30,35 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
         let prop = P::deserialize(prop_de)?;
         Ok(Some((geom, prop)))
     }
+
+    pub fn iter<G, P>(&mut self) -> Features<'_, R, G, P>
+    where
+        G: DeserializeGeometry,
+        P: serde::de::DeserializeOwned,
+    {
+        Features {
+            inner: self,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+pub struct Features<'a, R, G, P> {
+    inner: &'a mut FeatureDeserializer<R>,
+    _marker: std::marker::PhantomData<(G, P)>,
+}
+
+impl<R, G, P> Iterator for Features<'_, R, G, P>
+where
+    R: Read + Seek,
+    G: DeserializeGeometry,
+    P: serde::de::DeserializeOwned,
+{
+    type Item = Result<(G, P), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.deserialize_feature().transpose()
+    }
 }
 
 pub struct FeatureAccess<'de> {

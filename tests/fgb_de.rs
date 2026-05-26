@@ -23,7 +23,7 @@ fn point_test() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.deserialize_feature::<geo_types::Point, NoProps>()?.unwrap();
+    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -43,7 +43,10 @@ fn line_string_test() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.deserialize_feature::<geo_types::LineString, NoProps>()?.unwrap();
+    let (geom, _) = fgb_de
+        .iter::<geo_types::LineString, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::ls(0));
     Ok(())
 }
@@ -68,7 +71,7 @@ fn feature_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, props) = fgb_de.deserialize_feature::<geo_types::Point, Feat>()?.unwrap();
+    let (_, props) = fgb_de.iter::<geo_types::Point, Feat>().next().unwrap()?;
     assert_eq!(props.name, "gamma");
     assert_eq!(props.count, 5);
     Ok(())
@@ -99,11 +102,13 @@ fn features_test() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom1, feat1) = fgb_de.deserialize_feature::<geo_types::Point, Feat>()?.unwrap();
+    let mut iter = fgb_de.iter::<geo_types::Point, Feat>();
+
+    let (geom1, feat1) = iter.next().unwrap()?;
     assert_eq!(geom1, testing::p(0));
     assert_eq!(feat1.seq, 1);
 
-    let (geom2, feat2) = fgb_de.deserialize_feature::<geo_types::Point, Feat>()?.unwrap();
+    let (geom2, feat2) = iter.next().unwrap()?;
     assert_eq!(geom2, testing::p(1));
     assert_eq!(feat2.seq, 2);
     Ok(())
@@ -124,7 +129,10 @@ fn polygon_test() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.deserialize_feature::<geo_types::Polygon, NoProps>()?.unwrap();
+    let (geom, _) = fgb_de
+        .iter::<geo_types::Polygon, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::donut(0));
     Ok(())
 }
@@ -169,7 +177,7 @@ fn primitive_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, p) = fgb_de.deserialize_feature::<geo_types::Point, Prim>()?.unwrap();
+    let (_, p) = fgb_de.iter::<geo_types::Point, Prim>().next().unwrap()?;
     assert!(p.v_bool);
     assert_eq!(p.v_i8, -1);
     assert_eq!(p.v_i16, -200);
