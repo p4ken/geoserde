@@ -9,7 +9,7 @@ use serde::{
 };
 
 use crate::ser::prop::{
-    FieldValue, TableError,
+    FieldValue, FlattenOption, TableError,
     elem::{StringLike, Stringifier, StringifyError},
 };
 
@@ -47,15 +47,17 @@ impl<M: SerializeMap> SerializeProperties for M {
 #[derive(Debug)]
 pub struct FieldSerializer<P> {
     sink: P,
+    option: FlattenOption,
     index: usize,
     key_stack: Vec<Cow<'static, str>>,
     value_seq: Vec<StringLike>,
 }
 
 impl<P: SerializeProperties> FieldSerializer<P> {
-    pub fn new(sink: P) -> Self {
+    pub fn new(sink: P, option: FlattenOption) -> Self {
         Self {
             sink,
+            option,
             index: 0,
             key_stack: Vec::new(),
             value_seq: Vec::new(),
@@ -69,8 +71,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     fn build_key(&self) -> Cow<'static, str> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
-            // FIXME: The delimiter "." should be custmozed by users
-            [multi @ ..] => Cow::Owned(multi.join(".")),
+            [multi @ ..] => Cow::Owned(multi.join(self.option.nested_attribute_separator)),
         }
     }
 }
@@ -96,11 +97,12 @@ impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
         let parent_key = self.key_stack.pop(); // "parent"
         let parent_index = self.index;
 
-        // FIXME: The delimiter "[ ]" should be custmozed by users
         let key = Cow::Owned(format!(
-            "{}[{}]",
+            "{}{}{}{}",
             parent_key.as_ref().unwrap_or(&Cow::default()),
-            parent_index
+            self.option.nested_array_index_prefix,
+            parent_index,
+            self.option.nested_array_index_suffix,
         ));
         self.key_stack.push(key); // "parent[0]"
         value.serialize(&mut *self)?;
@@ -122,13 +124,12 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     where
         T: ?Sized + Serialize,
     {
-        if self.index == 0 {
+        if self.option.array_as_string && self.index == 0 {
             match value.serialize(Stringifier) {
                 Ok(text) => {
                     self.value_seq.push(text);
                     return Ok(());
                 }
-                // FIXME: Some formats may accept empty keys
                 Err(StringifyError::Empty) => {
                     self.value_seq.push(StringLike::Empty);
                     return Ok(());
@@ -154,7 +155,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 .drain(..)
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
-                .join(",");
+                .join(self.option.array_element_separator);
             self._serialize_property(value.as_str())?;
         }
         Ok(())
@@ -220,6 +221,7 @@ impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSeri
     where
         T: ?Sized + Serialize,
     {
+        // WARNING: Some formats may accept empty keys
         let key = key.serialize(Stringifier)?;
         self.key_stack.push(key.into());
         Ok(())

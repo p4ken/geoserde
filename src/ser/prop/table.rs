@@ -5,19 +5,22 @@ use serde::{
 
 use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer};
 
+#[derive(Debug)]
 pub struct FlattenOption {
-    // Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options
-    flatten_nested_attribute: bool,
-    nested_attribute_separator: &'static str,
-    array_as_string: bool,
-    // Our original options
-    array_element_separator: &'static str,
-    flatten_nested_array: bool,
-    nested_array_index_prefix: &'static str,
-    nested_array_index_suffix: &'static str,
+    /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
+    pub(crate) flatten_nested_attribute: bool,
+    pub(crate) nested_attribute_separator: &'static str,
+    pub(crate) array_as_string: bool,
+
+    /* Our original options */
+    pub(crate) array_element_separator: &'static str,
+    pub(crate) flatten_nested_array: bool,
+    pub(crate) nested_array_index_prefix: &'static str,
+    pub(crate) nested_array_index_suffix: &'static str,
 }
 
 impl FlattenOption {
+    /// Flatten all nested attributes and arrays with default separators.
     pub const fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
@@ -57,15 +60,12 @@ pub struct TableSerializer<P> {
 
 impl<P: SerializeProperties> TableSerializer<P> {
     pub fn new(sink: P) -> Self {
-        Self {
-            child: FieldSerializer::new(sink),
-        }
+        Self::with_option(sink, FlattenOption::full())
     }
 
-    pub fn from_serializer<S: Serializer<SerializeMap = P>>(ser: S) -> Self {
-        let sink = ser.serialize_map(None).unwrap();
+    pub fn with_option(sink: P, option: FlattenOption) -> Self {
         Self {
-            child: FieldSerializer::new(sink),
+            child: FieldSerializer::new(sink, option),
         }
     }
 }
