@@ -89,12 +89,27 @@ impl LayerSerializer {
 
     /// Sets the column order used when writing features.
     ///
-    /// `columns` must contain all existing columns (reordering only;
-    /// adding or removing columns is not supported).
-    pub fn set_columns(&mut self, columns: Vec<String>) {
+    /// `columns` must contain exactly the same set of columns as the
+    /// current layer (reordering only; adding or removing columns is
+    /// not supported).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if `columns` does not match the existing column set.
+    pub fn set_columns(&mut self, columns: Vec<String>) -> Result<(), Error> {
         let new_idx: std::collections::HashMap<String, u32> =
             columns.iter().cloned().zip(0u32..).collect();
-        let remap: Vec<u32> = self.columns.iter().map(|k| new_idx[k]).collect();
+        let remap: Vec<u32> = self
+            .columns
+            .iter()
+            .map(|k| new_idx.get(k).copied())
+            .collect::<Option<_>>()
+            .ok_or_else(|| {
+                Error::Source(format!(
+                    "column set mismatch: expected {:?}, got {:?}",
+                    self.columns, columns,
+                ))
+            })?;
         let mut new_types = vec![flatgeobuf::ColumnType::String; columns.len()];
         for (old, &ty) in self.column_types.iter().enumerate() {
             new_types[remap[old] as usize] = ty;
@@ -105,6 +120,7 @@ impl LayerSerializer {
         self.columns = columns;
         self.column_idx = new_idx;
         self.column_types = new_types;
+        Ok(())
     }
 
     /// Writes all collected features to the given [`FgbWriter`].
