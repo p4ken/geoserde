@@ -21,15 +21,15 @@ use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSe
 #[derive(Debug)]
 pub struct FlattenOption {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
-    pub(crate) flatten_nested_attribute: bool,
-    pub(crate) nested_attribute_separator: &'static str,
-    pub(crate) array_as_string: bool,
+    flatten_nested_attribute: bool,
+    nested_attribute_separator: &'static str,
+    array_as_string: bool,
 
     /* Our original options */
-    pub(crate) array_element_separator: &'static str,
-    pub(crate) flatten_nested_array: bool,
-    pub(crate) nested_array_index_prefix: &'static str,
-    pub(crate) nested_array_index_suffix: &'static str,
+    array_element_separator: &'static str,
+    flatten_nested_array: bool,
+    nested_array_index_prefix: &'static str,
+    nested_array_index_suffix: &'static str,
 }
 
 impl FlattenOption {
@@ -72,6 +72,26 @@ impl FlattenOption {
         self.nested_array_index_prefix = prefix;
         self.nested_array_index_suffix = suffix;
         self
+    }
+
+    pub(crate) fn nested_attribute_separator(&self) -> &'static str {
+        self.nested_attribute_separator
+    }
+
+    pub(crate) fn array_as_string(&self) -> bool {
+        self.array_as_string
+    }
+
+    pub(crate) fn array_element_separator(&self) -> &'static str {
+        self.array_element_separator
+    }
+
+    pub(crate) fn nested_array_index_prefix(&self) -> &'static str {
+        self.nested_array_index_prefix
+    }
+
+    pub(crate) fn nested_array_index_suffix(&self) -> &'static str {
+        self.nested_array_index_suffix
     }
 }
 

@@ -104,6 +104,7 @@ where
 
 /// Low-level serde [`MapAccess`](serde::de::MapAccess) over a single
 /// FlatGeobuf feature's property columns.
+#[derive(Debug)]
 pub struct FeatureAccess<'de> {
     header: &'de OwnedHeader,
     col_type: Option<flatgeobuf::ColumnType>,
@@ -236,6 +237,7 @@ impl<'de> IntoDeserializer<'de, FeatureError> for FeatureAccess<'de> {
 /// A deep copy is required because the feature iterator's `next()` method
 /// takes `&mut self` (which contains the header) while deserialization needs
 /// shared access.
+#[derive(Debug)]
 pub struct OwnedHeader {
     cols: Vec<OwnedColumn>,
 }
@@ -250,6 +252,7 @@ impl From<flatgeobuf::Header<'_>> for OwnedHeader {
     }
 }
 
+#[derive(Debug)]
 struct OwnedColumn {
     name: String,
     col_type: flatgeobuf::ColumnType,

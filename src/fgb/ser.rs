@@ -26,6 +26,7 @@ use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableSerialize
 ///
 /// This two-pass approach allows the column set and order to be determined
 /// from the union of all features before any data is written.
+#[derive(Debug)]
 pub struct LayerSerializer {
     column_idx: std::collections::HashMap<String, u32>,
     columns: Vec<String>,

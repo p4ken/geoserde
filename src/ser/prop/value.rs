@@ -9,7 +9,7 @@ use serde::Serialize;
 ///
 /// Use [`into_owned`](Self::into_owned) to convert borrowed variants into their
 /// owned equivalents.
-#[derive(Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum FieldValue<'a> {
     Bool(bool),

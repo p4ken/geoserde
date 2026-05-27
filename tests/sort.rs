@@ -49,7 +49,7 @@ fn partial_sort_test() -> anyhow::Result<()> {
     assert_eq!(columns, vec!["name", "a_col", "m_col", "z_col"]);
 
     // 4. Pass column order and write features
-    ser.set_columns(columns);
+    ser.set_columns(columns)?;
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
     ser.write_features(&mut fgb_writer)?;
 

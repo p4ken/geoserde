@@ -47,6 +47,7 @@ impl SerializeProperties for &mut KeySink {
 ///
 /// Created by [`FlatProperties::flatten`]. Nested structures are recursively
 /// expanded into dot-separated keys (e.g. `extra.z_col`).
+#[derive(Debug)]
 pub struct FlatProperties {
     entries: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }

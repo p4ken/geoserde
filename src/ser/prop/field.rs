@@ -79,7 +79,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     fn build_key(&self) -> Cow<'static, str> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
-            [multi @ ..] => Cow::Owned(multi.join(self.option.nested_attribute_separator)),
+            [multi @ ..] => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
         }
     }
 }
@@ -108,9 +108,9 @@ impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
         let key = Cow::Owned(format!(
             "{}{}{}{}",
             parent_key.as_ref().unwrap_or(&Cow::default()),
-            self.option.nested_array_index_prefix,
+            self.option.nested_array_index_prefix(),
             parent_index,
-            self.option.nested_array_index_suffix,
+            self.option.nested_array_index_suffix(),
         ));
         self.key_stack.push(key); // "parent[0]"
         value.serialize(&mut *self)?;
@@ -132,7 +132,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     where
         T: ?Sized + Serialize,
     {
-        if self.option.array_as_string && self.index == 0 {
+        if self.option.array_as_string() && self.index == 0 {
             match value.serialize(Stringifier) {
                 Ok(text) => {
                     self.value_seq.push(text);
@@ -163,7 +163,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 .drain(..)
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
-                .join(self.option.array_element_separator);
+                .join(self.option.array_element_separator());
             self._serialize_property(value.as_str())?;
         }
         Ok(())
