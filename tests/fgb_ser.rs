@@ -3,7 +3,9 @@
 use std::{collections::HashMap, io::Cursor};
 
 use flatgeobuf::FallibleStreamingIterator;
-use geo_traits::to_geo::{ToGeoLineString, ToGeoPoint, ToGeoPolygon};
+use geo_traits::to_geo::{
+    ToGeoLineString, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoPoint, ToGeoPolygon,
+};
 use geo_traits::{GeometryTrait, GeometryType};
 use serde::Serialize;
 
@@ -227,6 +229,62 @@ fn primitive_test() -> anyhow::Result<()> {
     assert_eq!(props["v_f64"], "2.5");
     assert_eq!(props["v_str"], "hello");
 
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn multi_point_test() -> anyhow::Result<()> {
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let feat = Feat {
+        name: "d".into(),
+        count: 0,
+    };
+    fgb_ser.serialize_feature(&testing::multi_p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    fgb_ser.into_inner().write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, testing::multi_p(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn multi_line_string_test() -> anyhow::Result<()> {
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let feat = Feat {
+        name: "e".into(),
+        count: 0,
+    };
+    fgb_ser.serialize_feature(&testing::multi_ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    fgb_ser.into_inner().write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mls = match geom.as_type() {
+            GeometryType::MultiLineString(mls) => mls.to_multi_line_string(),
+            _ => panic!("expected MultiLineString"),
+        };
+        assert_eq!(mls, testing::multi_ls(0));
+    }
     assert!(fgb_iter.next()?.is_none());
     Ok(())
 }

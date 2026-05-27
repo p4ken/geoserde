@@ -25,6 +25,14 @@ pub fn triangle(i: i32) -> geo_types::Triangle {
     geo_types::Triangle::new([0.0, 0.0].into(), c(i + 1), c(i + 2))
 }
 
+pub fn multi_p(i: i32) -> geo_types::MultiPoint {
+    geo_types::MultiPoint::new(vec![p(i), p(i + 1)])
+}
+
+pub fn multi_ls(i: i32) -> geo_types::MultiLineString {
+    geo_types::MultiLineString::new(vec![ls(i), ls(i + 1)])
+}
+
 pub fn donut(i: i32) -> geo_types::Polygon {
     let mut donut = rect(i + 2).to_polygon();
     donut.interiors_push(rect(i + 1).to_polygon().into_inner().0);

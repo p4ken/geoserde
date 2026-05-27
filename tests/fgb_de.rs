@@ -192,3 +192,186 @@ fn primitive_test() -> anyhow::Result<()> {
     assert_eq!(p.v_str, "hello");
     Ok(())
 }
+
+/// MultiPoint format → MultiPoint struct (ok, diagonal)
+/// Requires DeserializeGeometry for MultiPoint (not yet implemented)
+#[cfg(feature = "__de_multi")]
+#[test]
+fn multi_point_test() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
+        Geometry::MultiPoint(testing::multi_p(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de
+        .iter::<geo_types::MultiPoint, NoProps>()
+        .next()
+        .unwrap()?;
+    assert_eq!(geom, testing::mp(0));
+    Ok(())
+}
+
+/// MultiLineString format → MultiLineString struct (ok, diagonal)
+/// Requires DeserializeGeometry for MultiLineString (not yet implemented)
+#[cfg(feature = "__de_multi")]
+#[test]
+fn multi_line_string_test() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
+        Geometry::MultiLineString(testing::multi_ls(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de
+        .iter::<geo_types::MultiLineString, NoProps>()
+        .next()
+        .unwrap()?;
+    assert_eq!(geom, testing::mls(0));
+    Ok(())
+}
+
+/// Point format → MultiPoint struct (ok)
+/// Requires DeserializeGeometry for MultiPoint (not yet implemented)
+#[cfg(feature = "__de_multi")]
+#[test]
+fn point_to_multi_point() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+        Geometry::Point(testing::p(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de
+        .iter::<geo_types::MultiPoint, NoProps>()
+        .next()
+        .unwrap()?;
+    assert_eq!(geom, geo_types::MultiPoint::new(vec![testing::p(0)]));
+    Ok(())
+}
+
+/// MultiPoint format → Point struct (ok)
+#[test]
+fn multi_point_to_point() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
+        Geometry::MultiPoint(testing::multi_p(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
+    assert_eq!(geom, testing::p(0));
+    Ok(())
+}
+
+/// MultiPoint format → Polygon struct (ok)
+/// Requires DeserializeGeometry for Polygon to accept MultiPoint (cross-type)
+#[test]
+fn multi_point_to_polygon() -> anyhow::Result<()> {
+    let ring = geo_types::MultiPoint::new(vec![
+        testing::p(0),
+        testing::p(1),
+        testing::p(2),
+        testing::p(0),
+    ]);
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
+        Geometry::MultiPoint(ring.clone()).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de
+        .iter::<geo_types::Polygon, NoProps>()
+        .next()
+        .unwrap()?;
+    let expected = geo_types::Polygon::new(
+        geo_types::LineString::new(ring.into_iter().map(|p| p.0).collect()),
+        vec![],
+    );
+    assert_eq!(geom, expected);
+    Ok(())
+}
+
+/// LineString format → MultiLineString struct (ok)
+/// Requires DeserializeGeometry for MultiLineString (not yet implemented)
+#[cfg(feature = "__de_multi")]
+#[test]
+fn line_string_to_multi_line_string() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
+        Geometry::LineString(testing::ls(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = fgb_de
+        .iter::<geo_types::MultiLineString, NoProps>()
+        .next()
+        .unwrap()?;
+    assert_eq!(geom, geo_types::MultiLineString::new(vec![testing::ls(0)]));
+    Ok(())
+}
+
+/// Point format → LineString struct (not supported, should error)
+#[test]
+fn point_to_line_string_fails() {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+        Geometry::Point(testing::p(0)).process_geom(&mut w).unwrap();
+        w.feature_end(0).unwrap();
+        w.write(&mut fgb_buf).unwrap();
+    }
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
+    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let result = fgb_de
+        .iter::<geo_types::LineString, NoProps>()
+        .next()
+        .unwrap();
+    assert!(result.is_err());
+}
