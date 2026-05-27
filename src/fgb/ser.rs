@@ -5,6 +5,10 @@ use geo_traits::{
     CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
+    to_geo::{
+        ToGeoLine, ToGeoLineString, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoMultiPolygon,
+        ToGeoPoint, ToGeoPolygon, ToGeoRect, ToGeoTriangle,
+    },
 };
 
 use crate::fgb::Error;
@@ -47,24 +51,10 @@ impl LayerSerializer {
         }
     }
 
-    // 【問題】引数を `impl GeometryTrait<T = f64>` にして本体で
-    //   `ToGeoGeometry::try_to_geometry(&geometry)` を呼ぶと、
-    //   `--release` ビルドのみ以下のコンパイルエラーになる（debug では再現しない）:
-    //     error[E0275]: overflow evaluating the requirement
-    //       `impl GeometryTrait<T = f64>: GeometryTrait`
-    //   原因は rustc #128887 / georust/geo #1385:
-    //   `ToGeoGeometry` の blanket impl を解決しようとすると trait solver が
-    //   GeometryCollectionTrait の associated type を再帰的に展開して overflow する。
-    //
-    // 【回避策】引数を `impl Into<geo_types::Geometry<f64>>` に閉じることで
-    //   `ToGeoGeometry` の blanket impl を経由しなくて済むようにしている。
-    //   任意の `GeometryTrait` 実装を受けたい場合は呼び出し側で
-    //   `geo_types::Geometry::<f64>` に変換してから渡す。
-
     /// Add a feature (geometry + properties) to this layer.
     pub fn add_feature(
         &mut self,
-        geometry: impl Into<geo_types::Geometry<f64>>,
+        geometry: impl GeometryTrait<T = f64>,
         properties: impl serde::Serialize,
     ) -> Result<(), Error> {
         let entries = FlatProperties::flatten(properties)?.into_entries();
@@ -83,7 +73,7 @@ impl LayerSerializer {
                 });
             self.prop_pool.push((idx, value));
         }
-        self.geometries.push(geometry.into());
+        self.geometries.push(to_geo_geometry(&geometry));
         self.prop_offsets.push(self.prop_pool.len() as u32);
         Ok(())
     }
@@ -413,6 +403,33 @@ fn process_line(
     processor.xy(start.x(), start.y(), 0)?;
     processor.xy(end.x(), end.y(), 1)?;
     processor.linestring_end(true, idx)
+}
+
+// --- GeometryTrait → geo_types bridge ---
+//
+// `ToGeoGeometry` の blanket impl は trait solver overflow (rustc #128887) を
+// 起こすため、`as_type()` で分解して個別の `ToGeoXxx` で変換する。
+// `GeometryCollection` は `ToGeoGeometryCollection` も内部で `ToGeoGeometry` を
+// 呼ぶため手動で再帰する。
+
+fn to_geo_geometry(geom: &impl GeometryTrait<T = f64>) -> geo_types::Geometry<f64> {
+    match geom.as_type() {
+        GeometryType::Point(g) => geo_types::Geometry::Point(g.to_point()),
+        GeometryType::LineString(g) => geo_types::Geometry::LineString(g.to_line_string()),
+        GeometryType::Polygon(g) => geo_types::Geometry::Polygon(g.to_polygon()),
+        GeometryType::MultiPoint(g) => geo_types::Geometry::MultiPoint(g.to_multi_point()),
+        GeometryType::MultiLineString(g) => {
+            geo_types::Geometry::MultiLineString(g.to_multi_line_string())
+        }
+        GeometryType::MultiPolygon(g) => geo_types::Geometry::MultiPolygon(g.to_multi_polygon()),
+        GeometryType::GeometryCollection(g) => {
+            let geoms = g.geometries().map(|g| to_geo_geometry(&g)).collect();
+            geo_types::Geometry::GeometryCollection(geo_types::GeometryCollection(geoms))
+        }
+        GeometryType::Rect(g) => geo_types::Geometry::Rect(g.to_rect()),
+        GeometryType::Triangle(g) => geo_types::Geometry::Triangle(g.to_triangle()),
+        GeometryType::Line(g) => geo_types::Geometry::Line(g.to_line()),
+    }
 }
 
 // --- FieldValue → flatgeobuf bridge ---
