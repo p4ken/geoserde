@@ -20,7 +20,7 @@ use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableSerialize
 ///
 /// 1. Call [`add_feature`](Self::add_feature) for each feature to flatten its
 ///    properties and store them alongside the geometry.
-/// 2. Optionally reorder columns with [`set_columns`](Self::set_columns),
+/// 2. Optionally reorder columns with [`sort_columns`](Self::sort_columns),
 ///    then call [`write_features`](Self::write_features) with an
 ///    [`FgbWriter`] to emit all features at once.
 ///
@@ -87,40 +87,30 @@ impl LayerSerializer {
         self.columns.iter().map(|s| s.as_str())
     }
 
-    /// Sets the column order used when writing features.
+    /// Reorders columns using a stable sort with the given comparator.
     ///
-    /// `columns` must contain exactly the same set of columns as the
-    /// current layer (reordering only; adding or removing columns is
-    /// not supported).
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Error`] if `columns` does not match the existing column set.
-    pub fn set_columns(&mut self, columns: Vec<String>) -> Result<(), Error> {
-        let new_idx: std::collections::HashMap<String, u32> =
-            columns.iter().cloned().zip(0u32..).collect();
-        let remap: Vec<u32> = self
-            .columns
-            .iter()
-            .map(|k| new_idx.get(k).copied())
-            .collect::<Option<_>>()
-            .ok_or_else(|| {
-                Error::Source(format!(
-                    "column set mismatch: expected {:?}, got {:?}",
-                    self.columns, columns,
-                ))
-            })?;
-        let mut new_types = vec![flatgeobuf::ColumnType::String; columns.len()];
-        for (old, &ty) in self.column_types.iter().enumerate() {
-            new_types[remap[old] as usize] = ty;
+    /// Columns that compare `Equal` retain their original insertion order.
+    pub fn sort_columns<F>(&mut self, mut cmp: F)
+    where
+        F: FnMut(&str, &str) -> std::cmp::Ordering,
+    {
+        let mut indices: Vec<usize> = (0..self.columns.len()).collect();
+        indices.sort_by(|&a, &b| cmp(&self.columns[a], &self.columns[b]));
+
+        let mut remap = vec![0u32; self.columns.len()];
+        for (new, &old) in indices.iter().enumerate() {
+            remap[old] = new as u32;
         }
+
+        let new_columns: Vec<String> = indices.iter().map(|&i| self.columns[i].clone()).collect();
+        let new_types: Vec<_> = indices.iter().map(|&i| self.column_types[i]).collect();
+
         for (idx, _) in &mut self.prop_pool {
             *idx = remap[*idx as usize];
         }
-        self.columns = columns;
-        self.column_idx = new_idx;
+        self.column_idx = new_columns.iter().cloned().zip(0u32..).collect();
+        self.columns = new_columns;
         self.column_types = new_types;
-        Ok(())
     }
 
     /// Writes all collected features to the given [`FgbWriter`].

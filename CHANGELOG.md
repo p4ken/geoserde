@@ -51,7 +51,6 @@ for feat in &features {
     layer.add_feature(&feat.geometry, feat);
 }
 // optionally reorder columns
-// layer.set_columns(sorted_keys);
 let mut fgb = FgbWriter::create("layer", GeometryType::Unknown)?;
 layer.write_features(&mut fgb)?;
 ```

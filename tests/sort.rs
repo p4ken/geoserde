@@ -38,18 +38,23 @@ fn partial_sort_test() -> anyhow::Result<()> {
     ser.add_feature(geom, &feat1)?;
     ser.add_feature(geom, &feat2)?;
 
-    // 3. extra_keys に含まれないキー(ソートしない) → 含まれるキー(ソート済み)
-    let mut columns: Vec<String> = ser
-        .keys()
-        .filter(|k| !sorted_keys.contains(*k))
-        .map(|k| k.to_owned())
-        .collect();
-    columns.extend(sorted_keys);
+    // 3. sorted_keys に含まれないキー(挿入順維持) → 含まれるキー(辞書順)
+    ser.sort_columns(|a, b| {
+        use std::cmp::Ordering;
+        match (sorted_keys.contains(a), sorted_keys.contains(b)) {
+            (false, true) => Ordering::Less,
+            (true, false) => Ordering::Greater,
+            (true, true) => a.cmp(b),
+            (false, false) => Ordering::Equal,
+        }
+    });
 
-    assert_eq!(columns, vec!["name", "a_col", "m_col", "z_col"]);
+    assert_eq!(
+        ser.keys().collect::<Vec<_>>(),
+        vec!["name", "a_col", "m_col", "z_col"]
+    );
 
-    // 4. Pass column order and write features
-    ser.set_columns(columns)?;
+    // 4. Write features
     let mut fgb_writer = flatgeobuf::FgbWriter::create("", flatgeobuf::GeometryType::Point)?;
     ser.write_features(&mut fgb_writer)?;
 
