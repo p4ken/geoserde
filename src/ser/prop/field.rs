@@ -13,16 +13,24 @@ use crate::ser::prop::{
     elem::{StringLike, Stringifier, StringifyError},
 };
 
+/// Trait for sinks that receive flattened key-value property pairs.
+///
+/// Implement this trait to consume the output of [`TableSerializer`](super::TableSerializer).
+/// A blanket implementation is provided for any [`SerializeMap`].
 pub trait SerializeProperties {
+    /// The successful return type.
     type Ok;
+    /// The error type.
     type Error: Error;
 
+    /// Write a single key-value property pair.
     fn serialize_property(
         &mut self,
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error>;
 
+    /// Finish writing and return the result.
     fn end(self) -> Result<Self::Ok, Self::Error>;
 }
 
@@ -43,7 +51,7 @@ impl<M: SerializeMap> SerializeProperties for M {
     }
 }
 
-/// Serializes fields with flattenning source structures recursively.
+/// Serializer that recursively flattens nested structures into key-value pairs.
 #[derive(Debug)]
 pub struct FieldSerializer<P> {
     sink: P,

@@ -5,6 +5,19 @@ use serde::{
 
 use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer};
 
+/// Controls how nested structures and arrays are flattened into property keys.
+///
+/// Use [`FlattenOption::full`] for the default configuration, or chain builder
+/// methods to customise separators.
+///
+/// # Example
+///
+/// ```
+/// use geoserde::ser::FlattenOption;
+///
+/// // Use "/" instead of "." for nested attributes
+/// let option = FlattenOption::full().object("/");
+/// ```
 #[derive(Debug)]
 pub struct FlattenOption {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
@@ -20,7 +33,10 @@ pub struct FlattenOption {
 }
 
 impl FlattenOption {
-    /// Flatten all nested attributes and arrays with default separators.
+    /// Returns the default option that flattens everything.
+    ///
+    /// Nested attributes are joined with `"."`, arrays are joined with `","`,
+    /// and array indices use `"["` / `"]"` brackets.
     pub const fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
@@ -33,18 +49,24 @@ impl FlattenOption {
         }
     }
 
+    /// Enables nested-object flattening with the given key separator.
     pub const fn object(mut self, sep: &'static str) -> Self {
         self.flatten_nested_attribute = true;
         self.nested_attribute_separator = sep;
         self
     }
 
+    /// Enables simple-array flattening, joining elements with `sep`.
     pub const fn simple_array(mut self, sep: &'static str) -> Self {
         self.array_as_string = true;
         self.array_element_separator = sep;
         self
     }
 
+    /// Enables complex-array flattening with indexed keys.
+    ///
+    /// Each element is serialized under `key{prefix}{index}{suffix}`
+    /// (e.g. `items[0]`).
     pub const fn object_array(mut self, prefix: &'static str, suffix: &'static str) -> Self {
         self.flatten_nested_array = true;
         self.nested_array_index_prefix = prefix;
@@ -53,16 +75,47 @@ impl FlattenOption {
     }
 }
 
+/// A serde [`Serializer`] that flattens structs and maps into key-value
+/// property pairs.
+///
+/// The root value must be a struct or map; scalar values and sequences at
+/// the root level produce a [`TableError::Root`] error.
+///
+/// # Example
+///
+/// ```
+/// use geoserde::ser::{TableSerializer, SerializeProperties, FieldValue};
+/// use serde::Serialize;
+/// use std::borrow::Cow;
+///
+/// #[derive(Serialize)]
+/// struct Props { name: String, value: i32 }
+///
+/// struct Printer;
+/// impl SerializeProperties for &mut Printer {
+///     type Ok = ();
+///     type Error = geoserde::ser::SourceError;
+///     fn serialize_property(&mut self, key: Cow<'static, str>, value: FieldValue<'_>) -> Result<(), Self::Error> { Ok(()) }
+///     fn end(self) -> Result<(), Self::Error> { Ok(()) }
+/// }
+///
+/// let mut sink = Printer;
+/// let ser = TableSerializer::new(&mut sink);
+/// Props { name: "a".into(), value: 1 }.serialize(ser)?;
+/// # Ok::<(), geoserde::ser::TableError<geoserde::ser::SourceError>>(())
+/// ```
 #[derive(Debug)]
 pub struct TableSerializer<P> {
     child: FieldSerializer<P>,
 }
 
 impl<P: SerializeProperties> TableSerializer<P> {
+    /// Creates a new `TableSerializer` with the default [`FlattenOption::full`].
     pub fn new(sink: P) -> Self {
         Self::with_option(sink, FlattenOption::full())
     }
 
+    /// Creates a new `TableSerializer` with custom flattening options.
     pub fn with_option(sink: P, option: FlattenOption) -> Self {
         Self {
             child: FieldSerializer::new(sink, option),
@@ -278,10 +331,14 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
     }
 }
 
+/// Error type for [`TableSerializer`].
 #[derive(Debug)]
 pub enum TableError<E> {
+    /// The root value was not a struct or map.
     Root,
+    /// A map key could not be converted to a string.
     Key(StringifyError),
+    /// An error propagated from the downstream [`SerializeProperties`] sink.
     Sink(E),
 }
 

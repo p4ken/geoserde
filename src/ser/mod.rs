@@ -1,3 +1,11 @@
+//! Property serialization into flat key-value tables.
+//!
+//! This module flattens nested Rust structs and maps into a single layer of
+//! key-value pairs suitable for attribute tables in GIS formats. Nested keys
+//! are joined with a configurable separator (e.g. `"parent.child"`).
+//!
+//! See [`TableSerializer`] for the main entry point.
+
 mod prop;
 
 pub use prop::{
@@ -5,6 +13,7 @@ pub use prop::{
     flatten_keys,
 };
 
+/// An error originating from the data source during property serialization.
 #[derive(Debug)]
 pub struct SourceError(String);
 

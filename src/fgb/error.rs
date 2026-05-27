@@ -1,22 +1,24 @@
 use crate::de::GeometryTypeMismatch;
 use crate::fgb::de::FeatureError;
 
+/// Error type for FlatGeobuf operations.
 #[derive(Debug)]
 pub enum Error {
-    /// FlatGeobuf 形式エラー（破損ファイル、ヘッダ不正、index 不在など）。
+    /// FlatGeobuf format error (corrupted file, invalid header, missing index, etc.).
     Fgb(flatgeobuf::Error),
-    /// `geozero::GeomProcessor` 駆動中のエラー（書き込み時）。
+    /// Error during geozero geometry processing (writing).
     Geozero(flatgeobuf::geozero::error::GeozeroError),
-    /// ユーザー型の `DeserializeGeometry` がジオメトリ種別の不一致を返した。
+    /// The user's [`DeserializeGeometry`](crate::de::DeserializeGeometry) impl
+    /// returned a geometry type mismatch.
     GeometryType(GeometryTypeMismatch),
-    /// feature にジオメトリが含まれていなかった。
+    /// The feature did not contain a geometry.
     MissingGeometry,
-    /// FlatGeobuf の properties に未対応の `ColumnType` が現れた。
+    /// An unsupported `ColumnType` was encountered in the FlatGeobuf properties.
     UnsupportedColumnType(u8),
-    /// properties の serde 経由エラー。
+    /// Error from FlatGeobuf property deserialization via serde.
     Feature(FeatureError),
-    /// ユーザー側 `Serialize` / `Deserialize` 由来の汎用エラー
-    /// （`serde::ser::Error::custom` / `TableError::Root` / `TableError::Key` 等）。
+    /// A generic error originating from the user's `Serialize` / `Deserialize`
+    /// implementation.
     Source(String),
 }
 

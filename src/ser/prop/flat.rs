@@ -5,7 +5,16 @@ use serde::Serialize;
 use super::{FieldValue, SerializeProperties, TableError, TableSerializer};
 use crate::ser::SourceError;
 
-/// Flatten a serializable value and collect only its keys, discarding values.
+/// Flattens a serializable value and collects only its property keys,
+/// discarding the values.
+///
+/// This is useful for inspecting the schema of a struct before writing
+/// features (e.g. to set column order with
+/// [`LayerSerializer::set_columns`](crate::fgb::LayerSerializer::set_columns)).
+///
+/// # Errors
+///
+/// Returns [`TableError`] if the source value is not a struct or map.
 pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<SourceError>> {
     let mut keys = KeySink(Vec::new());
     let table_ser = TableSerializer::new(&mut keys);
@@ -34,16 +43,20 @@ impl SerializeProperties for &mut KeySink {
     }
 }
 
-/// Flattened key-value representation of a serializable object's properties.
+/// Flattened key-value representation of a serializable value.
 ///
-/// Uses `TableSerializer` to recursively flatten nested structures into
-/// dot-separated key-value pairs (e.g. `extra.z_col`).
+/// Created by [`FlatProperties::flatten`]. Nested structures are recursively
+/// expanded into dot-separated keys (e.g. `extra.z_col`).
 pub struct FlatProperties {
     entries: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
 impl FlatProperties {
-    /// Flatten a serializable value into key-value pairs.
+    /// Flattens a serializable value into key-value pairs.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TableError`] if the source value is not a struct or map.
     pub fn flatten(source: impl Serialize) -> Result<Self, TableError<SourceError>> {
         let mut collector = FlatProperties {
             entries: Vec::new(),
@@ -53,17 +66,17 @@ impl FlatProperties {
         Ok(collector)
     }
 
-    /// Returns an iterator over the property keys.
+    /// Returns an iterator over the flattened property keys.
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.entries.iter().map(|(k, _)| k.as_ref())
     }
 
-    /// Look up a value by key name.
+    /// Looks up a value by key name.
     pub fn get(&self, key: &str) -> Option<&FieldValue<'static>> {
         self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }
 
-    /// Consume the flattened properties, returning the underlying entries.
+    /// Consumes the flattened properties, returning the underlying entries.
     pub fn into_entries(self) -> Vec<(Cow<'static, str>, FieldValue<'static>)> {
         self.entries
     }

@@ -5,18 +5,57 @@ use serde::de::IntoDeserializer;
 use crate::de::DeserializeGeometry;
 use crate::fgb::Error;
 
+/// Deserializes features (geometry + properties) from a FlatGeobuf source.
+///
+/// # Example
+///
+/// ```no_run
+/// # use std::error::Error;
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// use geoserde::fgb::FeatureDeserializer;
+/// use serde::Deserialize;
+///
+/// #[derive(Deserialize)]
+/// struct Props { name: String }
+///
+/// let file = std::fs::File::open("example.fgb")?;
+/// let reader = geoserde::fgb::flatgeobuf::FgbReader::open(
+///     std::io::BufReader::new(file),
+/// )?;
+/// let mut de = FeatureDeserializer::new(reader)?;
+/// for result in de.iter::<geo_types::Point, Props>() {
+///     let (geom, props) = result?;
+/// }
+/// # Ok(())
+/// # }
+/// ```
 pub struct FeatureDeserializer<R> {
     fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
     header: OwnedHeader,
 }
 
 impl<R: Read + Seek> FeatureDeserializer<R> {
+    /// Creates a new deserializer from an [`FgbReader`](flatgeobuf::FgbReader).
+    ///
+    /// All features are selected. The header is cloned internally because
+    /// the underlying iterator requires mutable access.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the FlatGeobuf header is invalid.
     pub fn new(fgb_reader: flatgeobuf::FgbReader<R>) -> Result<Self, Error> {
         let fgb_iter = fgb_reader.select_all()?;
         let header = fgb_iter.header().into();
         Ok(Self { fgb_iter, header })
     }
 
+    /// Deserializes the next feature into a geometry and a properties struct.
+    ///
+    /// Returns `Ok(None)` when there are no more features.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] on I/O, format, or deserialization failures.
     pub fn deserialize_feature<G: DeserializeGeometry, P: serde::de::DeserializeOwned>(
         &mut self,
     ) -> Result<Option<(G, P)>, Error> {
@@ -31,6 +70,7 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
         Ok(Some((geom, prop)))
     }
 
+    /// Returns an iterator over deserialized features.
     pub fn iter<G, P>(&mut self) -> Features<'_, R, G, P>
     where
         G: DeserializeGeometry,
@@ -43,6 +83,7 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
     }
 }
 
+/// Iterator adapter returned by [`FeatureDeserializer::iter`].
 pub struct Features<'a, R, G, P> {
     inner: &'a mut FeatureDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,
@@ -61,6 +102,8 @@ where
     }
 }
 
+/// Low-level serde [`MapAccess`](serde::de::MapAccess) over a single
+/// FlatGeobuf feature's property columns.
 pub struct FeatureAccess<'de> {
     header: &'de OwnedHeader,
     col_type: Option<flatgeobuf::ColumnType>,
@@ -68,6 +111,7 @@ pub struct FeatureAccess<'de> {
 }
 
 impl<'de> FeatureAccess<'de> {
+    /// Creates a new `FeatureAccess` from a header and a FlatGeobuf feature.
     pub fn new(header: &'de OwnedHeader, feat: &'de flatgeobuf::FgbFeature) -> Self {
         Self {
             header,
@@ -187,11 +231,11 @@ impl<'de> IntoDeserializer<'de, FeatureError> for FeatureAccess<'de> {
     }
 }
 
-/// Owned clones of fbs header.
+/// Owned copy of a FlatGeobuf header.
 ///
-/// Why deep copy is needed:
-/// - `flatgeobuf::FeatureIter::next()` takes `&mut self` which contains the header.
-/// - `flatgeobuf::FgbFeature::header()` is private.
+/// A deep copy is required because the feature iterator's `next()` method
+/// takes `&mut self` (which contains the header) while deserialization needs
+/// shared access.
 pub struct OwnedHeader {
     cols: Vec<OwnedColumn>,
 }
@@ -220,11 +264,16 @@ impl From<flatgeobuf::Column<'_>> for OwnedColumn {
     }
 }
 
+/// Error returned when deserializing a single FlatGeobuf feature's properties.
 #[derive(Debug)]
 pub enum FeatureError {
+    /// The column key could not be deserialized.
     Key(serde::de::value::Error),
+    /// The property buffer was truncated or contained invalid data.
     Property(PropertyError),
+    /// The column type is not supported by this deserializer.
     UnsupportedColumnType(u8),
+    /// A `serde::Deserialize` implementation returned an error.
     Deserialize(serde::de::value::Error),
 }
 
@@ -261,9 +310,12 @@ impl From<PropertyError> for FeatureError {
     }
 }
 
+/// Error returned when reading raw property bytes from a FlatGeobuf feature.
 #[derive(Debug)]
 pub enum PropertyError {
+    /// The property buffer ended before the expected number of bytes.
     Short,
+    /// A string property contained invalid UTF-8.
     Utf8(std::str::Utf8Error),
 }
 

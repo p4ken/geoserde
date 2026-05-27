@@ -14,32 +14,31 @@ use geo_traits::{
 use crate::fgb::Error;
 use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableSerializer};
 
-/// FlatGeobuf layer serializer.
+/// FlatGeobuf layer serializer that collects features in memory before writing.
 ///
-/// Collects features in two phases:
-/// 1. `add_feature()` flattens each feature's properties and stores them with geometry.
-/// 2. After sorting `keys()`, call `write_features()` with an `FgbWriter` to emit all features.
+/// This serializer works in two phases:
 ///
-/// メモリ最適化:
-/// - キー文字列は layer 全体で 1 度だけ heap に持つ（`columns`）
-/// - 値は `FieldValue<'static>` (24B) を直接保持（`Box<str>`/`Box<[u8]>` の variant 経由）
-/// - 各 feature の entry 列は外側 `Vec<Vec<_>>` ではなく 1 本の flat pool +
-///   feature 境界 offset で表現（inner Vec の heap オーバーヘッドを削減）
+/// 1. Call [`add_feature`](Self::add_feature) for each feature to flatten its
+///    properties and store them alongside the geometry.
+/// 2. Optionally reorder columns with [`set_columns`](Self::set_columns),
+///    then call [`write_features`](Self::write_features) with an
+///    [`FgbWriter`] to emit all features at once.
+///
+/// This two-pass approach allows the column set and order to be determined
+/// from the union of all features before any data is written.
 pub struct LayerSerializer {
     column_idx: std::collections::HashMap<String, u32>,
     columns: Vec<String>,
-    /// 各列の型。各列で最初に登場した値の型を採用する。
     column_types: Vec<flatgeobuf::ColumnType>,
     geometries: Vec<geo_types::Geometry<f64>>,
-    /// 全 feature の entry を連結した flat pool。
+    /// Flat pool of all features' entries, concatenated.
     prop_pool: Vec<(u32, FieldValue<'static>)>,
-    /// 各 feature の entry が `prop_pool` 上で終わる位置（cumulative）。
-    /// feature `i` の range は `prop_offsets[i]..prop_offsets[i+1]`。
-    /// 番兵として最後に `prop_pool.len()` を push する。
+    /// Cumulative end-offsets into `prop_pool` for each feature.
     prop_offsets: Vec<u32>,
 }
 
 impl LayerSerializer {
+    /// Creates a new, empty `LayerSerializer`.
     pub fn new() -> Self {
         LayerSerializer {
             column_idx: std::collections::HashMap::new(),
@@ -51,7 +50,11 @@ impl LayerSerializer {
         }
     }
 
-    /// Add a feature (geometry + properties) to this layer.
+    /// Adds a feature (geometry + properties) to this layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if the properties cannot be flattened.
     pub fn add_feature(
         &mut self,
         geometry: impl GeometryTrait<T = f64>,
@@ -78,14 +81,15 @@ impl LayerSerializer {
         Ok(())
     }
 
-    /// Returns an iterator over the union of all flattened keys.
+    /// Returns an iterator over the union of all property keys seen so far.
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.columns.iter().map(|s| s.as_str())
     }
 
-    /// Set the column order to use when writing features.
+    /// Sets the column order used when writing features.
     ///
-    /// `columns` には既存の全列を含めること（順序入れ替えのみ可、列の追加・削除は不可）。
+    /// `columns` must contain all existing columns (reordering only;
+    /// adding or removing columns is not supported).
     pub fn set_columns(&mut self, columns: Vec<String>) {
         let new_idx: std::collections::HashMap<String, u32> =
             columns.iter().cloned().zip(0u32..).collect();
@@ -102,16 +106,15 @@ impl LayerSerializer {
         self.column_types = new_types;
     }
 
-    /// Write all collected features to the FgbWriter using the current key order.
+    /// Writes all collected features to the given [`FgbWriter`].
     ///
-    /// `FgbWriter::property` は連番 idx でしか列を auto-declare しない仕様のため、
-    /// 全 feature を書く前に `add_column` で列を宣言してしまう。
+    /// Columns are declared in the current key order before any features
+    /// are written. Memory is released incrementally as features are
+    /// consumed.
     ///
-    /// メモリ戦略:
-    /// - `geometries` / `prop_pool` を一度 `reverse()` してから `pop()` で末尾から消費。
-    ///   `into_iter()` だと IntoIter が backing buffer (capacity × size_of) を関数末尾まで
-    ///   保持してしまい、要素 heap を drop しても slot 領域が残って OOM の原因になる。
-    /// - 容量が len の倍以上になったら `shrink_to_fit()` で実バッファを縮める（償却 O(N)）。
+    /// # Errors
+    ///
+    /// Returns [`Error`] if geometry processing or property writing fails.
     pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
         let LayerSerializer {
             column_idx: _,
@@ -126,7 +129,7 @@ impl LayerSerializer {
             writer.add_column(key, ty, |_, _| {});
         }
 
-        // pop() で原順序になるよう一度反転（in-place, 追加 alloc なし）。
+        // Reverse so that pop() yields features in the original order.
         geometries.reverse();
         prop_pool.reverse();
 
@@ -148,11 +151,7 @@ impl LayerSerializer {
             }
             flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
 
-            // 1024 features ごとに backing buffer を縮小して OS にメモリを返す。
-            // mmap バックの大きな Vec では shrink_to_fit は realloc コピーを伴わず
-            // mremap/munmap による page decommit になるため O(1)。
-            // これにより dead capacity は常に最大 1024 slot 分（geometries で 64KB、
-            // prop_pool で 32KB×列数）に抑えられ、OOM を回避できる。
+            // Periodically shrink backing buffers to return memory to the OS.
             if (i + 1) % 1024 == 0 {
                 geometries.shrink_to_fit();
                 prop_pool.shrink_to_fit();
@@ -162,13 +161,17 @@ impl LayerSerializer {
     }
 }
 
-/// FlatGeobuf feature serializer
+/// Streaming FlatGeobuf feature serializer.
+///
+/// Unlike [`LayerSerializer`], this serializer writes each feature directly
+/// to the [`FgbWriter`] as it is serialized, without buffering.
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,
 }
 
 impl<'a> FeatureSerializer<'a> {
+    /// Creates a new `FeatureSerializer` wrapping the given [`FgbWriter`].
     pub fn new(writer: FgbWriter<'a>) -> Self {
         Self {
             writer,
@@ -176,6 +179,12 @@ impl<'a> FeatureSerializer<'a> {
         }
     }
 
+    /// Serializes a single feature (geometry + properties) to the writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error`] if geometry processing or property serialization
+    /// fails.
     pub fn serialize_feature(
         &mut self,
         geometry: impl GeometryTrait<T = f64>,
@@ -188,6 +197,7 @@ impl<'a> FeatureSerializer<'a> {
         Ok(())
     }
 
+    /// Consumes this serializer and returns the inner [`FgbWriter`].
     pub fn into_inner(self) -> FgbWriter<'a> {
         self.writer
     }

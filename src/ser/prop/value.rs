@@ -1,5 +1,14 @@
 use serde::Serialize;
 
+/// A dynamically-typed property value.
+///
+/// `FieldValue` represents a single scalar value in a flattened property table.
+/// Borrowed variants ([`Str`](Self::Str), [`Bytes`](Self::Bytes)) reference the
+/// original data, while owned variants ([`BoxedStr`](Self::BoxedStr),
+/// [`BoxedBytes`](Self::BoxedBytes)) hold heap-allocated copies.
+///
+/// Use [`into_owned`](Self::into_owned) to convert borrowed variants into their
+/// owned equivalents.
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum FieldValue<'a> {
@@ -14,13 +23,19 @@ pub enum FieldValue<'a> {
     U64(u64),
     F32(f32),
     F64(f64),
+    /// Borrowed string slice.
     Str(&'a str),
+    /// Owned, heap-allocated string.
     BoxedStr(Box<str>),
+    /// Borrowed byte slice.
     Bytes(&'a [u8]),
+    /// Owned, heap-allocated byte buffer.
     BoxedBytes(Box<[u8]>),
 }
 
 impl FieldValue<'_> {
+    /// Converts this value into a `FieldValue<'static>` by copying any
+    /// borrowed data onto the heap.
     pub fn into_owned(self) -> FieldValue<'static> {
         match self {
             Self::Bool(v) => FieldValue::Bool(v),

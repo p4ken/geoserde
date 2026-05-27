@@ -1,9 +1,9 @@
 #![cfg(feature = "fgb")]
 
-//! SerDe implementation for FlatGeobuf.
+//! [FlatGeobuf](https://flatgeobuf.org/) serialization and deserialization.
 //!
-//! It might be better to separate this module into other crate
-//! like "geoserde-fgb" (or the official "flatgeobuf" crate).
+//! Use [`FeatureDeserializer`] to read features from a FlatGeobuf file, and
+//! [`FeatureSerializer`] or [`LayerSerializer`] to write them.
 
 pub mod de;
 mod error;
