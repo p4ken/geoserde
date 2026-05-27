@@ -47,13 +47,21 @@ impl LayerSerializer {
         }
     }
 
+    // 【問題】引数を `impl GeometryTrait<T = f64>` にして本体で
+    //   `ToGeoGeometry::try_to_geometry(&geometry)` を呼ぶと、
+    //   `--release` ビルドのみ以下のコンパイルエラーになる（debug では再現しない）:
+    //     error[E0275]: overflow evaluating the requirement
+    //       `impl GeometryTrait<T = f64>: GeometryTrait`
+    //   原因は rustc #128887 / georust/geo #1385:
+    //   `ToGeoGeometry` の blanket impl を解決しようとすると trait solver が
+    //   GeometryCollectionTrait の associated type を再帰的に展開して overflow する。
+    //
+    // 【回避策】引数を `impl Into<geo_types::Geometry<f64>>` に閉じることで
+    //   `ToGeoGeometry` の blanket impl を経由しなくて済むようにしている。
+    //   任意の `GeometryTrait` 実装を受けたい場合は呼び出し側で
+    //   `geo_types::Geometry::<f64>` に変換してから渡す。
+
     /// Add a feature (geometry + properties) to this layer.
-    ///
-    /// 引数を `impl Into<geo_types::Geometry<f64>>` に閉じることで、
-    /// `geo_traits::to_geo::ToGeoGeometry` の blanket impl 経由の trait solver 再帰
-    /// (rustc #128887 / georust/geo #1385) を回避している。
-    /// 任意の `GeometryTrait` 実装を受けたい場合は呼び出し側で
-    /// `geo_types::Geometry::<f64>` に変換してから渡す。
     pub fn add_feature(
         &mut self,
         geometry: impl Into<geo_types::Geometry<f64>>,

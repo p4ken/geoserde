@@ -7,6 +7,7 @@ build-%: FORCE
 
 test: FORCE
 	cargo test --all-features
+	cargo test --all-features --release
 
 doc: FORCE
 	cargo +nightly doc --all-features

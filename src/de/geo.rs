@@ -8,12 +8,9 @@ use geo_traits::{
 
 use crate::de::{DeserializeGeometry, GeometryTypeMismatch};
 
-// `ToGeoGeometry::try_to_geometry` を直接呼ばないのは、`impl GeometryTrait<T=f64>` を
-// 経由した呼び出しが trait solver の再帰展開で overflow するため
-// (rustc #128887 / georust/geo #1385)。
-// 単一バリアントのみを `as_type()` で取り出して `to_point` / `to_line_string` を呼ぶ
-// blanket impl は、その内部で `GeometryTrait` を辿らないので再帰しない。
-
+// `as_type()` で取り出した個別バリアントに `ToGeoPoint` 等の個別 trait を呼ぶ方式は
+// `GeometryTrait` を辿らないため、`ToGeoGeometry` で起きる trait solver overflow
+// (rustc #128887) の影響を受けない。
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<T: GeometryTrait<T = f64>>(
         source: T,
