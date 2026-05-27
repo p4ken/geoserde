@@ -194,8 +194,6 @@ fn primitive_test() -> anyhow::Result<()> {
 }
 
 /// MultiPoint format → MultiPoint struct (ok, diagonal)
-/// Requires DeserializeGeometry for MultiPoint (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn multi_point_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
@@ -215,13 +213,11 @@ fn multi_point_test() -> anyhow::Result<()> {
         .iter::<geo_types::MultiPoint, NoProps>()
         .next()
         .unwrap()?;
-    assert_eq!(geom, testing::mp(0));
+    assert_eq!(geom, testing::multi_p(0));
     Ok(())
 }
 
 /// MultiLineString format → MultiLineString struct (ok, diagonal)
-/// Requires DeserializeGeometry for MultiLineString (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn multi_line_string_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
@@ -241,13 +237,11 @@ fn multi_line_string_test() -> anyhow::Result<()> {
         .iter::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap()?;
-    assert_eq!(geom, testing::mls(0));
+    assert_eq!(geom, testing::multi_ls(0));
     Ok(())
 }
 
 /// Point format → MultiPoint struct (ok)
-/// Requires DeserializeGeometry for MultiPoint (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn point_to_multi_point() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
@@ -328,8 +322,6 @@ fn multi_point_to_polygon() -> anyhow::Result<()> {
 }
 
 /// LineString format → MultiLineString struct (ok)
-/// Requires DeserializeGeometry for MultiLineString (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn line_string_to_multi_line_string() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();

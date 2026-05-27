@@ -28,10 +28,7 @@ fn line_string_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de
-        .iter::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
+    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -74,17 +71,12 @@ fn multi_line_string_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de
-        .iter::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
+    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
 
 /// MultiLineString(1 line) → MultiPoint: flatten single element
-/// Requires DeserializeGeometry for MultiPoint (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn multi_line_string_to_multi_point() -> anyhow::Result<()> {
     let single = geo_types::MultiLineString::new(vec![testing::ls(0)]);
@@ -133,10 +125,7 @@ fn polygon_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de
-        .iter::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
+    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -171,8 +160,6 @@ fn polygon_to_line_string() -> anyhow::Result<()> {
 }
 
 /// Polygon → MultiLineString (ok, not flatten)
-/// Requires DeserializeGeometry for MultiLineString (not yet implemented)
-#[cfg(feature = "__de_multi")]
 #[test]
 fn polygon_to_multi_line_string() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
