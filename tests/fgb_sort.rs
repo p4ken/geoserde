@@ -5,7 +5,6 @@ use flatgeobuf::FallibleStreamingIterator;
 use serde::Serialize;
 
 use geoserde::fgb::LayerSerializer;
-use geoserde::ser;
 
 #[derive(Serialize)]
 struct Feat {
@@ -30,7 +29,7 @@ fn partial_sort_test() -> anyhow::Result<()> {
     // 1. extra だけを flatten してキーを収集・ソート
     let mut sorted_keys = BTreeSet::new();
     for extra in [&feat1.extra, &feat2.extra] {
-        sorted_keys.extend(ser::flatten_keys(extra)?);
+        sorted_keys.extend(geoserde::ser::flatten_keys(extra)?);
     }
 
     // 2. Feed features into LayerSerializer
