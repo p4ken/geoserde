@@ -1,20 +1,11 @@
-[workspace]
-
-[workspace.package]
+[package]
+name = "geoserde"
+version = "0.5.2"
 edition = "2024"
 description = "Adapter between Rust data structures and geospatial file formats"
 repository = "https://github.com/p4ken/geoserde"
 license = "MIT"
 exclude = [".*"]
-
-[package]
-name = "geoserde"
-version = "0.5.2"
-edition.workspace = true
-description.workspace = true
-repository.workspace = true
-license.workspace = true
-exclude.workspace = true
 
 [features]
 default = ["geo"]
