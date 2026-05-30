@@ -5,6 +5,7 @@ on:
       bump:
         type: choice
         options:
+          - beta
           - patch
           - minor
       package:
