@@ -67,16 +67,6 @@ impl FlatProperties {
         Ok(collector)
     }
 
-    /// Returns an iterator over the flattened property keys.
-    pub fn keys(&self) -> impl Iterator<Item = &str> {
-        self.entries.iter().map(|(k, _)| k.as_ref())
-    }
-
-    /// Looks up a value by key name.
-    pub fn get(&self, key: &str) -> Option<&FieldValue<'static>> {
-        self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| v)
-    }
-
     /// Consumes the flattened properties, returning the underlying entries.
     pub fn into_entries(self) -> Vec<(Cow<'static, str>, FieldValue<'static>)> {
         self.entries

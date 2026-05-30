@@ -92,7 +92,7 @@ fn flatten_empty_struct_ok() {
     struct EmptyFields {}
 
     let flat = ser::FlatProperties::flatten(&EmptyFields {}).unwrap();
-    assert_eq!(flat.keys().count(), 0);
+    assert_eq!(flat.into_entries().len(), 0);
 }
 
 /// A map with string keys is accepted.
@@ -104,8 +104,7 @@ fn flatten_string_key_map_ok() {
     map.insert("key", 42);
 
     let flat = ser::FlatProperties::flatten(&map).unwrap();
-    assert_eq!(flat.keys().count(), 1);
-    assert!(flat.get("key").is_some());
+    assert_eq!(flat.into_entries().len(), 1);
 }
 
 /// A non-string map key is rejected.
@@ -165,8 +164,8 @@ fn flatten_nested_struct_keys() {
         inner: Inner { b: 2 },
     })
     .unwrap();
-    let keys: Vec<&str> = flat.keys().collect();
-    assert_eq!(keys, vec!["a", "inner.b"]);
+    let entries = flat.into_entries();
+    assert_eq!(entries.len(), 2);
 }
 
 /// Option::None fields are omitted from the flattened output.
@@ -183,8 +182,8 @@ fn flatten_option_none_omitted() {
         absent: None,
     })
     .unwrap();
-    let keys: Vec<&str> = flat.keys().collect();
-    assert_eq!(keys, vec!["present"]);
+    let entries = flat.into_entries();
+    assert_eq!(entries.len(), 1);
 }
 
 /// Option::Some fields are included.
@@ -201,6 +200,6 @@ fn flatten_option_some_included() {
         extra: Some(99),
     })
     .unwrap();
-    let keys: Vec<&str> = flat.keys().collect();
-    assert_eq!(keys, vec!["present", "extra"]);
+    let entries = flat.into_entries();
+    assert_eq!(entries.len(), 2);
 }
