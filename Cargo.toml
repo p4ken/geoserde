@@ -17,11 +17,7 @@ license.workspace = true
 exclude.workspace = true
 
 [features]
-default = [
-    "fgb",
-    "geo",
-]
-shapefile = ["dep:shapefile", "dbase"]
+default = ["geo"]
 geo = ["dep:geo-types"]
 fgb = ["dep:flatgeobuf"]
 
@@ -29,20 +25,12 @@ fgb = ["dep:flatgeobuf"]
 serde = { version = "1.0.214", features = ["derive"] }
 geo-types = { version = "0.7.11", optional = true }
 geo-traits = { version = "0.3.0" }
-# Only the way to enable serde for shapefile
-dbase = { version = "0.5.0", features = ["serde"], optional = true }
-shapefile = { version = "0.6.0", features = ["geo-types"], optional = true }
-geojson = { version = "0.24.2", optional = true }
 flatgeobuf = { version = "6.0.1", default-features = false, optional = true }
-# Should be re-exported by flatgeobuf
+# NOTE: Should be re-exported by flatgeobuf
 flatbuffers = { version = "24", default-features = false }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 flatgeobuf = { version = "6.0.1", default-features = false }
 geo-types = { version = "0.7.11", features = ["serde"] }
-geojson = { version = "0.24.2" }
-geozero = { version = "0.15.0", features = ["with-geo"] }
-serde = { version = "1.0.188", features = ["derive"] }
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
-shapefile = { version = "0.6.0", features = ["geo-types"] }
+geozero = { version = "0.15.0" }
