@@ -1,6 +1,6 @@
 [package]
 name = "geoserde"
-version = "0.5.2"
+version = "0.5.3-beta.1"
 edition = "2024"
 description = "Adapter between Rust data structures and geospatial file formats"
 repository = "https://github.com/p4ken/geoserde"
