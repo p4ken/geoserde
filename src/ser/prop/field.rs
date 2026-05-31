@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{
         Error, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
         SerializeTupleStruct, SerializeTupleVariant,
     },
+    Serialize, Serializer,
 };
 
 use crate::ser::prop::{
-    FieldValue, FlattenOption, TableError,
     elem::{StringLike, Stringifier, StringifyError},
+    FieldValue, FlattenOption, TableError,
 };
 
 /// Trait for sinks that receive flattened key-value property pairs.
@@ -82,10 +82,8 @@ impl<P: SerializeProperties> FieldSerializer<P> {
             [multi @ ..] => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
         }
     }
-}
 
-impl<P: SerializeProperties> FieldSerializer<P> {
-    fn _serialize_property<'a>(
+    fn serialize_value<'a>(
         &mut self,
         value: impl Into<FieldValue<'a>>,
     ) -> Result<(), TableError<P::Error>> {
@@ -98,11 +96,11 @@ impl<P: SerializeProperties> FieldSerializer<P> {
 }
 
 impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
-    fn _serialize_element_with_index<T>(&mut self, value: &T) -> Result<(), TableError<P::Error>>
+    fn serialize_element_<T>(&mut self, value: &T) -> Result<(), TableError<P::Error>>
     where
         T: ?Sized + Serialize,
     {
-        let parent_key = self.key_stack.pop(); // "parent"
+        let parent_key = self.key_stack.pop(); // e.g. "parent"
         let parent_index = self.index;
 
         let key = Cow::Owned(format!(
@@ -146,13 +144,13 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                     // Fallback to "key[0]=value" style
                     let value_seq = std::mem::take(&mut self.value_seq);
                     for v in &value_seq {
-                        self._serialize_element_with_index(v)?;
+                        self.serialize_element_(v)?;
                     }
                 }
             }
         }
 
-        self._serialize_element_with_index(value)
+        self.serialize_element_(value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -164,7 +162,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
                 .join(self.option.array_element_separator());
-            self._serialize_property(value.as_str())?;
+            self.serialize_value(value.as_str())?;
         }
         Ok(())
     }
@@ -302,61 +300,61 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
     type SerializeStructVariant = VariantSerializer<'a, P>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         let mut buf = [0; 4];
         let str = v.encode_utf8(&mut buf);
-        self._serialize_property(&*str)
+        self.serialize_value(&*str)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(v)
+        self.serialize_value(v)
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
@@ -384,7 +382,7 @@ impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSer
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self._serialize_property(variant)
+        self.serialize_value(variant)
     }
 
     fn serialize_newtype_struct<T>(

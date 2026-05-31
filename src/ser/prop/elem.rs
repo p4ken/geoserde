@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{Error, Impossible, StdError},
+    Serialize, Serializer,
 };
 
 use crate::ser::SourceError;
@@ -40,7 +40,7 @@ impl From<StringLike> for Cow<'static, str> {
 impl std::fmt::Display for StringLike {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Empty => f.write_str(""),
+            Self::Empty => Ok(()),
             Self::Bool(v) => write!(f, "{v}"),
             Self::I8(v) => write!(f, "{v}"),
             Self::I16(v) => write!(f, "{v}"),
