@@ -20,8 +20,6 @@ serde = { version = "1.0.214", features = ["derive"] }
 geo-types = { version = "0.7.11", optional = true }
 geo-traits = { version = "0.3.0" }
 flatgeobuf = { version = "6.0.1", default-features = false, optional = true }
-# NOTE: Should be re-exported by flatgeobuf
-flatbuffers = { version = "24", default-features = false }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
