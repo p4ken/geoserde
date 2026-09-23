@@ -17,7 +17,7 @@
 //!
 //! # Cargo features
 //!
-//! * `fgb` — FlatGeobuf serialization / deserialization. Enabled by default.
+//! * `fgb` — FlatGeobuf serialization / deserialization.
 //! * `geo` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
 
 pub mod de;
