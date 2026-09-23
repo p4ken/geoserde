@@ -353,6 +353,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 
 /// Error type for [`TableSerializer`].
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum TableError<E> {
     /// The root value was not a struct or map.
     Root,

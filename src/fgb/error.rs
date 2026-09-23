@@ -3,6 +3,7 @@ use crate::fgb::de::FeatureError;
 
 /// Error type for FlatGeobuf operations.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// FlatGeobuf format error (corrupted file, invalid header, missing index, etc.).
     Fgb(flatgeobuf::Error),

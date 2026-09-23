@@ -269,6 +269,7 @@ impl From<flatgeobuf::Column<'_>> for OwnedColumn {
 
 /// Error returned when deserializing a single FlatGeobuf feature's properties.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum FeatureError {
     /// The column key could not be deserialized.
     Key(serde::de::value::Error),

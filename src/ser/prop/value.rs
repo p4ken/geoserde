@@ -11,6 +11,7 @@ use serde::Serialize;
 /// owned equivalents.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum FieldValue<'a> {
     Bool(bool),
     I8(i8),
