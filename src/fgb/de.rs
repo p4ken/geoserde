@@ -268,7 +268,7 @@ impl From<flatgeobuf::Column<'_>> for OwnedColumn {
 }
 
 /// Error returned when deserializing a single FlatGeobuf feature's properties.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FeatureError {
     /// The column key could not be deserialized.
     Key(serde::de::value::Error),
@@ -314,7 +314,7 @@ impl From<PropertyError> for FeatureError {
 }
 
 /// Error returned when reading raw property bytes from a FlatGeobuf feature.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PropertyError {
     /// The property buffer ended before the expected number of bytes.
     Short,

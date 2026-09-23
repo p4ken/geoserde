@@ -18,7 +18,7 @@ use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSe
 /// // Use "/" instead of "." for nested attributes
 /// let option = FlattenOption::full().object("/");
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FlattenOption {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
     flatten_nested_attribute: bool,
@@ -352,7 +352,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 }
 
 /// Error type for [`TableSerializer`].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TableError<E> {
     /// The root value was not a struct or map.
     Root,

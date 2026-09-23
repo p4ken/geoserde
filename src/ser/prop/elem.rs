@@ -220,7 +220,7 @@ impl Serializer for Stringifier {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StringifyError {
     Empty,
     Nested,

@@ -48,7 +48,7 @@ pub trait DeserializeGeometry: Sized {
 }
 
 /// Error returned when a geometry's type does not match the expected target.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GeometryTypeMismatch {
     expected: &'static str,
 }

@@ -14,7 +14,7 @@ pub use prop::{
 };
 
 /// An error originating from the data source during property serialization.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SourceError(String);
 
 impl From<String> for SourceError {
