@@ -12,13 +12,13 @@ all-features = true
 
 [features]
 default = ["geo"]
-geo = ["dep:geo-types"]
+geo = ["dep:geo-types", "geo-traits/geo-types"]
 fgb = ["dep:flatgeobuf"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }
 geo-types = { version = "0.7.11", optional = true }
-geo-traits = { version = "0.3.0" }
+geo-traits = { version = "0.3.0", default-features = false }
 flatgeobuf = { version = "6.0.1", default-features = false, optional = true }
 
 [dev-dependencies]
