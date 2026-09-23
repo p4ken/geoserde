@@ -106,3 +106,65 @@ fn non_string_key_map_rejected() {
     let result = fgb_ser.serialize_feature(&testing::p(0), &map);
     assert!(result.is_err());
 }
+
+/// A root-level rejection keeps the `TableError` in the source chain.
+#[test]
+fn root_rejection_source_chain() {
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let err = fgb_ser
+        .serialize_feature(&testing::p(0), &42_i32)
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        geoserde::fgb::Error::Table(geoserde::ser::TableError::Root)
+    ));
+    let source = std::error::Error::source(&err).unwrap();
+    assert_eq!(source.to_string(), "data source must be a map or struct");
+}
+
+/// A non-string map key keeps the key error in the source chain.
+#[test]
+fn non_string_key_source_chain() {
+    use std::collections::HashMap;
+
+    let mut map = HashMap::new();
+    map.insert(vec![1, 2], "value");
+
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let err = fgb_ser.serialize_feature(&testing::p(0), &map).unwrap_err();
+    let table = std::error::Error::source(&err).unwrap();
+    assert_eq!(table.to_string(), "map key must be a string");
+    let key = table.source().unwrap();
+    assert_eq!(key.to_string(), "nested hierarchy");
+}
+
+/// A custom error from the user's `Serialize` impl reaches the source chain.
+#[test]
+fn custom_error_source_chain() {
+    struct Failing;
+
+    impl Serialize for Failing {
+        fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+            Err(serde::ser::Error::custom("boom"))
+        }
+    }
+
+    #[derive(Serialize)]
+    struct Props {
+        a: Failing,
+    }
+
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+
+    let err = fgb_ser
+        .serialize_feature(&testing::p(0), &Props { a: Failing })
+        .unwrap_err();
+    assert!(matches!(err, geoserde::fgb::Error::Source(_)));
+    let source = std::error::Error::source(&err).unwrap();
+    assert_eq!(source.to_string(), "boom");
+}
