@@ -43,18 +43,6 @@ for feat in &features {
 let writer = ser.into_inner();
 ```
 
-Or use `geoserde::fgb::LayerSerializer` when you need to sort columns across all features before writing (e.g. for consistent column ordering):
-
-```rust
-let mut layer = geoserde::fgb::LayerSerializer::new();
-for feat in &features {
-    layer.add_feature(&feat.geometry, feat);
-}
-// optionally reorder columns
-let mut fgb = FgbWriter::create("layer", GeometryType::Unknown)?;
-layer.write_features(&mut fgb)?;
-```
-
 #### Deserializing from FlatGeobuf
 
 **Before (v0.5)**

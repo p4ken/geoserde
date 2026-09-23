@@ -54,24 +54,6 @@ fn unit_properties_rejected() {
     assert!(result.is_err());
 }
 
-/// LayerSerializer also rejects scalar properties in add_feature.
-#[test]
-fn layer_scalar_properties_rejected() {
-    let mut layer = geoserde::fgb::LayerSerializer::new();
-
-    let result = layer.add_feature(&testing::p(0), &42_i32);
-    assert!(result.is_err());
-}
-
-/// LayerSerializer rejects sequence properties in add_feature.
-#[test]
-fn layer_seq_properties_rejected() {
-    let mut layer = geoserde::fgb::LayerSerializer::new();
-
-    let result = layer.add_feature(&testing::p(0), &vec![1, 2, 3]);
-    assert!(result.is_err());
-}
-
 /// A unit struct cannot be used as properties.
 #[test]
 fn unit_struct_properties_rejected() {

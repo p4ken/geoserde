@@ -5,174 +5,15 @@ use geo_traits::{
     CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
-    to_geo::{
-        ToGeoLine, ToGeoLineString, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoMultiPolygon,
-        ToGeoPoint, ToGeoPolygon, ToGeoRect, ToGeoTriangle,
-    },
 };
 
 use crate::fgb::Error;
-use crate::ser::{FieldValue, FlatProperties, SerializeProperties, TableSerializer};
-
-/// FlatGeobuf layer serializer that collects features in memory before writing.
-///
-/// This serializer works in two phases:
-///
-/// 1. Call [`add_feature`](Self::add_feature) for each feature to flatten its
-///    properties and store them alongside the geometry.
-/// 2. Optionally reorder columns with [`sort_columns`](Self::sort_columns),
-///    then call [`write_features`](Self::write_features) with an
-///    [`FgbWriter`] to emit all features at once.
-///
-/// This two-pass approach allows the column set and order to be determined
-/// from the union of all features before any data is written.
-// TODO: 削除
-#[derive(Debug)]
-pub struct LayerSerializer {
-    column_idx: std::collections::HashMap<String, u32>,
-    columns: Vec<String>,
-    column_types: Vec<flatgeobuf::ColumnType>,
-    geometries: Vec<geo_types::Geometry<f64>>,
-    /// Flat pool of all features' entries, concatenated.
-    prop_pool: Vec<(u32, FieldValue<'static>)>,
-    /// Cumulative end-offsets into `prop_pool` for each feature.
-    prop_offsets: Vec<u32>,
-}
-
-impl LayerSerializer {
-    /// Creates a new, empty `LayerSerializer`.
-    pub fn new() -> Self {
-        LayerSerializer {
-            column_idx: std::collections::HashMap::new(),
-            columns: Vec::new(),
-            column_types: Vec::new(),
-            geometries: Vec::new(),
-            prop_pool: Vec::new(),
-            prop_offsets: vec![0],
-        }
-    }
-
-    /// Adds a feature (geometry + properties) to this layer.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Error`] if the properties cannot be flattened.
-    pub fn add_feature(
-        &mut self,
-        geometry: impl GeometryTrait<T = f64>,
-        properties: impl serde::Serialize,
-    ) -> Result<(), Error> {
-        let entries = FlatProperties::flatten(properties)?.into_entries();
-        for (key, value) in entries {
-            let idx = self
-                .column_idx
-                .get(key.as_ref())
-                .copied()
-                .unwrap_or_else(|| {
-                    let i = self.columns.len() as u32;
-                    let owned = key.into_owned();
-                    self.columns.push(owned.clone());
-                    self.column_types.push(to_column_type(&value));
-                    self.column_idx.insert(owned, i);
-                    i
-                });
-            self.prop_pool.push((idx, value));
-        }
-        self.geometries.push(to_geo_geometry(&geometry));
-        self.prop_offsets.push(self.prop_pool.len() as u32);
-        Ok(())
-    }
-
-    /// Returns an iterator over the union of all property keys seen so far.
-    pub fn keys(&self) -> impl Iterator<Item = &str> {
-        self.columns.iter().map(|s| s.as_str())
-    }
-
-    /// Reorders columns using a stable sort with the given comparator.
-    ///
-    /// Columns that compare `Equal` retain their original insertion order.
-    pub fn sort_columns<F>(&mut self, mut cmp: F)
-    where
-        F: FnMut(&str, &str) -> std::cmp::Ordering,
-    {
-        let mut indices: Vec<usize> = (0..self.columns.len()).collect();
-        indices.sort_by(|&a, &b| cmp(&self.columns[a], &self.columns[b]));
-
-        let mut remap = vec![0u32; self.columns.len()];
-        for (new, &old) in indices.iter().enumerate() {
-            remap[old] = new as u32;
-        }
-
-        let new_columns: Vec<String> = indices.iter().map(|&i| self.columns[i].clone()).collect();
-        let new_types: Vec<_> = indices.iter().map(|&i| self.column_types[i]).collect();
-
-        for (idx, _) in &mut self.prop_pool {
-            *idx = remap[*idx as usize];
-        }
-        self.column_idx = new_columns.iter().cloned().zip(0u32..).collect();
-        self.columns = new_columns;
-        self.column_types = new_types;
-    }
-
-    /// Writes all collected features to the given [`FgbWriter`].
-    ///
-    /// Columns are declared in the current key order before any features
-    /// are written. Memory is released incrementally as features are
-    /// consumed.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Error`] if geometry processing or property writing fails.
-    pub fn write_features(self, writer: &mut FgbWriter<'_>) -> Result<(), Error> {
-        let LayerSerializer {
-            column_idx: _,
-            columns,
-            column_types,
-            mut geometries,
-            mut prop_pool,
-            prop_offsets,
-        } = self;
-
-        for (key, ty) in columns.iter().zip(column_types.into_iter()) {
-            writer.add_column(key, ty, |_, _| {});
-        }
-
-        // Reverse so that pop() yields features in the original order.
-        geometries.reverse();
-        prop_pool.reverse();
-
-        let n_features = prop_offsets.len() - 1;
-        for i in 0..n_features {
-            let geom = geometries.pop().expect("geometries/prop_offsets mismatch");
-            process_geometry(&geom, writer)?;
-            drop(geom);
-
-            let count = (prop_offsets[i + 1] - prop_offsets[i]) as usize;
-            for _ in 0..count {
-                let (idx, val) = prop_pool.pop().expect("prop_pool/offsets mismatch");
-                flatgeobuf::geozero::PropertyProcessor::property(
-                    writer,
-                    idx as usize,
-                    columns[idx as usize].as_ref(),
-                    &to_column_value(&val),
-                )?;
-            }
-            flatgeobuf::geozero::FeatureProcessor::feature_end(writer, 0)?;
-
-            // Periodically shrink backing buffers to return memory to the OS.
-            if (i + 1) % 1024 == 0 {
-                geometries.shrink_to_fit();
-                prop_pool.shrink_to_fit();
-            }
-        }
-        Ok(())
-    }
-}
+use crate::ser::{FieldValue, SerializeProperties, TableSerializer};
 
 /// Streaming FlatGeobuf feature serializer.
 ///
-/// Unlike [`LayerSerializer`], this serializer writes each feature directly
-/// to the [`FgbWriter`] as it is serialized, without buffering.
+/// This serializer writes each feature directly to the [`FgbWriter`] as it is
+/// serialized, without buffering.
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,
@@ -423,52 +264,7 @@ fn process_line(
     processor.linestring_end(true, idx)
 }
 
-// --- GeometryTrait → geo_types bridge ---
-//
-// `ToGeoGeometry` の blanket impl は trait solver overflow (rustc #128887) を
-// 起こすため、`as_type()` で分解して個別の `ToGeoXxx` で変換する。
-// `GeometryCollection` は `ToGeoGeometryCollection` も内部で `ToGeoGeometry` を
-// 呼ぶため手動で再帰する。
-
-fn to_geo_geometry(geom: &impl GeometryTrait<T = f64>) -> geo_types::Geometry<f64> {
-    match geom.as_type() {
-        GeometryType::Point(g) => geo_types::Geometry::Point(g.to_point()),
-        GeometryType::LineString(g) => geo_types::Geometry::LineString(g.to_line_string()),
-        GeometryType::Polygon(g) => geo_types::Geometry::Polygon(g.to_polygon()),
-        GeometryType::MultiPoint(g) => geo_types::Geometry::MultiPoint(g.to_multi_point()),
-        GeometryType::MultiLineString(g) => {
-            geo_types::Geometry::MultiLineString(g.to_multi_line_string())
-        }
-        GeometryType::MultiPolygon(g) => geo_types::Geometry::MultiPolygon(g.to_multi_polygon()),
-        GeometryType::GeometryCollection(g) => {
-            let geoms = g.geometries().map(|g| to_geo_geometry(&g)).collect();
-            geo_types::Geometry::GeometryCollection(geo_types::GeometryCollection(geoms))
-        }
-        GeometryType::Rect(g) => geo_types::Geometry::Rect(g.to_rect()),
-        GeometryType::Triangle(g) => geo_types::Geometry::Triangle(g.to_triangle()),
-        GeometryType::Line(g) => geo_types::Geometry::Line(g.to_line()),
-    }
-}
-
 // --- FieldValue → flatgeobuf bridge ---
-
-fn to_column_type(source: &FieldValue<'_>) -> flatgeobuf::ColumnType {
-    match source {
-        FieldValue::Bool(_) => flatgeobuf::ColumnType::Bool,
-        FieldValue::I8(_) => flatgeobuf::ColumnType::Byte,
-        FieldValue::I16(_) => flatgeobuf::ColumnType::Short,
-        FieldValue::I32(_) => flatgeobuf::ColumnType::Int,
-        FieldValue::I64(_) => flatgeobuf::ColumnType::Long,
-        FieldValue::U8(_) => flatgeobuf::ColumnType::UByte,
-        FieldValue::U16(_) => flatgeobuf::ColumnType::UShort,
-        FieldValue::U32(_) => flatgeobuf::ColumnType::UInt,
-        FieldValue::U64(_) => flatgeobuf::ColumnType::ULong,
-        FieldValue::F32(_) => flatgeobuf::ColumnType::Float,
-        FieldValue::F64(_) => flatgeobuf::ColumnType::Double,
-        FieldValue::Str(_) | FieldValue::BoxedStr(_) => flatgeobuf::ColumnType::String,
-        FieldValue::Bytes(_) | FieldValue::BoxedBytes(_) => flatgeobuf::ColumnType::Binary,
-    }
-}
 
 fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'a> {
     match source {

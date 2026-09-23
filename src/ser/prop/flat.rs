@@ -9,8 +9,7 @@ use crate::ser::SourceError;
 /// discarding the values.
 ///
 /// This is useful for inspecting the schema of a struct before writing
-/// features (e.g. to set column order with
-/// [`LayerSerializer::sort_columns`](crate::fgb::LayerSerializer::sort_columns)).
+/// features.
 ///
 /// # Errors
 ///
