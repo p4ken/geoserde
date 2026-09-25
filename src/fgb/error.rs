@@ -154,6 +154,7 @@ impl From<PropertyError> for FeatureError {
 
 /// Error returned when reading raw property bytes from a FlatGeobuf feature.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum PropertyError {
     /// The property buffer ended before the expected number of bytes.
     Short,
