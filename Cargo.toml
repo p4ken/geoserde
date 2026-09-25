@@ -15,6 +15,8 @@ description = "Adapter between Rust data structures and geospatial file formats"
 repository.workspace = true
 license.workspace = true
 exclude = [".*"]
+# TODO: keywords = ["gis", "geospatial", "serde", "geo"] (最大5個)
+# TODO: categories = ["science::geo", "encoding"] (https://crates.io/category_slugs から選ぶ)
 
 [package.metadata.docs.rs]
 all-features = true

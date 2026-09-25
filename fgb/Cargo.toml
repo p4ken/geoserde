@@ -5,6 +5,9 @@ edition.workspace = true
 description = "FlatGeobuf reader and writer for geoserde"
 repository.workspace = true
 license.workspace = true
+# TODO: keywords = ["gis", "geospatial", "serde", "flatgeobuf", "fgb"] (最大5個)
+# TODO: categories = ["science::geo", "encoding", "parser-implementations"]
+# TODO: readme = "README.md" (fgb/ 直下に置く。ルートの README.md は自動では使われない)
 
 [package.metadata.docs.rs]
 all-features = true
