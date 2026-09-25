@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
-use crate::de::GeometryTypeMismatch;
-use crate::ser::{SourceError, TableError};
+use geoserde::de::GeometryTypeMismatch;
+use geoserde::ser::{FieldValue, SourceError, TableError};
 
 /// Error type for FlatGeobuf operations.
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub enum Error {
     Fgb(flatgeobuf::Error),
     /// Error during geozero geometry processing (writing).
     Geozero(flatgeobuf::geozero::error::GeozeroError),
-    /// The user's [`DeserializeGeometry`](crate::de::DeserializeGeometry) impl
+    /// The user's [`DeserializeGeometry`](geoserde::de::DeserializeGeometry) impl
     /// returned a geometry type mismatch.
     GeometryType(GeometryTypeMismatch),
     /// The feature did not contain a geometry.
@@ -22,6 +22,8 @@ pub enum Error {
     Feature(FeatureError),
     /// The properties could not be flattened into a table.
     Table(TableError<Infallible>),
+    /// A property value has no corresponding FlatGeobuf column type.
+    UnsupportedFieldValue(FieldValue<'static>),
     /// A generic error originating from the user's `Serialize` implementation.
     Source(SourceError),
 }
@@ -52,20 +54,18 @@ impl From<FeatureError> for Error {
 
 impl From<TableError<Error>> for Error {
     fn from(e: TableError<Error>) -> Self {
-        match e {
-            TableError::Root => Self::Table(TableError::Root),
-            TableError::Key(k) => Self::Table(TableError::Key(k)),
-            TableError::Sink(inner) => inner,
+        match e.into_sink() {
+            Ok(inner) => inner,
+            Err(table) => Self::Table(table),
         }
     }
 }
 
 impl From<TableError<SourceError>> for Error {
     fn from(e: TableError<SourceError>) -> Self {
-        match e {
-            TableError::Root => Self::Table(TableError::Root),
-            TableError::Key(k) => Self::Table(TableError::Key(k)),
-            TableError::Sink(inner) => Self::Source(inner),
+        match e.into_sink() {
+            Ok(inner) => Self::Source(inner),
+            Err(table) => Self::Table(table),
         }
     }
 }
@@ -80,6 +80,7 @@ impl std::fmt::Display for Error {
             Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
             Self::Feature(_) => f.write_str("feature properties deserialization failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
+            Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
             Self::Source(_) => f.write_str("upstream serialize impl caused"),
         }
     }
@@ -94,7 +95,9 @@ impl std::error::Error for Error {
             Self::Feature(e) => Some(e),
             Self::Table(e) => Some(e),
             Self::Source(e) => Some(e),
-            Self::MissingGeometry | Self::UnsupportedColumnType(_) => None,
+            Self::MissingGeometry
+            | Self::UnsupportedColumnType(_)
+            | Self::UnsupportedFieldValue(_) => None,
         }
     }
 }

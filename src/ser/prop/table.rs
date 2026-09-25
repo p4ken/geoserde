@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use serde::{
     Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
@@ -361,6 +363,21 @@ pub enum TableError<E> {
     Key(StringifyError),
     /// An error propagated from the downstream [`SerializeProperties`] sink.
     Sink(E),
+}
+
+impl<E> TableError<E> {
+    /// Separates an error propagated from the sink from the errors raised by
+    /// the [`TableSerializer`] itself.
+    ///
+    /// Returns `Ok` with the sink's error for [`TableError::Sink`], and `Err`
+    /// with the serializer's own error otherwise.
+    pub fn into_sink(self) -> Result<E, TableError<Infallible>> {
+        match self {
+            Self::Root => Err(TableError::Root),
+            Self::Key(e) => Err(TableError::Key(e)),
+            Self::Sink(e) => Ok(e),
+        }
+    }
 }
 
 impl<E> From<StringifyError> for TableError<E> {

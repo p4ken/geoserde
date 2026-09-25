@@ -6,9 +6,9 @@ use geo_traits::{
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
 };
+use geoserde::ser::{FieldValue, SerializeProperties, TableSerializer};
 
-use crate::fgb::Error;
-use crate::ser::{FieldValue, SerializeProperties, TableSerializer};
+use crate::Error;
 
 /// Streaming FlatGeobuf feature serializer.
 ///
@@ -61,13 +61,16 @@ impl SerializeProperties for &mut FeatureSerializer<'_> {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
+        let Some(column_value) = to_column_value(&value) else {
+            return Err(Error::UnsupportedFieldValue(value.into_owned()));
+        };
         let index_of_key = self.known_key.iter().position(|k| k == &key);
         let index_to_write = index_of_key.unwrap_or_else(|| self.known_key.len());
         flatgeobuf::geozero::PropertyProcessor::property(
             &mut self.writer,
             index_to_write,
             key.as_ref(),
-            &to_column_value(&value),
+            &column_value,
         )?;
         if index_of_key.is_none() {
             self.known_key.push(key);
@@ -266,8 +269,8 @@ fn process_line(
 
 // --- FieldValue → flatgeobuf bridge ---
 
-fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::ColumnValue<'a> {
-    match source {
+fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero::ColumnValue<'a>> {
+    let column_value = match source {
         FieldValue::Bool(v) => flatgeobuf::geozero::ColumnValue::Bool(*v),
         FieldValue::I8(v) => flatgeobuf::geozero::ColumnValue::Byte(*v),
         FieldValue::I16(v) => flatgeobuf::geozero::ColumnValue::Short(*v),
@@ -283,5 +286,8 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> flatgeobuf::geozero::Colum
         FieldValue::BoxedStr(s) => flatgeobuf::geozero::ColumnValue::String(s),
         FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
         FieldValue::BoxedBytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
-    }
+        // geoserde で将来追加される variant に対応する ColumnType が無い場合に備える
+        _ => return None,
+    };
+    Some(column_value)
 }

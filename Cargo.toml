@@ -1,10 +1,19 @@
+[workspace]
+members = ["fgb"]
+default-members = [".", "fgb"]
+
+[workspace.package]
+edition = "2024"
+repository = "https://github.com/p4ken/geoserde"
+license = "MIT"
+
 [package]
 name = "geoserde"
 version = "0.5.3-beta.1"
-edition = "2024"
+edition.workspace = true
 description = "Adapter between Rust data structures and geospatial file formats"
-repository = "https://github.com/p4ken/geoserde"
-license = "MIT"
+repository.workspace = true
+license.workspace = true
 exclude = [".*"]
 
 [package.metadata.docs.rs]
@@ -13,16 +22,8 @@ all-features = true
 [features]
 default = ["geo"]
 geo = ["dep:geo-types", "geo-traits/geo-types"]
-fgb = ["dep:flatgeobuf"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }
 geo-types = { version = "0.7.11", optional = true }
 geo-traits = { version = "0.3.0", default-features = false }
-flatgeobuf = { version = "6.0.1", default-features = false, optional = true }
-
-[dev-dependencies]
-anyhow = { version = "1.0.75", features = ["backtrace"] }
-flatgeobuf = { version = "6.0.1", default-features = false }
-geo-types = { version = "0.7.11", features = ["serde"] }
-geozero = { version = "0.15.0" }

@@ -20,6 +20,16 @@ The `geozero` feature flag has also been removed along with these items.
 
 ### Migration guide
 
+#### FlatGeobuf support moved to `geoserde-fgb`
+
+FlatGeobuf reading and writing is provided by the separate
+[geoserde-fgb](https://crates.io/crates/geoserde-fgb) crate, so that updates to
+`flatgeobuf` do not require a breaking release of `geoserde`.
+
+```sh
+cargo add geoserde-fgb
+```
+
 #### Serializing to FlatGeobuf
 
 **Before (v0.5)**
@@ -32,11 +42,11 @@ features.serialize(&mut ser)?;
 
 **After (v0.6)**
 
-Use `geoserde::fgb::FeatureSerializer` for streaming one feature at a time:
+Use `geoserde_fgb::FeatureSerializer` for streaming one feature at a time:
 
 ```rust
 let fgb = FgbWriter::create("layer", GeometryType::Unknown)?;
-let mut ser = geoserde::fgb::FeatureSerializer::new(fgb);
+let mut ser = geoserde_fgb::FeatureSerializer::new(fgb);
 for feat in &features {
     ser.serialize_feature(&feat.geometry, feat)?;
 }
@@ -51,10 +61,10 @@ There was no deserialization API in v0.5.
 
 **After (v0.6)**
 
-`geoserde::fgb::FeatureDeserializer` separates geometry and properties at the type level:
+`geoserde_fgb::FeatureDeserializer` separates geometry and properties at the type level:
 
 ```rust
-let mut de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+let mut de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 let (geom, props) = de.deserialize_feature::<geo_types::Point, MyProps>()?;
 ```
 

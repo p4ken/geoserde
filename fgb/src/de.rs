@@ -1,9 +1,9 @@
 use std::io::{Read, Seek};
 
+use geoserde::de::DeserializeGeometry;
 use serde::de::IntoDeserializer;
 
-use crate::de::DeserializeGeometry;
-use crate::fgb::{Error, FeatureError, PropertyError};
+use crate::{Error, FeatureError, PropertyError};
 
 /// Deserializes features (geometry + properties) from a FlatGeobuf source.
 ///
@@ -12,14 +12,14 @@ use crate::fgb::{Error, FeatureError, PropertyError};
 /// ```no_run
 /// # use std::error::Error;
 /// # fn main() -> Result<(), Box<dyn Error>> {
-/// use geoserde::fgb::FeatureDeserializer;
+/// use geoserde_fgb::FeatureDeserializer;
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
 /// struct Props { name: String }
 ///
 /// let file = std::fs::File::open("example.fgb")?;
-/// let reader = geoserde::fgb::flatgeobuf::FgbReader::open(
+/// let reader = geoserde_fgb::flatgeobuf::FgbReader::open(
 ///     std::io::BufReader::new(file),
 /// )?;
 /// let mut de = FeatureDeserializer::new(reader)?;

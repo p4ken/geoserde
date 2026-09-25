@@ -1,9 +1,12 @@
-#![cfg(feature = "fgb")]
-
-//! [FlatGeobuf](https://flatgeobuf.org/) serialization and deserialization.
+//! [FlatGeobuf](https://flatgeobuf.org/) serialization and deserialization
+//! for [geoserde].
 //!
 //! Use [`FeatureDeserializer`] to read features from a FlatGeobuf file, and
 //! [`FeatureSerializer`] to write them.
+//!
+//! # Cargo features
+//!
+//! * `geo` — Enables `geoserde/geo`. Enabled by default.
 
 mod de;
 mod error;

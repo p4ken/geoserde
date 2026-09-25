@@ -7,7 +7,6 @@
 //!
 //! * **[`de`]** — Deserialize geometries from GIS sources into Rust types.
 //! * **[`ser`]** — Serialize struct properties into flat key-value tables.
-//! * **[`fgb`]** — Read and write [FlatGeobuf](https://flatgeobuf.org/) files.
 //!
 //! # Getting started
 //!
@@ -15,13 +14,14 @@
 //! cargo add geoserde
 //! ```
 //!
+//! To read and write [FlatGeobuf](https://flatgeobuf.org/) files, use the
+//! [geoserde-fgb](https://docs.rs/geoserde-fgb) crate.
+//!
 //! # Cargo features
 //!
-//! * `fgb` — FlatGeobuf serialization / deserialization.
 //! * `geo` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
 
 pub mod de;
-pub mod fgb;
 pub mod ser;
 
 pub use de::DeserializeGeometry;

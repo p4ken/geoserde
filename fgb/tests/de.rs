@@ -1,5 +1,3 @@
-#![cfg(feature = "fgb")]
-
 use std::io::Cursor;
 
 use flatgeobuf::geozero::{ColumnValue, FeatureProcessor, GeozeroGeometry, PropertyProcessor};
@@ -19,7 +17,7 @@ fn point_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -42,7 +40,7 @@ fn line_string_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -73,7 +71,7 @@ fn feature_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
     let (_, props) = fgb_de
         .features::<geo_types::Point, Feat>()
         .next()
@@ -106,7 +104,7 @@ fn features_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     let mut iter = fgb_de.features::<geo_types::Point, Feat>();
 
@@ -131,7 +129,7 @@ fn polygon_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -182,7 +180,7 @@ fn primitive_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
     let (_, p) = fgb_de
         .features::<geo_types::Point, Prim>()
         .next()
@@ -214,7 +212,7 @@ fn multi_point_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -238,7 +236,7 @@ fn multi_line_string_test() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -262,7 +260,7 @@ fn point_to_multi_point() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -286,7 +284,7 @@ fn multi_point_to_point() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -317,7 +315,7 @@ fn multi_point_to_polygon() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -345,7 +343,7 @@ fn line_string_to_multi_line_string() -> anyhow::Result<()> {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
 
     #[derive(Deserialize)]
     struct NoProps {}
@@ -369,7 +367,7 @@ fn point_to_line_string_fails() {
     }
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
-    let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
+    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
     #[derive(Deserialize)]
     struct NoProps {}

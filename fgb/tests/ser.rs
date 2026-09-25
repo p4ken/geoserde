@@ -1,5 +1,3 @@
-#![cfg(feature = "fgb")]
-
 use std::{collections::HashMap, io::Cursor};
 
 use flatgeobuf::FallibleStreamingIterator;
@@ -20,7 +18,7 @@ struct Feat {
 #[test]
 fn point_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "a".into(),
@@ -48,7 +46,7 @@ fn point_test() -> anyhow::Result<()> {
 #[test]
 fn line_string_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "b".into(),
@@ -76,7 +74,7 @@ fn line_string_test() -> anyhow::Result<()> {
 #[test]
 fn properties_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "alpha".into(),
@@ -105,7 +103,7 @@ fn properties_test() -> anyhow::Result<()> {
 #[test]
 fn features_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(
         &testing::p(0),
@@ -146,7 +144,7 @@ fn features_test() -> anyhow::Result<()> {
 #[test]
 fn polygon_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Polygon);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "c".into(),
@@ -190,7 +188,7 @@ fn primitive_test() -> anyhow::Result<()> {
     }
 
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(
         &testing::p(0),
@@ -236,7 +234,7 @@ fn primitive_test() -> anyhow::Result<()> {
 #[test]
 fn multi_point_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "d".into(),
@@ -264,7 +262,7 @@ fn multi_point_test() -> anyhow::Result<()> {
 #[test]
 fn multi_line_string_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
-    let mut fgb_ser = geoserde::fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "e".into(),
