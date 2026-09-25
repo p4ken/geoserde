@@ -37,7 +37,7 @@ impl FlattenOption {
     ///
     /// Nested attributes are joined with `"."`, arrays are joined with `","`,
     /// and array indices use `"["` / `"]"` brackets.
-    pub const fn full() -> Self {
+    pub fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
             nested_attribute_separator: ".",
@@ -50,14 +50,14 @@ impl FlattenOption {
     }
 
     /// Enables nested-object flattening with the given key separator.
-    pub const fn object(mut self, sep: &'static str) -> Self {
+    pub fn object(mut self, sep: &'static str) -> Self {
         self.flatten_nested_attribute = true;
         self.nested_attribute_separator = sep;
         self
     }
 
     /// Enables simple-array flattening, joining elements with `sep`.
-    pub const fn simple_array(mut self, sep: &'static str) -> Self {
+    pub fn simple_array(mut self, sep: &'static str) -> Self {
         self.array_as_string = true;
         self.array_element_separator = sep;
         self
@@ -67,7 +67,7 @@ impl FlattenOption {
     ///
     /// Each element is serialized under `key{prefix}{index}{suffix}`
     /// (e.g. `items[0]`).
-    pub const fn object_array(mut self, prefix: &'static str, suffix: &'static str) -> Self {
+    pub fn object_array(mut self, prefix: &'static str, suffix: &'static str) -> Self {
         self.flatten_nested_array = true;
         self.nested_array_index_prefix = prefix;
         self.nested_array_index_suffix = suffix;
