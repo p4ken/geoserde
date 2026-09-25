@@ -23,7 +23,7 @@ use crate::fgb::Error;
 ///     std::io::BufReader::new(file),
 /// )?;
 /// let mut de = FeatureDeserializer::new(reader)?;
-/// for result in de.iter::<geo_types::Point, Props>() {
+/// for result in de.features::<geo_types::Point, Props>() {
 ///     let (geom, props) = result?;
 /// }
 /// # Ok(())
@@ -71,7 +71,7 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
     }
 
     /// Returns an iterator over deserialized features.
-    pub fn iter<G, P>(&mut self) -> Features<'_, R, G, P>
+    pub fn features<G, P>(&mut self) -> Features<'_, R, G, P>
     where
         G: DeserializeGeometry,
         P: serde::de::DeserializeOwned,
@@ -83,7 +83,7 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
     }
 }
 
-/// Iterator adapter returned by [`FeatureDeserializer::iter`].
+/// Iterator adapter returned by [`FeatureDeserializer::features`].
 pub struct Features<'a, R, G, P> {
     inner: &'a mut FeatureDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,

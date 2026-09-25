@@ -23,7 +23,7 @@ fn point_test() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -44,7 +44,7 @@ fn line_string_test() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::LineString, NoProps>()
+        .features::<geo_types::LineString, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, testing::ls(0));
@@ -71,7 +71,7 @@ fn feature_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, props) = fgb_de.iter::<geo_types::Point, Feat>().next().unwrap()?;
+    let (_, props) = fgb_de.features::<geo_types::Point, Feat>().next().unwrap()?;
     assert_eq!(props.name, "gamma");
     assert_eq!(props.count, 5);
     Ok(())
@@ -102,7 +102,7 @@ fn features_test() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let mut iter = fgb_de.iter::<geo_types::Point, Feat>();
+    let mut iter = fgb_de.features::<geo_types::Point, Feat>();
 
     let (geom1, feat1) = iter.next().unwrap()?;
     assert_eq!(geom1, testing::p(0));
@@ -130,7 +130,7 @@ fn polygon_test() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::Polygon, NoProps>()
+        .features::<geo_types::Polygon, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, testing::donut(0));
@@ -177,7 +177,7 @@ fn primitive_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, p) = fgb_de.iter::<geo_types::Point, Prim>().next().unwrap()?;
+    let (_, p) = fgb_de.features::<geo_types::Point, Prim>().next().unwrap()?;
     assert!(p.v_bool);
     assert_eq!(p.v_i8, -1);
     assert_eq!(p.v_i16, -200);
@@ -210,7 +210,7 @@ fn multi_point_test() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::MultiPoint, NoProps>()
+        .features::<geo_types::MultiPoint, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, testing::multi_p(0));
@@ -234,7 +234,7 @@ fn multi_line_string_test() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::MultiLineString, NoProps>()
+        .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, testing::multi_ls(0));
@@ -258,7 +258,7 @@ fn point_to_multi_point() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::MultiPoint, NoProps>()
+        .features::<geo_types::MultiPoint, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, geo_types::MultiPoint::new(vec![testing::p(0)]));
@@ -281,7 +281,7 @@ fn multi_point_to_point() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.iter::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -310,7 +310,7 @@ fn multi_point_to_polygon() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::Polygon, NoProps>()
+        .features::<geo_types::Polygon, NoProps>()
         .next()
         .unwrap()?;
     let expected = geo_types::Polygon::new(
@@ -338,7 +338,7 @@ fn line_string_to_multi_line_string() -> anyhow::Result<()> {
     #[derive(Deserialize)]
     struct NoProps {}
     let (geom, _) = fgb_de
-        .iter::<geo_types::MultiLineString, NoProps>()
+        .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap()?;
     assert_eq!(geom, geo_types::MultiLineString::new(vec![testing::ls(0)]));
@@ -362,7 +362,7 @@ fn point_to_line_string_fails() {
     #[derive(Deserialize)]
     struct NoProps {}
     let result = fgb_de
-        .iter::<geo_types::LineString, NoProps>()
+        .features::<geo_types::LineString, NoProps>()
         .next()
         .unwrap();
     assert!(result.is_err());

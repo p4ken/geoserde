@@ -27,7 +27,7 @@ fn point_to_polygon_fails() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.iter::<geo_types::Polygon, NoProps>().next().unwrap();
+    let result = fgb_de.features::<geo_types::Polygon, NoProps>().next().unwrap();
     assert!(result.is_err());
 }
 
@@ -46,7 +46,7 @@ fn point_to_multi_line_string_fails() {
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
     let result = fgb_de
-        .iter::<geo_types::MultiLineString, NoProps>()
+        .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap();
     assert!(result.is_err());
@@ -71,7 +71,7 @@ fn multi_point_to_multi_line_string_fails() {
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
     let result = fgb_de
-        .iter::<geo_types::MultiLineString, NoProps>()
+        .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap();
     // MultiPoint has a match arm in MultiLineString (wraps coords as one LineString),
@@ -93,7 +93,7 @@ fn empty_file_returns_none() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let result = fgb_de.iter::<geo_types::Point, NoProps>().next();
+    let result = fgb_de.features::<geo_types::Point, NoProps>().next();
     assert!(result.is_none());
     Ok(())
 }
@@ -145,7 +145,7 @@ fn property_type_mismatch() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.iter::<geo_types::Point, WrongType>().next().unwrap();
+    let result = fgb_de.features::<geo_types::Point, WrongType>().next().unwrap();
     assert!(result.is_err());
 }
 
@@ -170,7 +170,7 @@ fn missing_required_field() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.iter::<geo_types::Point, Required>().next().unwrap();
+    let result = fgb_de.features::<geo_types::Point, Required>().next().unwrap();
     assert!(result.is_err());
 }
 
@@ -215,7 +215,7 @@ fn optional_field_missing_ok() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
     let (_, props) = fgb_de
-        .iter::<geo_types::Point, OptionalProps>()
+        .features::<geo_types::Point, OptionalProps>()
         .next()
         .unwrap()?;
     assert_eq!(props.name, "test");
