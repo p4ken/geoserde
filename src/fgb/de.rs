@@ -3,7 +3,7 @@ use std::io::{Read, Seek};
 use serde::de::IntoDeserializer;
 
 use crate::de::DeserializeGeometry;
-use crate::fgb::Error;
+use crate::fgb::{Error, FeatureError, PropertyError};
 
 /// Deserializes features (geometry + properties) from a FlatGeobuf source.
 ///
@@ -105,7 +105,7 @@ where
 /// Low-level serde [`MapAccess`](serde::de::MapAccess) over a single
 /// FlatGeobuf feature's property columns.
 #[derive(Debug)]
-pub struct FeatureAccess<'de> {
+pub(crate) struct FeatureAccess<'de> {
     header: &'de OwnedHeader,
     col_type: Option<flatgeobuf::ColumnType>,
     properties_buf: &'de [u8],
@@ -113,7 +113,7 @@ pub struct FeatureAccess<'de> {
 
 impl<'de> FeatureAccess<'de> {
     /// Creates a new `FeatureAccess` from a header and a FlatGeobuf feature.
-    pub fn new(header: &'de OwnedHeader, feat: &'de flatgeobuf::FgbFeature) -> Self {
+    pub(crate) fn new(header: &'de OwnedHeader, feat: &'de flatgeobuf::FgbFeature) -> Self {
         Self {
             header,
             col_type: None,
@@ -238,7 +238,7 @@ impl<'de> IntoDeserializer<'de, FeatureError> for FeatureAccess<'de> {
 /// takes `&mut self` (which contains the header) while deserialization needs
 /// shared access.
 #[derive(Debug)]
-pub struct OwnedHeader {
+pub(crate) struct OwnedHeader {
     cols: Vec<OwnedColumn>,
 }
 
@@ -264,78 +264,5 @@ impl From<flatgeobuf::Column<'_>> for OwnedColumn {
             name: col.name().to_owned(),
             col_type: col.type_(),
         }
-    }
-}
-
-/// Error returned when deserializing a single FlatGeobuf feature's properties.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum FeatureError {
-    /// The column key could not be deserialized.
-    Key(serde::de::value::Error),
-    /// The property buffer was truncated or contained invalid data.
-    Property(PropertyError),
-    /// The column type is not supported by this deserializer.
-    UnsupportedColumnType(u8),
-    /// A `serde::Deserialize` implementation returned an error.
-    Deserialize(serde::de::value::Error),
-}
-
-impl serde::de::Error for FeatureError {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Deserialize(serde::de::Error::custom(msg))
-    }
-}
-
-impl std::error::Error for FeatureError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(match self {
-            Self::Key(e) => e,
-            Self::Deserialize(e) => e,
-            Self::Property(_) | Self::UnsupportedColumnType(_) => return None,
-        })
-    }
-}
-
-impl std::fmt::Display for FeatureError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Key(_) => write!(f, "attribute key deserializer failed"),
-            Self::Property(_) => write!(f, "properties deserializer failed"),
-            Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
-            Self::Deserialize(_) => write!(f, "deserialize impl failed"),
-        }
-    }
-}
-
-impl From<PropertyError> for FeatureError {
-    fn from(e: PropertyError) -> Self {
-        Self::Property(e)
-    }
-}
-
-/// Error returned when reading raw property bytes from a FlatGeobuf feature.
-#[derive(Debug, Clone)]
-pub enum PropertyError {
-    /// The property buffer ended before the expected number of bytes.
-    Short,
-    /// A string property contained invalid UTF-8.
-    Utf8(std::str::Utf8Error),
-}
-
-impl std::error::Error for PropertyError {}
-
-impl std::fmt::Display for PropertyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Short => write!(f, "unexpected end of buffer"),
-            Self::Utf8(e) => e.fmt(f),
-        }
-    }
-}
-
-impl From<std::str::Utf8Error> for PropertyError {
-    fn from(e: std::str::Utf8Error) -> Self {
-        Self::Utf8(e)
     }
 }

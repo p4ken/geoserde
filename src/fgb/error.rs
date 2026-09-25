@@ -1,7 +1,6 @@
 use std::convert::Infallible;
 
 use crate::de::GeometryTypeMismatch;
-use crate::fgb::de::FeatureError;
 use crate::ser::{SourceError, TableError};
 
 /// Error type for FlatGeobuf operations.
@@ -103,5 +102,78 @@ impl std::error::Error for Error {
 impl serde::ser::Error for Error {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Self::Source(msg.to_string().into())
+    }
+}
+
+/// Error returned when deserializing a single FlatGeobuf feature's properties.
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub enum FeatureError {
+    /// The column key could not be deserialized.
+    Key(serde::de::value::Error),
+    /// The property buffer was truncated or contained invalid data.
+    Property(PropertyError),
+    /// The column type is not supported by this deserializer.
+    UnsupportedColumnType(u8),
+    /// A `serde::Deserialize` implementation returned an error.
+    Deserialize(serde::de::value::Error),
+}
+
+impl serde::de::Error for FeatureError {
+    fn custom<T: std::fmt::Display>(msg: T) -> Self {
+        Self::Deserialize(serde::de::Error::custom(msg))
+    }
+}
+
+impl std::error::Error for FeatureError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(match self {
+            Self::Key(e) => e,
+            Self::Deserialize(e) => e,
+            Self::Property(_) | Self::UnsupportedColumnType(_) => return None,
+        })
+    }
+}
+
+impl std::fmt::Display for FeatureError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Key(_) => write!(f, "attribute key deserializer failed"),
+            Self::Property(_) => write!(f, "properties deserializer failed"),
+            Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
+            Self::Deserialize(_) => write!(f, "deserialize impl failed"),
+        }
+    }
+}
+
+impl From<PropertyError> for FeatureError {
+    fn from(e: PropertyError) -> Self {
+        Self::Property(e)
+    }
+}
+
+/// Error returned when reading raw property bytes from a FlatGeobuf feature.
+#[derive(Debug, Clone)]
+pub enum PropertyError {
+    /// The property buffer ended before the expected number of bytes.
+    Short,
+    /// A string property contained invalid UTF-8.
+    Utf8(std::str::Utf8Error),
+}
+
+impl std::error::Error for PropertyError {}
+
+impl std::fmt::Display for PropertyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Short => write!(f, "unexpected end of buffer"),
+            Self::Utf8(e) => e.fmt(f),
+        }
+    }
+}
+
+impl From<std::str::Utf8Error> for PropertyError {
+    fn from(e: std::str::Utf8Error) -> Self {
+        Self::Utf8(e)
     }
 }

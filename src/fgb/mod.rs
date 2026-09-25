@@ -5,12 +5,12 @@
 //! Use [`FeatureDeserializer`] to read features from a FlatGeobuf file, and
 //! [`FeatureSerializer`] to write them.
 
-pub mod de;
+mod de;
 mod error;
-pub mod ser;
+mod ser;
 
 pub use de::{FeatureDeserializer, Features};
-pub use error::Error;
+pub use error::{Error, FeatureError, PropertyError};
 pub use ser::FeatureSerializer;
 
 pub use flatgeobuf;
