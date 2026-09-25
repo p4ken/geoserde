@@ -9,8 +9,8 @@
 mod prop;
 
 pub use prop::{
-    FieldValue, FlatProperties, FlattenOption, SerializeProperties, TableError, TableSerializer,
-    flatten_keys,
+    FieldValue, FlatProperties, FlattenOption, SerializeProperties, StringifyError, TableError,
+    TableSerializer, flatten_keys,
 };
 
 /// An error originating from the data source during property serialization.

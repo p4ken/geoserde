@@ -220,10 +220,16 @@ impl Serializer for Stringifier {
     }
 }
 
+/// Error returned when a value cannot be converted into a single string,
+/// such as a map key.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum StringifyError {
+    /// The value was `None` or unit.
     Empty,
+    /// The value was a sequence, map, struct or other nested structure.
     Nested,
+    /// An error originating from the user's `Serialize` implementation.
     Source(SourceError),
 }
 

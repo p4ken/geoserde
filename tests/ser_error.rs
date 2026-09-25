@@ -116,7 +116,25 @@ fn flatten_non_string_key_map_rejected() {
     map.insert(vec![1, 2], "value");
 
     let result = ser::FlatProperties::flatten(&map);
-    assert!(result.is_err());
+    assert!(matches!(
+        result,
+        Err(ser::TableError::Key(ser::StringifyError::Nested))
+    ));
+}
+
+/// A `None` map key is rejected.
+#[test]
+fn flatten_none_key_map_rejected() {
+    use std::collections::HashMap;
+
+    let mut map = HashMap::new();
+    map.insert(None::<&str>, "value");
+
+    let result = ser::FlatProperties::flatten(&map);
+    assert!(matches!(
+        result,
+        Err(ser::TableError::Key(ser::StringifyError::Empty))
+    ));
 }
 
 /// flatten_keys succeeds on an empty struct.
