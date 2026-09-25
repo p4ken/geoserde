@@ -28,7 +28,10 @@ fn line_string_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de
+        .features::<geo_types::Point, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -71,7 +74,10 @@ fn multi_line_string_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de
+        .features::<geo_types::Point, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -125,7 +131,10 @@ fn polygon_to_point() -> anyhow::Result<()> {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
 
-    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de
+        .features::<geo_types::Point, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }

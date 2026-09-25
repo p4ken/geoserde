@@ -23,7 +23,10 @@ fn point_test() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de
+        .features::<geo_types::Point, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -71,7 +74,10 @@ fn feature_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, props) = fgb_de.features::<geo_types::Point, Feat>().next().unwrap()?;
+    let (_, props) = fgb_de
+        .features::<geo_types::Point, Feat>()
+        .next()
+        .unwrap()?;
     assert_eq!(props.name, "gamma");
     assert_eq!(props.count, 5);
     Ok(())
@@ -177,7 +183,10 @@ fn primitive_test() -> anyhow::Result<()> {
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader)?;
-    let (_, p) = fgb_de.features::<geo_types::Point, Prim>().next().unwrap()?;
+    let (_, p) = fgb_de
+        .features::<geo_types::Point, Prim>()
+        .next()
+        .unwrap()?;
     assert!(p.v_bool);
     assert_eq!(p.v_i8, -1);
     assert_eq!(p.v_i16, -200);
@@ -281,7 +290,10 @@ fn multi_point_to_point() -> anyhow::Result<()> {
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    let (geom, _) = fgb_de
+        .features::<geo_types::Point, NoProps>()
+        .next()
+        .unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }

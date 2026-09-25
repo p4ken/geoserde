@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
+    Serialize, Serializer,
     ser::{
         Error, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
         SerializeTupleStruct, SerializeTupleVariant,
     },
-    Serialize, Serializer,
 };
 
 use crate::ser::prop::{
-    elem::{StringLike, Stringifier, StringifyError},
     FieldValue, FlattenOption, TableError,
+    elem::{StringLike, Stringifier, StringifyError},
 };
 
 /// Trait for sinks that receive flattened key-value property pairs.

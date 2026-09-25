@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use serde::{
-    ser::{Error, Impossible, StdError},
     Serialize, Serializer,
+    ser::{Error, Impossible, StdError},
 };
 
 use crate::ser::SourceError;

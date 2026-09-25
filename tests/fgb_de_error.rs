@@ -27,7 +27,10 @@ fn point_to_polygon_fails() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.features::<geo_types::Polygon, NoProps>().next().unwrap();
+    let result = fgb_de
+        .features::<geo_types::Polygon, NoProps>()
+        .next()
+        .unwrap();
     assert!(result.is_err());
 }
 
@@ -145,7 +148,10 @@ fn property_type_mismatch() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.features::<geo_types::Point, WrongType>().next().unwrap();
+    let result = fgb_de
+        .features::<geo_types::Point, WrongType>()
+        .next()
+        .unwrap();
     assert!(result.is_err());
 }
 
@@ -170,7 +176,10 @@ fn missing_required_field() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde::fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de.features::<geo_types::Point, Required>().next().unwrap();
+    let result = fgb_de
+        .features::<geo_types::Point, Required>()
+        .next()
+        .unwrap();
     assert!(result.is_err());
 }
 
