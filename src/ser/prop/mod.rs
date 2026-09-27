@@ -6,6 +6,6 @@ mod value;
 
 pub use elem::StringifyError;
 pub use field::SerializeProperties;
-pub use flat::{FlatProperties, flatten_keys};
+pub use flat::flatten_keys;
 pub use table::{FlattenOption, TableError, TableSerializer};
 pub use value::FieldValue;
