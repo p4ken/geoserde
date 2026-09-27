@@ -16,8 +16,6 @@ pub enum Error {
     GeometryType(GeometryTypeMismatch),
     /// The feature did not contain a geometry.
     MissingGeometry,
-    /// An unsupported `ColumnType` was encountered in the FlatGeobuf properties.
-    UnsupportedColumnType(u8),
     /// Error from FlatGeobuf property deserialization via serde.
     Feature(FeatureError),
     /// The properties could not be flattened into a table.
@@ -61,15 +59,6 @@ impl From<TableError<Error>> for Error {
     }
 }
 
-impl From<TableError<SourceError>> for Error {
-    fn from(e: TableError<SourceError>) -> Self {
-        match e.into_sink() {
-            Ok(inner) => Self::Source(inner),
-            Err(table) => Self::Table(table),
-        }
-    }
-}
-
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -77,7 +66,6 @@ impl std::fmt::Display for Error {
             Self::Geozero(_) => f.write_str("geozero processing failed"),
             Self::GeometryType(_) => f.write_str("geometry type mismatch"),
             Self::MissingGeometry => f.write_str("feature has no geometry"),
-            Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
             Self::Feature(_) => f.write_str("feature properties deserialization failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
@@ -95,9 +83,7 @@ impl std::error::Error for Error {
             Self::Feature(e) => Some(e),
             Self::Table(e) => Some(e),
             Self::Source(e) => Some(e),
-            Self::MissingGeometry
-            | Self::UnsupportedColumnType(_)
-            | Self::UnsupportedFieldValue(_) => None,
+            Self::MissingGeometry | Self::UnsupportedFieldValue(_) => None,
         }
     }
 }

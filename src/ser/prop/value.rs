@@ -135,15 +135,3 @@ impl<'a> From<&'a [u8]> for FieldValue<'a> {
         Self::Bytes(value)
     }
 }
-
-impl From<String> for FieldValue<'static> {
-    fn from(value: String) -> Self {
-        Self::BoxedStr(value.into_boxed_str())
-    }
-}
-
-impl From<Vec<u8>> for FieldValue<'static> {
-    fn from(value: Vec<u8>) -> Self {
-        Self::BoxedBytes(value.into_boxed_slice())
-    }
-}

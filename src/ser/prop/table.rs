@@ -23,12 +23,14 @@ use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSe
 #[derive(Debug, Clone)]
 pub struct FlattenOption {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
+    // Not yet read; treated as always true.
     flatten_nested_attribute: bool,
     nested_attribute_separator: &'static str,
     array_as_string: bool,
 
     /* Our original options */
     array_element_separator: &'static str,
+    // Not yet read; treated as always true.
     flatten_nested_array: bool,
     nested_array_index_prefix: &'static str,
     nested_array_index_suffix: &'static str,
@@ -50,6 +52,8 @@ impl FlattenOption {
             nested_array_index_suffix: "]",
         }
     }
+
+    /* NOTE: A constructor that disables flattening is planned. */
 
     /// Enables nested-object flattening with the given key separator.
     pub fn object(mut self, sep: &'static str) -> Self {
