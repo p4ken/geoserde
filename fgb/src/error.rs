@@ -118,8 +118,9 @@ impl std::error::Error for FeatureError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(match self {
             Self::Key(e) => e,
+            Self::Property(e) => e,
             Self::Deserialize(e) => e,
-            Self::Property(_) | Self::UnsupportedColumnType(_) => return None,
+            Self::UnsupportedColumnType(_) => return None,
         })
     }
 }
