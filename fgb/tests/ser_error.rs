@@ -8,7 +8,7 @@ fn scalar_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &42_i32);
+    let result = fgb_ser.serialize_feature(testing::p(0), 42_i32);
     assert!(result.is_err());
 }
 
@@ -18,7 +18,7 @@ fn string_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), "hello");
+    let result = fgb_ser.serialize_feature(testing::p(0), "hello");
     assert!(result.is_err());
 }
 
@@ -28,7 +28,7 @@ fn seq_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &vec![1, 2, 3]);
+    let result = fgb_ser.serialize_feature(testing::p(0), vec![1, 2, 3]);
     assert!(result.is_err());
 }
 
@@ -38,7 +38,7 @@ fn bool_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &true);
+    let result = fgb_ser.serialize_feature(testing::p(0), true);
     assert!(result.is_err());
 }
 
@@ -48,7 +48,7 @@ fn unit_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &());
+    let result = fgb_ser.serialize_feature(testing::p(0), ());
     assert!(result.is_err());
 }
 
@@ -61,7 +61,7 @@ fn unit_struct_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &Empty);
+    let result = fgb_ser.serialize_feature(testing::p(0), &Empty);
     assert!(result.is_err());
 }
 
@@ -71,7 +71,7 @@ fn tuple_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &(1, 2));
+    let result = fgb_ser.serialize_feature(testing::p(0), (1, 2));
     assert!(result.is_err());
 }
 
@@ -86,7 +86,7 @@ fn enum_variant_properties_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &Kind::A);
+    let result = fgb_ser.serialize_feature(testing::p(0), &Kind::A);
     assert!(result.is_err());
 }
 
@@ -101,7 +101,7 @@ fn non_string_key_map_rejected() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let result = fgb_ser.serialize_feature(&testing::p(0), &map);
+    let result = fgb_ser.serialize_feature(testing::p(0), &map);
     assert!(result.is_err());
 }
 
@@ -112,7 +112,7 @@ fn root_rejection_source_chain() {
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let err = fgb_ser
-        .serialize_feature(&testing::p(0), &42_i32)
+        .serialize_feature(testing::p(0), 42_i32)
         .unwrap_err();
     assert!(matches!(
         err,
@@ -133,7 +133,7 @@ fn non_string_key_source_chain() {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
-    let err = fgb_ser.serialize_feature(&testing::p(0), &map).unwrap_err();
+    let err = fgb_ser.serialize_feature(testing::p(0), &map).unwrap_err();
     let table = std::error::Error::source(&err).unwrap();
     assert_eq!(table.to_string(), "map key must be a string");
     let key = table.source().unwrap();
@@ -160,7 +160,7 @@ fn custom_error_source_chain() {
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     let err = fgb_ser
-        .serialize_feature(&testing::p(0), &Props { a: Failing })
+        .serialize_feature(testing::p(0), &Props { a: Failing })
         .unwrap_err();
     assert!(matches!(err, geoserde_fgb::Error::Source(_)));
     let source = std::error::Error::source(&err).unwrap();

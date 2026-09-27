@@ -24,7 +24,7 @@ fn point_test() -> anyhow::Result<()> {
         name: "a".into(),
         count: 0,
     };
-    fgb_ser.serialize_feature(&testing::p(0), &feat)?;
+    fgb_ser.serialize_feature(testing::p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -52,7 +52,7 @@ fn line_string_test() -> anyhow::Result<()> {
         name: "b".into(),
         count: 0,
     };
-    fgb_ser.serialize_feature(&testing::ls(0), &feat)?;
+    fgb_ser.serialize_feature(testing::ls(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -80,7 +80,7 @@ fn properties_test() -> anyhow::Result<()> {
         name: "alpha".into(),
         count: 3,
     };
-    fgb_ser.serialize_feature(&testing::p(0), &feat)?;
+    fgb_ser.serialize_feature(testing::p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -106,14 +106,14 @@ fn features_test() -> anyhow::Result<()> {
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(
-        &testing::p(0),
+        testing::p(0),
         &Feat {
             name: "first".into(),
             count: 1,
         },
     )?;
     fgb_ser.serialize_feature(
-        &testing::p(1),
+        testing::p(1),
         &Feat {
             name: "second".into(),
             count: 2,
@@ -150,7 +150,7 @@ fn polygon_test() -> anyhow::Result<()> {
         name: "c".into(),
         count: 0,
     };
-    fgb_ser.serialize_feature(&testing::donut(0), &feat)?;
+    fgb_ser.serialize_feature(testing::donut(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -191,7 +191,7 @@ fn primitive_test() -> anyhow::Result<()> {
     let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
 
     fgb_ser.serialize_feature(
-        &testing::p(0),
+        testing::p(0),
         &Prim {
             v_bool: true,
             v_i8: -1,
@@ -240,7 +240,7 @@ fn multi_point_test() -> anyhow::Result<()> {
         name: "d".into(),
         count: 0,
     };
-    fgb_ser.serialize_feature(&testing::multi_p(0), &feat)?;
+    fgb_ser.serialize_feature(testing::multi_p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;
@@ -268,7 +268,7 @@ fn multi_line_string_test() -> anyhow::Result<()> {
         name: "e".into(),
         count: 0,
     };
-    fgb_ser.serialize_feature(&testing::multi_ls(0), &feat)?;
+    fgb_ser.serialize_feature(testing::multi_ls(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
     fgb_ser.into_inner().write(&mut fgb_buf)?;

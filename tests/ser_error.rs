@@ -6,7 +6,7 @@ use serde::Serialize;
 /// Scalar i32 is rejected at the root level.
 #[test]
 fn flatten_scalar_rejected() {
-    let result = ser::FlatProperties::flatten(&42_i32);
+    let result = ser::FlatProperties::flatten(42_i32);
     assert!(result.is_err());
 }
 
@@ -20,28 +20,28 @@ fn flatten_string_rejected() {
 /// Vec (sequence) is rejected at the root level.
 #[test]
 fn flatten_seq_rejected() {
-    let result = ser::FlatProperties::flatten(&vec![1, 2, 3]);
+    let result = ser::FlatProperties::flatten(vec![1, 2, 3]);
     assert!(result.is_err());
 }
 
 /// Bool is rejected at the root level.
 #[test]
 fn flatten_bool_rejected() {
-    let result = ser::FlatProperties::flatten(&true);
+    let result = ser::FlatProperties::flatten(true);
     assert!(result.is_err());
 }
 
 /// Unit is rejected at the root level.
 #[test]
 fn flatten_unit_rejected() {
-    let result = ser::FlatProperties::flatten(&());
+    let result = ser::FlatProperties::flatten(());
     assert!(result.is_err());
 }
 
 /// Tuple is rejected at the root level.
 #[test]
 fn flatten_tuple_rejected() {
-    let result = ser::FlatProperties::flatten(&(1, 2));
+    let result = ser::FlatProperties::flatten((1, 2));
     assert!(result.is_err());
 }
 
@@ -72,14 +72,14 @@ fn flatten_enum_variant_rejected() {
 /// flatten_keys rejects scalar values.
 #[test]
 fn flatten_keys_scalar_rejected() {
-    let result = ser::flatten_keys(&42_i32);
+    let result = ser::flatten_keys(42_i32);
     assert!(result.is_err());
 }
 
 /// flatten_keys rejects sequences.
 #[test]
 fn flatten_keys_seq_rejected() {
-    let result = ser::flatten_keys(&vec![1, 2, 3]);
+    let result = ser::flatten_keys(vec![1, 2, 3]);
     assert!(result.is_err());
 }
 

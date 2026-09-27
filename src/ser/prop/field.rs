@@ -79,7 +79,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     fn build_key(&self) -> Cow<'static, str> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
-            [multi @ ..] => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
+            multi => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
         }
     }
 
@@ -219,7 +219,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut FieldSeria
     }
 }
 
-impl<'a, P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializer<P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 

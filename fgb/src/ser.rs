@@ -65,7 +65,7 @@ impl SerializeProperties for &mut FeatureSerializer<'_> {
             return Err(Error::UnsupportedFieldValue(value.into_owned()));
         };
         let index_of_key = self.known_key.iter().position(|k| k == &key);
-        let index_to_write = index_of_key.unwrap_or_else(|| self.known_key.len());
+        let index_to_write = index_of_key.unwrap_or(self.known_key.len());
         flatgeobuf::geozero::PropertyProcessor::property(
             &mut self.writer,
             index_to_write,
