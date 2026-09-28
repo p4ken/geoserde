@@ -2,10 +2,13 @@ use std::convert::Infallible;
 
 use serde::{
     Serialize, Serializer,
-    ser::{Error, Impossible, SerializeMap, SerializeStruct, StdError},
+    ser::{Impossible, SerializeMap, SerializeStruct, StdError},
 };
 
-use crate::ser::prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer};
+use crate::ser::{
+    SourceError,
+    prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer},
+};
 
 /// Controls how nested structures and arrays are flattened into property keys.
 ///
@@ -120,7 +123,7 @@ impl FlattenOption {
 /// struct Printer;
 /// impl SerializeProperties for &mut Printer {
 ///     type Ok = ();
-///     type Error = geoserde::ser::SourceError;
+///     type Error = std::convert::Infallible;
 ///     fn serialize_property(&mut self, key: Cow<'static, str>, value: FieldValue<'_>) -> Result<(), Self::Error> { Ok(()) }
 ///     fn end(self) -> Result<(), Self::Error> { Ok(()) }
 /// }
@@ -128,7 +131,7 @@ impl FlattenOption {
 /// let mut sink = Printer;
 /// let ser = TableSerializer::new(&mut sink);
 /// Props { name: "a".into(), value: 1 }.serialize(ser)?;
-/// # Ok::<(), geoserde::ser::TableError<geoserde::ser::SourceError>>(())
+/// # Ok::<(), geoserde::ser::TableError<std::convert::Infallible>>(())
 /// ```
 #[derive(Debug)]
 pub struct TableSerializer<P> {
@@ -326,7 +329,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer
     where
         T: ?Sized + Serialize,
     {
-        (&mut self.child).serialize_field(key, value)
+        (&mut self.child)
+            .serialize_field(key, value)
+            .map_err(|e| self.child.locate(e))
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -349,7 +354,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
     where
         T: ?Sized + Serialize,
     {
-        (&mut self.child).serialize_value(value)
+        (&mut self.child)
+            .serialize_value(value)
+            .map_err(|e| self.child.locate(e))
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
@@ -364,7 +371,17 @@ pub enum TableError<E> {
     /// The root value was not a struct or map.
     Root,
     /// A map key could not be converted to a string.
-    Key(StringifyError),
+    Key {
+        /// Flattened key of the map holding the key, or `None` for the root.
+        parent: Option<String>,
+        source: StringifyError,
+    },
+    /// An error originating from the user's `Serialize` implementation.
+    Source {
+        /// Flattened key of the value being serialized, or `None` for the root.
+        key: Option<String>,
+        source: SourceError,
+    },
     /// An error propagated from the downstream [`SerializeProperties`] sink.
     Sink(E),
 }
@@ -378,15 +395,10 @@ impl<E> TableError<E> {
     pub fn into_sink(self) -> Result<E, TableError<Infallible>> {
         match self {
             Self::Root => Err(TableError::Root),
-            Self::Key(e) => Err(TableError::Key(e)),
+            Self::Key { parent, source } => Err(TableError::Key { parent, source }),
+            Self::Source { key, source } => Err(TableError::Source { key, source }),
             Self::Sink(e) => Ok(e),
         }
-    }
-}
-
-impl<E> From<StringifyError> for TableError<E> {
-    fn from(e: StringifyError) -> Self {
-        Self::Key(e)
     }
 }
 
@@ -394,8 +406,14 @@ impl<E: std::fmt::Display> std::fmt::Display for TableError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Root => f.write_str("data source must be a map or struct"),
-            Self::Key(_) => f.write_str("map key must be a string"),
-            Self::Sink(_) => f.write_str("downstream serializer caused"),
+            Self::Key {
+                parent: Some(parent),
+                ..
+            } => write!(f, "map key in `{parent}` must be a string"),
+            Self::Key { parent: None, .. } => f.write_str("map key must be a string"),
+            Self::Source { key: Some(key), .. } => write!(f, "failed to serialize `{key}`"),
+            Self::Source { key: None, .. } => f.write_str("failed to serialize data source"),
+            Self::Sink(_) => f.write_str("properties sink failed"),
         }
     }
 }
@@ -404,14 +422,19 @@ impl<E: StdError + 'static> StdError for TableError<E> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Root => None,
-            Self::Key(e) => Some(e),
+            Self::Key { source, .. } => Some(source),
+            Self::Source { source, .. } => Some(source),
             Self::Sink(e) => Some(e),
         }
     }
 }
 
-impl<E: Error + 'static> Error for TableError<E> {
+impl<E: StdError + 'static> serde::ser::Error for TableError<E> {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Sink(E::custom(msg))
+        // The key is not known here; the outermost serializer fills it in.
+        Self::Source {
+            key: None,
+            source: msg.to_string().into(),
+        }
     }
 }

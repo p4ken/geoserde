@@ -236,9 +236,9 @@ pub enum StringifyError {
 impl std::fmt::Display for StringifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Empty => f.write_str("means empty"),
-            Self::Nested => f.write_str("nested hierarchy"),
-            Self::Source(_) => f.write_str("upstream serialize impl caused"),
+            Self::Empty => f.write_str("found an empty value"),
+            Self::Nested => f.write_str("found a nested value"),
+            Self::Source(_) => f.write_str("failed to serialize"),
         }
     }
 }

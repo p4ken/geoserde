@@ -102,7 +102,10 @@ fn flatten_non_string_key_map_rejected() {
     let result = ser::flatten_keys(&map);
     assert!(matches!(
         result,
-        Err(ser::TableError::Key(ser::StringifyError::Nested))
+        Err(ser::TableError::Key {
+            parent: None,
+            source: ser::StringifyError::Nested,
+        })
     ));
 }
 
@@ -117,7 +120,10 @@ fn flatten_none_key_map_rejected() {
     let result = ser::flatten_keys(&map);
     assert!(matches!(
         result,
-        Err(ser::TableError::Key(ser::StringifyError::Empty))
+        Err(ser::TableError::Key {
+            parent: None,
+            source: ser::StringifyError::Empty,
+        })
     ));
 }
 
@@ -191,4 +197,91 @@ fn flatten_option_some_included() {
     })
     .unwrap();
     assert_eq!(keys, vec!["present", "extra"]);
+}
+
+// --- Error context ---
+
+struct Failing;
+
+impl Serialize for Failing {
+    fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+        Err(serde::ser::Error::custom("boom"))
+    }
+}
+
+/// A non-string key in a nested map reports the key of the map.
+#[test]
+fn nested_map_key_error_has_parent() {
+    use std::collections::HashMap;
+
+    #[derive(Serialize)]
+    struct Outer {
+        inner: Inner,
+    }
+    #[derive(Serialize)]
+    struct Inner {
+        tags: HashMap<Vec<i32>, i32>,
+    }
+
+    let err = ser::flatten_keys(&Outer {
+        inner: Inner {
+            tags: HashMap::from([(vec![1], 1)]),
+        },
+    })
+    .unwrap_err();
+    let ser::TableError::Key { parent, .. } = &err else {
+        panic!("{err:?}");
+    };
+    assert_eq!(parent.as_deref(), Some("inner.tags"));
+    assert_eq!(err.to_string(), "map key in `inner.tags` must be a string");
+}
+
+/// An error from a nested `Serialize` impl reports the flattened key.
+#[test]
+fn source_error_has_key() {
+    #[derive(Serialize)]
+    struct Outer {
+        ok: i32,
+        inner: Inner,
+    }
+    #[derive(Serialize)]
+    struct Inner {
+        bad: Failing,
+    }
+
+    let err = ser::flatten_keys(&Outer {
+        ok: 1,
+        inner: Inner { bad: Failing },
+    })
+    .unwrap_err();
+    let ser::TableError::Source { key, source } = &err else {
+        panic!("{err:?}");
+    };
+    assert_eq!(key.as_deref(), Some("inner.bad"));
+    assert_eq!(source.to_string(), "boom");
+}
+
+/// An error from an array element reports the indexed key.
+#[test]
+fn source_error_in_array_has_index() {
+    #[derive(Serialize)]
+    struct Props {
+        items: Vec<Failing>,
+    }
+
+    let err = ser::flatten_keys(&Props {
+        items: vec![Failing],
+    })
+    .unwrap_err();
+    let ser::TableError::Source { key, .. } = &err else {
+        panic!("{err:?}");
+    };
+    assert_eq!(key.as_deref(), Some("items[0]"));
+}
+
+/// An error from the root `Serialize` impl has no key.
+#[test]
+fn source_error_at_root_has_no_key() {
+    let err = ser::flatten_keys(&Failing).unwrap_err();
+    assert!(matches!(err, ser::TableError::Source { key: None, .. }));
 }

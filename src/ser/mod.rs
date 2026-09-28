@@ -30,9 +30,3 @@ impl std::fmt::Display for SourceError {
 }
 
 impl std::error::Error for SourceError {}
-
-impl serde::ser::Error for SourceError {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self(msg.to_string())
-    }
-}

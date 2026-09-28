@@ -137,7 +137,7 @@ fn non_string_key_source_chain() {
     let table = std::error::Error::source(&err).unwrap();
     assert_eq!(table.to_string(), "map key must be a string");
     let key = table.source().unwrap();
-    assert_eq!(key.to_string(), "nested hierarchy");
+    assert_eq!(key.to_string(), "found a nested value");
 }
 
 /// A custom error from the user's `Serialize` impl reaches the source chain.
@@ -162,7 +162,12 @@ fn custom_error_source_chain() {
     let err = fgb_ser
         .serialize_feature(testing::p(0), &Props { a: Failing })
         .unwrap_err();
-    assert!(matches!(err, geoserde_fgb::Error::Source(_)));
-    let source = std::error::Error::source(&err).unwrap();
-    assert_eq!(source.to_string(), "boom");
+    assert!(matches!(
+        &err,
+        geoserde_fgb::Error::Table(geoserde::ser::TableError::Source { key: Some(key), .. })
+            if key == "a"
+    ));
+    let table = std::error::Error::source(&err).unwrap();
+    assert_eq!(table.to_string(), "failed to serialize `a`");
+    assert_eq!(table.source().unwrap().to_string(), "boom");
 }

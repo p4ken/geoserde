@@ -1,9 +1,8 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::Infallible};
 
 use serde::Serialize;
 
 use super::{FieldValue, SerializeProperties, TableError, TableSerializer};
-use crate::ser::SourceError;
 
 /// Flattens a serializable value and collects only its property keys,
 /// discarding the values.
@@ -14,7 +13,7 @@ use crate::ser::SourceError;
 /// # Errors
 ///
 /// Returns [`TableError`] if the source value is not a struct or map.
-pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<SourceError>> {
+pub fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, TableError<Infallible>> {
     let mut keys = KeySink(Vec::new());
     let table_ser = TableSerializer::new(&mut keys);
     source.serialize(table_ser)?;
@@ -26,7 +25,7 @@ struct KeySink(Vec<Cow<'static, str>>);
 
 impl SerializeProperties for &mut KeySink {
     type Ok = ();
-    type Error = SourceError;
+    type Error = Infallible;
 
     fn serialize_property(
         &mut self,

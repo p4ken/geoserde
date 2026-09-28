@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use geoserde::de::GeometryTypeMismatch;
-use geoserde::ser::{FieldValue, SourceError, TableError};
+use geoserde::ser::{FieldValue, TableError};
 
 /// Error type for FlatGeobuf operations.
 #[derive(Debug)]
@@ -22,8 +22,6 @@ pub enum Error {
     Table(TableError<Infallible>),
     /// A property value has no corresponding FlatGeobuf column type.
     UnsupportedFieldValue(FieldValue<'static>),
-    /// A generic error originating from the user's `Serialize` implementation.
-    Source(SourceError),
 }
 
 impl From<flatgeobuf::Error> for Error {
@@ -69,7 +67,6 @@ impl std::fmt::Display for Error {
             Self::Feature(_) => f.write_str("feature properties deserialization failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
-            Self::Source(_) => f.write_str("upstream serialize impl caused"),
         }
     }
 }
@@ -82,15 +79,8 @@ impl std::error::Error for Error {
             Self::GeometryType(e) => Some(e),
             Self::Feature(e) => Some(e),
             Self::Table(e) => Some(e),
-            Self::Source(e) => Some(e),
             Self::MissingGeometry | Self::UnsupportedFieldValue(_) => None,
         }
-    }
-}
-
-impl serde::ser::Error for Error {
-    fn custom<T: std::fmt::Display>(msg: T) -> Self {
-        Self::Source(msg.to_string().into())
     }
 }
 

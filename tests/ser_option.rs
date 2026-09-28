@@ -8,7 +8,7 @@ struct Collector(Vec<(String, ser::FieldValue<'static>)>);
 
 impl ser::SerializeProperties for &mut Collector {
     type Ok = ();
-    type Error = ser::SourceError;
+    type Error = std::convert::Infallible;
 
     fn serialize_property(
         &mut self,

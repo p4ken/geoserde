@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use serde::{
     Serialize, Serializer,
     ser::{
-        Error, SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
-        SerializeTupleStruct, SerializeTupleVariant,
+        SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
+        SerializeTupleStruct, SerializeTupleVariant, StdError,
     },
 };
 
@@ -25,7 +25,7 @@ pub trait SerializeProperties {
     /// The successful return type.
     type Ok;
     /// The error type.
-    type Error: Error;
+    type Error: StdError;
 
     /// Write a single key-value property pair.
     fn serialize_property(
@@ -67,6 +67,23 @@ impl<P: SerializeProperties> FieldSerializer<P> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
             multi => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
+        }
+    }
+
+    fn current_key(&self) -> Option<String> {
+        (!self.key_stack.is_empty()).then(|| self.build_key().into_owned())
+    }
+
+    /// Fills in the key of an error raised by the user's `Serialize` impl.
+    pub fn locate(&self, e: TableError<P::Error>) -> TableError<P::Error> {
+        match e {
+            // An error returns before popping `key_stack`, so it still points
+            // to the innermost value being serialized.
+            TableError::Source { key: None, source } => TableError::Source {
+                key: self.current_key(),
+                source,
+            },
+            e => e,
         }
     }
 
@@ -215,7 +232,12 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializ
         T: ?Sized + Serialize,
     {
         // WARNING: Some formats may accept empty keys
-        let key = key.serialize(Stringifier)?;
+        let key = key
+            .serialize(Stringifier)
+            .map_err(|source| TableError::Key {
+                parent: self.current_key(),
+                source,
+            })?;
         self.key_stack.push(key.into());
         Ok(())
     }
