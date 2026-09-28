@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 mod testing;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct NoProps {}
 
 // --- Geometry type mismatch errors ---
@@ -25,11 +25,13 @@ fn point_to_polygon_fails() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de
+    let err = fgb_de
         .features::<geo_types::Polygon, NoProps>()
         .next()
-        .unwrap();
-    assert!(result.is_err());
+        .unwrap()
+        .unwrap_err();
+    let source = std::error::Error::source(&err).unwrap();
+    assert_eq!(source.to_string(), "expected Polygon, found Point");
 }
 
 /// Point → MultiLineString is unsupported.

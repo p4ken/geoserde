@@ -21,30 +21,32 @@ impl DeserializeGeometry for geo_types::Point {
                 .points()
                 .next()
                 .map(|p| p.to_point())
-                .ok_or(GeometryTypeMismatch::new("Point")),
+                .ok_or(GeometryTypeMismatch::new("Point", &source)),
             GeometryType::LineString(ls) => ls
                 .coords()
                 .next()
                 .map(|c| geo_types::Point::new(c.x(), c.y()))
-                .ok_or(GeometryTypeMismatch::new("Point")),
+                .ok_or(GeometryTypeMismatch::new("Point", &source)),
             GeometryType::MultiLineString(mls) => {
                 let ls = mls
                     .line_strings()
                     .next()
-                    .ok_or(GeometryTypeMismatch::new("Point"))?;
+                    .ok_or(GeometryTypeMismatch::new("Point", &source))?;
                 ls.coords()
                     .next()
                     .map(|c| geo_types::Point::new(c.x(), c.y()))
-                    .ok_or(GeometryTypeMismatch::new("Point"))
+                    .ok_or(GeometryTypeMismatch::new("Point", &source))
             }
             GeometryType::Polygon(poly) => {
-                let ring = poly.exterior().ok_or(GeometryTypeMismatch::new("Point"))?;
+                let ring = poly
+                    .exterior()
+                    .ok_or(GeometryTypeMismatch::new("Point", &source))?;
                 ring.coords()
                     .next()
                     .map(|c| geo_types::Point::new(c.x(), c.y()))
-                    .ok_or(GeometryTypeMismatch::new("Point"))
+                    .ok_or(GeometryTypeMismatch::new("Point", &source))
             }
-            _ => Err(GeometryTypeMismatch::new("Point")),
+            _ => Err(GeometryTypeMismatch::new("Point", &source)),
         }
     }
 }
@@ -65,7 +67,7 @@ impl DeserializeGeometry for geo_types::MultiPoint {
                 let ls = mls
                     .line_strings()
                     .next()
-                    .ok_or(GeometryTypeMismatch::new("MultiPoint"))?;
+                    .ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ls.coords()
                         .map(|c| geo_types::Point::new(c.x(), c.y()))
@@ -75,14 +77,14 @@ impl DeserializeGeometry for geo_types::MultiPoint {
             GeometryType::Polygon(poly) => {
                 let ring = poly
                     .exterior()
-                    .ok_or(GeometryTypeMismatch::new("MultiPoint"))?;
+                    .ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ring.coords()
                         .map(|c| geo_types::Point::new(c.x(), c.y()))
                         .collect(),
                 ))
             }
-            _ => Err(GeometryTypeMismatch::new("MultiPoint")),
+            _ => Err(GeometryTypeMismatch::new("MultiPoint", &source)),
         }
     }
 }
@@ -100,12 +102,12 @@ impl DeserializeGeometry for geo_types::LineString {
                 .line_strings()
                 .next()
                 .map(|ls| ls.to_line_string())
-                .ok_or(GeometryTypeMismatch::new("LineString")),
+                .ok_or(GeometryTypeMismatch::new("LineString", &source)),
             GeometryType::Polygon(poly) => poly
                 .exterior()
                 .map(|ring| ring.to_line_string())
-                .ok_or(GeometryTypeMismatch::new("LineString")),
-            _ => Err(GeometryTypeMismatch::new("LineString")),
+                .ok_or(GeometryTypeMismatch::new("LineString", &source)),
+            _ => Err(GeometryTypeMismatch::new("LineString", &source)),
         }
     }
 }
@@ -132,7 +134,7 @@ impl DeserializeGeometry for geo_types::MultiLineString {
                 }
                 Ok(geo_types::MultiLineString::new(lines))
             }
-            _ => Err(GeometryTypeMismatch::new("MultiLineString")),
+            _ => Err(GeometryTypeMismatch::new("MultiLineString", &source)),
         }
     }
 }
@@ -153,13 +155,13 @@ impl DeserializeGeometry for geo_types::Polygon {
                 let mut lines: Vec<geo_types::LineString> =
                     mls.line_strings().map(|ls| ls.to_line_string()).collect();
                 if lines.is_empty() {
-                    return Err(GeometryTypeMismatch::new("Polygon"));
+                    return Err(GeometryTypeMismatch::new("Polygon", &source));
                 }
                 let exterior = lines.remove(0);
                 Ok(geo_types::Polygon::new(exterior, lines))
             }
             GeometryType::Polygon(p) => Ok(p.to_polygon()),
-            _ => Err(GeometryTypeMismatch::new("Polygon")),
+            _ => Err(GeometryTypeMismatch::new("Polygon", &source)),
         }
     }
 }

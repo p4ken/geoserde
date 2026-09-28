@@ -35,10 +35,10 @@ mod geo;
 ///         use geo_traits::{CoordTrait, GeometryType, PointTrait};
 ///         match source.as_type() {
 ///             GeometryType::Point(p) => {
-///                 let c = p.coord().ok_or(GeometryTypeMismatch::new("Point"))?;
+///                 let c = p.coord().ok_or(GeometryTypeMismatch::new("Point", &source))?;
 ///                 Ok(Xy { x: c.x(), y: c.y() })
 ///             }
-///             _ => Err(GeometryTypeMismatch::new("Point")),
+///             _ => Err(GeometryTypeMismatch::new("Point", &source)),
 ///         }
 ///     }
 /// }
@@ -54,18 +54,33 @@ pub trait DeserializeGeometry: Sized {
 #[derive(Debug, Clone)]
 pub struct GeometryTypeMismatch {
     expected: &'static str,
+    found: &'static str,
 }
 
 impl GeometryTypeMismatch {
-    /// Creates a new error indicating which geometry type was expected.
-    pub fn new(expected: &'static str) -> Self {
-        Self { expected }
+    /// Creates a new error indicating which geometry type was expected, and
+    /// which type `source` actually is.
+    pub fn new(expected: &'static str, source: &impl geo_traits::GeometryTrait) -> Self {
+        use geo_traits::GeometryType;
+        let found = match source.as_type() {
+            GeometryType::Point(_) => "Point",
+            GeometryType::LineString(_) => "LineString",
+            GeometryType::Polygon(_) => "Polygon",
+            GeometryType::MultiPoint(_) => "MultiPoint",
+            GeometryType::MultiLineString(_) => "MultiLineString",
+            GeometryType::MultiPolygon(_) => "MultiPolygon",
+            GeometryType::GeometryCollection(_) => "GeometryCollection",
+            GeometryType::Rect(_) => "Rect",
+            GeometryType::Triangle(_) => "Triangle",
+            GeometryType::Line(_) => "Line",
+        };
+        Self { expected, found }
     }
 }
 
 impl std::fmt::Display for GeometryTypeMismatch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "expected {} geometry", self.expected)
+        write!(f, "expected {}, found {}", self.expected, self.found)
     }
 }
 
