@@ -272,30 +272,6 @@ fn point_to_multi_point() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// MultiPoint format → Point struct (ok)
-#[test]
-fn multi_point_to_point() -> anyhow::Result<()> {
-    let mut fgb_buf = Vec::new();
-    {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
-        Geometry::MultiPoint(testing::multi_p(0)).process_geom(&mut w)?;
-        w.feature_end(0)?;
-        w.write(&mut fgb_buf)?;
-    }
-
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
-
-    #[derive(Deserialize)]
-    struct NoProps {}
-    let (geom, _) = fgb_de
-        .features::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
-    assert_eq!(geom, testing::p(0));
-    Ok(())
-}
-
 /// MultiPoint format → Polygon struct (ok)
 /// Requires DeserializeGeometry for Polygon to accept MultiPoint (cross-type)
 #[test]

@@ -17,35 +17,9 @@ impl DeserializeGeometry for geo_types::Point {
     ) -> Result<Self, GeometryTypeMismatch> {
         match source.as_type() {
             GeometryType::Point(p) => Ok(p.to_point()),
-            GeometryType::MultiPoint(mp) => mp
-                .points()
-                .next()
+            GeometryType::MultiPoint(mp) => only(mp.points())
                 .map(|p| p.to_point())
                 .ok_or(GeometryTypeMismatch::new("Point", &source)),
-            GeometryType::LineString(ls) => ls
-                .coords()
-                .next()
-                .map(|c| geo_types::Point::new(c.x(), c.y()))
-                .ok_or(GeometryTypeMismatch::new("Point", &source)),
-            GeometryType::MultiLineString(mls) => {
-                let ls = mls
-                    .line_strings()
-                    .next()
-                    .ok_or(GeometryTypeMismatch::new("Point", &source))?;
-                ls.coords()
-                    .next()
-                    .map(|c| geo_types::Point::new(c.x(), c.y()))
-                    .ok_or(GeometryTypeMismatch::new("Point", &source))
-            }
-            GeometryType::Polygon(poly) => {
-                let ring = poly
-                    .exterior()
-                    .ok_or(GeometryTypeMismatch::new("Point", &source))?;
-                ring.coords()
-                    .next()
-                    .map(|c| geo_types::Point::new(c.x(), c.y()))
-                    .ok_or(GeometryTypeMismatch::new("Point", &source))
-            }
             _ => Err(GeometryTypeMismatch::new("Point", &source)),
         }
     }
@@ -64,9 +38,7 @@ impl DeserializeGeometry for geo_types::MultiPoint {
                     .collect(),
             )),
             GeometryType::MultiLineString(mls) => {
-                let ls = mls
-                    .line_strings()
-                    .next()
+                let ls = only(mls.line_strings())
                     .ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ls.coords()
@@ -75,9 +47,8 @@ impl DeserializeGeometry for geo_types::MultiPoint {
                 ))
             }
             GeometryType::Polygon(poly) => {
-                let ring = poly
-                    .exterior()
-                    .ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
+                let ring =
+                    only_ring(poly).ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ring.coords()
                         .map(|c| geo_types::Point::new(c.x(), c.y()))
@@ -98,13 +69,10 @@ impl DeserializeGeometry for geo_types::LineString {
                 mp.points().map(|p| p.to_point().0).collect(),
             )),
             GeometryType::LineString(ls) => Ok(ls.to_line_string()),
-            GeometryType::MultiLineString(mls) => mls
-                .line_strings()
-                .next()
+            GeometryType::MultiLineString(mls) => only(mls.line_strings())
                 .map(|ls| ls.to_line_string())
                 .ok_or(GeometryTypeMismatch::new("LineString", &source)),
-            GeometryType::Polygon(poly) => poly
-                .exterior()
+            GeometryType::Polygon(poly) => only_ring(poly)
                 .map(|ring| ring.to_line_string())
                 .ok_or(GeometryTypeMismatch::new("LineString", &source)),
             _ => Err(GeometryTypeMismatch::new("LineString", &source)),
@@ -164,4 +132,19 @@ impl DeserializeGeometry for geo_types::Polygon {
             _ => Err(GeometryTypeMismatch::new("Polygon", &source)),
         }
     }
+}
+
+/// Returns the item if `iter` has exactly one, so that flattening never drops
+/// the rest.
+fn only<I: Iterator>(mut iter: I) -> Option<I::Item> {
+    let item = iter.next()?;
+    iter.next().is_none().then_some(item)
+}
+
+/// Returns the exterior if `poly` has no interiors.
+fn only_ring<P: PolygonTrait>(poly: &P) -> Option<P::RingType<'_>> {
+    if poly.num_interiors() > 0 {
+        return None;
+    }
+    poly.exterior()
 }

@@ -55,12 +55,9 @@ fn point_to_multi_line_string_fails() {
     assert!(result.is_err());
 }
 
-/// Polygon → Point can extract the first coord of the exterior ring,
-/// but Polygon → MultiPoint extracts all coords. Polygon is NOT
-/// convertible from a Point source (the wildcard arm rejects it).
-/// This is already covered above. Test MultiPoint → MultiLineString fails.
+/// MultiPoint → MultiLineString succeeds by wrapping the points as one LineString.
 #[test]
-fn multi_point_to_multi_line_string_fails() {
+fn multi_point_to_multi_line_string() {
     let mp = geo_types::MultiPoint::new(vec![testing::p(0), testing::p(1)]);
     let mut fgb_buf = Vec::new();
     {
@@ -77,8 +74,6 @@ fn multi_point_to_multi_line_string_fails() {
         .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap();
-    // MultiPoint has a match arm in MultiLineString (wraps coords as one LineString),
-    // so this actually succeeds. Let's assert that instead.
     assert!(result.is_ok());
 }
 

@@ -12,13 +12,14 @@ mod testing;
 #[derive(Deserialize)]
 struct NoProps {}
 
-/// LineString(1 point pair) → Point: flatten single element
+/// MultiPoint(1 point) → Point: flatten single element
 #[test]
-fn line_string_to_point() -> anyhow::Result<()> {
+fn multi_point_to_point() -> anyhow::Result<()> {
+    let single = geo_types::MultiPoint::new(vec![testing::p(0)]);
     let mut fgb_buf = Vec::new();
     {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
-        Geometry::LineString(testing::ls(0)).process_geom(&mut w)?;
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
+        Geometry::MultiPoint(single).process_geom(&mut w)?;
         w.feature_end(0)?;
         w.write(&mut fgb_buf)?;
     }
@@ -57,29 +58,6 @@ fn multi_line_string_to_line_string() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// MultiLineString(1 line) → Point: flatten two levels
-#[test]
-fn multi_line_string_to_point() -> anyhow::Result<()> {
-    let single = geo_types::MultiLineString::new(vec![testing::ls(0)]);
-    let mut fgb_buf = Vec::new();
-    {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
-        Geometry::MultiLineString(single).process_geom(&mut w)?;
-        w.feature_end(0)?;
-        w.write(&mut fgb_buf)?;
-    }
-
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
-
-    let (geom, _) = fgb_de
-        .features::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
-    assert_eq!(geom, testing::p(0));
-    Ok(())
-}
-
 /// MultiLineString(1 line) → MultiPoint: flatten single element
 #[test]
 fn multi_line_string_to_multi_point() -> anyhow::Result<()> {
@@ -103,37 +81,6 @@ fn multi_line_string_to_multi_point() -> anyhow::Result<()> {
         geom,
         geo_types::MultiPoint::new(vec![testing::p(0), testing::p(1)])
     );
-    Ok(())
-}
-
-/// Polygon(1 ring) → Point: flatten single element
-#[test]
-fn polygon_to_point() -> anyhow::Result<()> {
-    let simple = geo_types::Polygon::new(
-        geo_types::LineString::from(vec![
-            testing::c(0),
-            testing::c(1),
-            testing::c(2),
-            testing::c(0),
-        ]),
-        vec![],
-    );
-    let mut fgb_buf = Vec::new();
-    {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Polygon);
-        Geometry::Polygon(simple).process_geom(&mut w)?;
-        w.feature_end(0)?;
-        w.write(&mut fgb_buf)?;
-    }
-
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
-
-    let (geom, _) = fgb_de
-        .features::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
-    assert_eq!(geom, testing::p(0));
     Ok(())
 }
 

@@ -10,13 +10,13 @@
 //! The [`geo_types`] implementations also accept a source of a different
 //! geometry type.
 //!
-//! |                                                                | [`Point`]                    | [`MultiPoint`]          | [`LineString`] | [`MultiLineString`]      | [`Polygon`]                   |
-//! | -------------------------------------------------------------- | ---------------------------- | ----------------------- | -------------- | ------------------------ | ----------------------------- |
-//! | [`Point`](geo_traits::GeometryType::Point)                     | ok                           | ok (one point)          | –              | –                        | –                             |
-//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | first point \*               | ok                      | ok             | ok (one line)            | ok (exterior)                 |
-//! | [`LineString`](geo_traits::GeometryType::LineString)           | first coord \*               | ok                      | ok             | ok (one line)            | ok (exterior)                 |
-//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | first coord of first line \* | coords of first line \* | first line \*  | ok                       | ok (first line is exterior) † |
-//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | first coord of exterior \*   | coords of exterior \*   | exterior \*    | ok (exterior, interiors) | ok                            |
+//! |                                                                | [`Point`]      | [`MultiPoint`] | [`LineString`] | [`MultiLineString`]      | [`Polygon`]                   |
+//! | -------------------------------------------------------------- | -------------- | -------------- | -------------- | ------------------------ | ----------------------------- |
+//! | [`Point`](geo_traits::GeometryType::Point)                     | ok             | ok (one point) | –              | –                        | –                             |
+//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | only point \*  | ok             | ok             | ok (one line)            | ok (exterior)                 |
+//! | [`LineString`](geo_traits::GeometryType::LineString)           | –              | ok             | ok             | ok (one line)            | ok (exterior)                 |
+//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | –              | only line \*   | only line \*   | ok                       | ok (first line is exterior) † |
+//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | –              | exterior \*    | exterior \*    | ok (exterior, interiors) | ok                            |
 //!
 //! [`Point`]: geo_types::Point
 //! [`MultiPoint`]: geo_types::MultiPoint
@@ -26,7 +26,8 @@
 //!
 //! - –: Always fails. So do `MultiPolygon`, `GeometryCollection`, `Rect`,
 //!   `Triangle` and `Line` sources for every target.
-//! - \*: Fails if the part is missing, and silently drops the rest otherwise.
+//! - \*: Fails unless there is exactly one point or line, or the polygon has
+//!   an exterior and no interiors, so that no coordinates are dropped.
 //! - †: Fails if there are no lines.
 //! - Failures are [`GeometryTypeMismatch`]. The number of coordinates is not
 //!   checked otherwise, so a single point becomes a one-coordinate
