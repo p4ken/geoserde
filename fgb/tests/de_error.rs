@@ -137,7 +137,7 @@ fn property_type_mismatch() {
         w.write(&mut fgb_buf).unwrap();
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct WrongType {
         #[allow(dead_code)]
         value: Vec<i32>,
@@ -146,11 +146,16 @@ fn property_type_mismatch() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de
+    let err = fgb_de
         .features::<geo_types::Point, WrongType>()
         .next()
-        .unwrap();
-    assert!(result.is_err());
+        .unwrap()
+        .unwrap_err();
+    assert!(matches!(
+        &err,
+        geoserde_fgb::Error::Feature { column: Some(c), .. } if c == "value"
+    ));
+    assert_eq!(err.to_string(), "failed to deserialize column `value`");
 }
 
 /// A missing required field in the properties struct should fail.
@@ -165,7 +170,7 @@ fn missing_required_field() {
         w.write(&mut fgb_buf).unwrap();
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct Required {
         #[allow(dead_code)]
         name: String,
@@ -174,11 +179,16 @@ fn missing_required_field() {
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
     let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
 
-    let result = fgb_de
+    let err = fgb_de
         .features::<geo_types::Point, Required>()
         .next()
-        .unwrap();
-    assert!(result.is_err());
+        .unwrap()
+        .unwrap_err();
+    // The missing field is not tied to any column in the file.
+    assert!(matches!(
+        err,
+        geoserde_fgb::Error::Feature { column: None, .. }
+    ));
 }
 
 /// A feature with no properties can be deserialized into an empty struct.

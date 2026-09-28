@@ -17,7 +17,12 @@ pub enum Error {
     /// The feature did not contain a geometry.
     MissingGeometry,
     /// Error from FlatGeobuf property deserialization via serde.
-    Feature(FeatureError),
+    Feature {
+        /// Name of the column being read, or `None` if the error is not
+        /// specific to a column (e.g. a missing field).
+        column: Option<String>,
+        source: FeatureError,
+    },
     /// The properties could not be flattened into a table.
     Table(TableError<Infallible>),
     /// A property value has no corresponding FlatGeobuf column type.
@@ -42,12 +47,6 @@ impl From<GeometryTypeMismatch> for Error {
     }
 }
 
-impl From<FeatureError> for Error {
-    fn from(e: FeatureError) -> Self {
-        Self::Feature(e)
-    }
-}
-
 impl From<TableError<Error>> for Error {
     fn from(e: TableError<Error>) -> Self {
         match e.into_sink() {
@@ -64,7 +63,13 @@ impl std::fmt::Display for Error {
             Self::Geozero(_) => f.write_str("geozero processing failed"),
             Self::GeometryType(_) => f.write_str("geometry type mismatch"),
             Self::MissingGeometry => f.write_str("feature has no geometry"),
-            Self::Feature(_) => f.write_str("feature properties deserialization failed"),
+            Self::Feature {
+                column: Some(column),
+                ..
+            } => write!(f, "failed to deserialize column `{column}`"),
+            Self::Feature { column: None, .. } => {
+                f.write_str("feature properties deserialization failed")
+            }
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
         }
@@ -77,7 +82,7 @@ impl std::error::Error for Error {
             Self::Fgb(e) => Some(e),
             Self::Geozero(e) => Some(e),
             Self::GeometryType(e) => Some(e),
-            Self::Feature(e) => Some(e),
+            Self::Feature { source, .. } => Some(source),
             Self::Table(e) => Some(e),
             Self::MissingGeometry | Self::UnsupportedFieldValue(_) => None,
         }

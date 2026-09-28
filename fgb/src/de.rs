@@ -65,8 +65,12 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
         };
         let geom_trait = fgb_feat.geometry_trait()?.ok_or(Error::MissingGeometry)?;
         let geom = G::deserialize_geometry(geom_trait)?;
-        let prop_de = FeatureAccess::new(&self.header, fgb_feat).into_deserializer();
-        let prop = P::deserialize(prop_de)?;
+        let mut prop_access = FeatureAccess::new(&self.header, fgb_feat);
+        let prop_de = serde::de::value::MapAccessDeserializer::new(&mut prop_access);
+        let prop = P::deserialize(prop_de).map_err(|source| Error::Feature {
+            column: prop_access.col.map(|c| c.name.clone()),
+            source,
+        })?;
         Ok(Some((geom, prop)))
     }
 
@@ -107,7 +111,8 @@ where
 #[derive(Debug)]
 pub(crate) struct FeatureAccess<'de> {
     header: &'de OwnedHeader,
-    col_type: Option<flatgeobuf::ColumnType>,
+    // Stays set on an error, telling which column failed.
+    col: Option<&'de OwnedColumn>,
     properties_buf: &'de [u8],
 }
 
@@ -116,7 +121,7 @@ impl<'de> FeatureAccess<'de> {
     pub(crate) fn new(header: &'de OwnedHeader, feat: &'de flatgeobuf::FgbFeature) -> Self {
         Self {
             header,
-            col_type: None,
+            col: None,
             properties_buf: match feat.fbs_feature().properties() {
                 Some(fbs) => fbs.bytes(),
                 None => &[],
@@ -148,10 +153,10 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
             Some(c) => c,
             None => return Ok(None),
         };
+        self.col = Some(col);
         let key = seed
             .deserialize(col.name.as_str().into_deserializer())
             .map_err(FeatureError::Key)?;
-        self.col_type = Some(col.col_type);
         Ok(Some(key))
     }
 
@@ -159,7 +164,7 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        match self.col_type.unwrap() {
+        let value = match self.col.unwrap().col_type {
             flatgeobuf::ColumnType::Byte => {
                 let v = self.take_prop(1)?[0] as i8;
                 seed.deserialize(v.into_deserializer())
@@ -220,15 +225,9 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
                 seed.deserialize(b.into_deserializer())
             }
             x => Err(FeatureError::UnsupportedColumnType(x.0)),
-        }
-    }
-}
-
-impl<'de> IntoDeserializer<'de, FeatureError> for FeatureAccess<'de> {
-    type Deserializer = serde::de::value::MapAccessDeserializer<Self>;
-
-    fn into_deserializer(self) -> Self::Deserializer {
-        serde::de::value::MapAccessDeserializer::new(self)
+        }?;
+        self.col = None;
+        Ok(value)
     }
 }
 
