@@ -1,6 +1,6 @@
 use std::io::{Read, Seek};
 
-use geoserde::de::DeserializeGeometry;
+use geoserde::DeserializeGeometry;
 use serde::de::IntoDeserializer;
 
 use crate::{Error, FeatureError, PropertyError};

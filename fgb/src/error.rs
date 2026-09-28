@@ -11,7 +11,7 @@ pub enum Error {
     Fgb(flatgeobuf::Error),
     /// Error during geozero geometry processing (writing).
     Geozero(flatgeobuf::geozero::error::GeozeroError),
-    /// The user's [`DeserializeGeometry`](geoserde::de::DeserializeGeometry) impl
+    /// The user's [`DeserializeGeometry`](geoserde::DeserializeGeometry) impl
     /// returned a geometry type mismatch.
     GeometryType(GeometryTypeMismatch),
     /// The feature did not contain a geometry.
