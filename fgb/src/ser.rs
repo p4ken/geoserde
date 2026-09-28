@@ -15,6 +15,53 @@ use crate::Error;
 /// This serializer writes each feature to the [`FgbWriter`] as it is
 /// serialized. If serializing a feature fails, nothing of that feature is
 /// written, and the serializer can continue with the next feature.
+///
+/// # Geometry types
+///
+/// Whether a geometry can be written depends on the geometry type of the
+/// [`FgbWriter`] header, with the default
+/// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
+///
+/// |                                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
+/// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- | -------------- | ------------------- | ----------- | ---------------- | ---------------------- | ----------- |
+/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok        | –              | –              | –                   | –           | –                | –                      | ok          |
+/// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –         | ok             | –              | –                   | –           | –                | –                      | ok          |
+/// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –         | –              | ok             | promoted            | –           | –                | –                      | promoted    |
+/// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –         | –              | –              | ok                  | –           | –                | –                      | ok          |
+/// | [`Polygon`](geo_traits::GeometryType::Polygon), [`Rect`](geo_traits::GeometryType::Rect), [`Triangle`](geo_traits::GeometryType::Triangle) | –         | –              | –              | –                   | ok          | promoted         | –                      | promoted    |
+/// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –         | –              | –              | –                   | –           | ok               | –                      | ok          |
+/// | [`GeometryCollection`](geo_traits::GeometryType::GeometryCollection)                                                                       | members   | members        | members        | members             | members     | members          | –                      | members     |
+///
+/// [`Point`]: flatgeobuf::GeometryType::Point
+/// [`MultiPoint`]: flatgeobuf::GeometryType::MultiPoint
+/// [`LineString`]: flatgeobuf::GeometryType::LineString
+/// [`MultiLineString`]: flatgeobuf::GeometryType::MultiLineString
+/// [`Polygon`]: flatgeobuf::GeometryType::Polygon
+/// [`MultiPolygon`]: flatgeobuf::GeometryType::MultiPolygon
+/// [`GeometryCollection`]: flatgeobuf::GeometryType::GeometryCollection
+/// [`Unknown`]: flatgeobuf::GeometryType::Unknown
+///
+/// - –: Fails with [`Error::Geozero`](crate::Error::Geozero).
+/// - promoted: Written as the multi type with one member, as
+///   [`promote_to_multi`](flatgeobuf::FgbWriterOptions::promote_to_multi)
+///   does. Fails if it is disabled.
+/// - `Unknown`: The first feature fixes the geometry type of the dataset, and
+///   later features follow the column of that type. With `promote_to_multi`,
+///   `LineString` fixes `MultiLineString` and `Polygon` fixes `MultiPolygon`.
+/// - members: [`FgbWriter`] ignores the collection itself, so its members are
+///   written as one geometry of their type. See [Limitations](#limitations).
+/// - `Line`, `Rect` and `Triangle` are written as `LineString` or `Polygon`.
+///
+/// # Limitations
+///
+/// - A `GeometryCollection` is not written correctly. Its members are merged
+///   into one geometry, so with more than one member, the extra coordinates
+///   are lost when read.
+/// - Only x and y are written, and Z and M are dropped. Enabling `has_z` or
+///   `has_m` in [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions) is not
+///   supported.
+/// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
+///   without coordinates.
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,

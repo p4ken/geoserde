@@ -4,6 +4,36 @@
 //! [`GeometryTrait`](geo_traits::GeometryTrait) value into a concrete Rust type.
 //! When the `geo` feature is enabled, implementations are provided for the
 //! common [`geo_types`] geometry types.
+//!
+//! # Geometry type conversion
+//!
+//! The [`geo_types`] implementations also accept a source of a different
+//! geometry type.
+//!
+//! |                                                                | [`Point`]                    | [`MultiPoint`]          | [`LineString`] | [`MultiLineString`]      | [`Polygon`]                   |
+//! | -------------------------------------------------------------- | ---------------------------- | ----------------------- | -------------- | ------------------------ | ----------------------------- |
+//! | [`Point`](geo_traits::GeometryType::Point)                     | ok                           | ok (one point)          | –              | –                        | –                             |
+//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | first point \*               | ok                      | ok             | ok (one line)            | ok (exterior)                 |
+//! | [`LineString`](geo_traits::GeometryType::LineString)           | first coord \*               | ok                      | ok             | ok (one line)            | ok (exterior)                 |
+//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | first coord of first line \* | coords of first line \* | first line \*  | ok                       | ok (first line is exterior) † |
+//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | first coord of exterior \*   | coords of exterior \*   | exterior \*    | ok (exterior, interiors) | ok                            |
+//!
+//! [`Point`]: geo_types::Point
+//! [`MultiPoint`]: geo_types::MultiPoint
+//! [`LineString`]: geo_types::LineString
+//! [`MultiLineString`]: geo_types::MultiLineString
+//! [`Polygon`]: geo_types::Polygon
+//!
+//! - –: Always fails. So do `MultiPolygon`, `GeometryCollection`, `Rect`,
+//!   `Triangle` and `Line` sources for every target.
+//! - \*: Fails if the part is missing, and silently drops the rest otherwise.
+//! - †: Fails if there are no lines.
+//! - Failures are [`GeometryTypeMismatch`]. The number of coordinates is not
+//!   checked otherwise, so a single point becomes a one-coordinate
+//!   `LineString`, and an empty `Polygon` becomes an empty `MultiLineString`.
+//! - Rings of a `Polygon` target are closed by [`geo_types::Polygon::new`].
+//! - An empty point in a `Point` or `MultiPoint` source panics, because
+//!   [`geo_types`] cannot represent it.
 
 mod geo;
 
