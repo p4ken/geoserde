@@ -12,11 +12,13 @@ use crate::Error;
 
 /// Streaming FlatGeobuf feature serializer.
 ///
-/// This serializer writes each feature directly to the [`FgbWriter`] as it is
-/// serialized, without buffering.
+/// This serializer writes each feature to the [`FgbWriter`] as it is
+/// serialized. If serializing a feature fails, nothing of that feature is
+/// written, and the serializer can continue with the next feature.
 pub struct FeatureSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,
+    pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
 impl<'a> FeatureSerializer<'a> {
@@ -25,6 +27,7 @@ impl<'a> FeatureSerializer<'a> {
         Self {
             writer,
             known_key: Vec::new(),
+            pending: Vec::new(),
         }
     }
 
@@ -39,9 +42,29 @@ impl<'a> FeatureSerializer<'a> {
         geometry: impl GeometryTrait<T = f64>,
         properties: impl serde::Serialize,
     ) -> Result<(), Error> {
-        process_geometry(&geometry, &mut self.writer)?;
+        // FgbWriter declares a column as soon as it receives a property, and offers no way
+        // to discard a partially written feature. Buffer the fallible properties first
+        // and flush them only after all of them succeed.
+        // A geometry type mismatch is returned by the first *_begin, before the writer is
+        // modified.
+        self.pending.clear();
         let prop_ser = TableSerializer::new(&mut *self);
         properties.serialize(prop_ser)?;
+        process_geometry(&geometry, &mut self.writer)?;
+        for (key, value) in self.pending.drain(..) {
+            let column_value = to_column_value(&value).expect("checked in serialize_property");
+            let index_of_key = self.known_key.iter().position(|k| k == &key);
+            let index_to_write = index_of_key.unwrap_or(self.known_key.len());
+            flatgeobuf::geozero::PropertyProcessor::property(
+                &mut self.writer,
+                index_to_write,
+                key.as_ref(),
+                &column_value,
+            )?;
+            if index_of_key.is_none() {
+                self.known_key.push(key);
+            }
+        }
         flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0)?;
         Ok(())
     }
@@ -61,20 +84,10 @@ impl SerializeProperties for &mut FeatureSerializer<'_> {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
-        let Some(column_value) = to_column_value(&value) else {
+        if to_column_value(&value).is_none() {
             return Err(Error::UnsupportedFieldValue(value.into_owned()));
-        };
-        let index_of_key = self.known_key.iter().position(|k| k == &key);
-        let index_to_write = index_of_key.unwrap_or(self.known_key.len());
-        flatgeobuf::geozero::PropertyProcessor::property(
-            &mut self.writer,
-            index_to_write,
-            key.as_ref(),
-            &column_value,
-        )?;
-        if index_of_key.is_none() {
-            self.known_key.push(key);
         }
+        self.pending.push((key, value.into_owned()));
         Ok(())
     }
 
@@ -286,7 +299,7 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
         FieldValue::BoxedStr(s) => flatgeobuf::geozero::ColumnValue::String(s),
         FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
         FieldValue::BoxedBytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
-        // geoserde で将来追加される variant に対応する ColumnType が無い場合に備える
+        // In case geoserde adds a variant that has no corresponding ColumnType
         _ => return None,
     };
     Some(column_value)

@@ -171,3 +171,92 @@ fn custom_error_source_chain() {
     assert_eq!(table.to_string(), "failed to serialize `a`");
     assert_eq!(table.source().unwrap().to_string(), "boom");
 }
+
+/// A feature that fails midway leaves nothing behind for the next feature.
+#[test]
+fn failed_feature_discarded() -> anyhow::Result<()> {
+    use flatgeobuf::FallibleStreamingIterator;
+
+    struct Failing;
+
+    impl Serialize for Failing {
+        fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+            Err(serde::ser::Error::custom("boom"))
+        }
+    }
+
+    #[derive(Serialize)]
+    struct Bad {
+        a: i32,
+        b: i32,
+        c: Failing,
+    }
+
+    #[derive(Serialize)]
+    struct Good {
+        a: i32,
+    }
+
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
+
+    let bad = Bad {
+        a: 1,
+        b: 1,
+        c: Failing,
+    };
+    assert!(fgb_ser.serialize_feature(testing::p(0), &bad).is_err());
+    fgb_ser.serialize_feature(testing::p(1), &Good { a: 2 })?;
+
+    let mut fgb_buf = Vec::new();
+    fgb_ser.into_inner().write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?;
+    let columns = fgb_reader.header().columns().unwrap();
+    let names: Vec<_> = columns.iter().map(|c| c.name()).collect();
+    assert_eq!(names, ["a"]);
+
+    let mut fgb_iter = fgb_reader.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(
+        props,
+        std::collections::HashMap::from([("a".to_string(), "2".to_string())])
+    );
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+/// A geometry of the wrong type leaves nothing behind for the next feature.
+#[test]
+fn mismatched_geometry_discarded() -> anyhow::Result<()> {
+    use flatgeobuf::FallibleStreamingIterator;
+
+    #[derive(Serialize)]
+    struct Props {
+        a: i32,
+    }
+
+    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
+
+    assert!(
+        fgb_ser
+            .serialize_feature(testing::ls(0), &Props { a: 1 })
+            .is_err()
+    );
+    fgb_ser.serialize_feature(testing::p(1), &Props { a: 2 })?;
+
+    let mut fgb_buf = Vec::new();
+    fgb_ser.into_inner().write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(
+        props,
+        std::collections::HashMap::from([("a".to_string(), "2".to_string())])
+    );
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
