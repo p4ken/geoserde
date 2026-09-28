@@ -1,5 +1,5 @@
 //! [FlatGeobuf](https://flatgeobuf.org/) serialization and deserialization
-//! for [geoserde].
+//! for [`geoserde`].
 //!
 //! Use [`FeatureDeserializer`] to read features from a FlatGeobuf file, and
 //! [`FeatureSerializer`] to write them.

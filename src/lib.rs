@@ -2,7 +2,7 @@
 
 //! Geoserde is an adapter between Rust data structures and geospatial file formats.
 //!
-//! It bridges [serde]-based property serialization with geometry handling,
+//! It bridges [`serde`]-based property serialization with geometry handling,
 //! letting you read and write geospatial features as plain Rust structs.
 //!
 //! * **[`de`]** — Deserialize geometries from GIS sources into Rust types.
@@ -15,12 +15,12 @@
 //! ```
 //!
 //! To read and write [FlatGeobuf](https://flatgeobuf.org/) files, use the
-//! [geoserde-fgb](https://docs.rs/geoserde-fgb) crate.
+//! [`geoserde-fgb`](https://docs.rs/geoserde-fgb) crate.
 //!
 //! # Traits to implement
 //!
 //! A feature consists of a geometry and properties. Geoserde defines only two
-//! traits of its own; the rest is covered by [`geo_traits`] and [serde].
+//! traits of its own; the rest is covered by [`geo_traits`] and [`serde`].
 //!
 //! ## Your data types
 //!
