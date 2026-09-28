@@ -16,6 +16,11 @@ use crate::ser::prop::{
 /// Trait for sinks that receive flattened key-value property pairs.
 ///
 /// Implement this trait to consume the output of [`TableSerializer`](super::TableSerializer).
+/// Attribute tables hold flat columns of scalars, whereas [`Serialize`] can
+/// produce arbitrarily nested data. Rather than every format implementing
+/// [`Serializer`] and flattening the whole serde data model by itself,
+/// [`TableSerializer`](super::TableSerializer) does the flattening once and
+/// hands each flat key-value pair to this trait.
 pub trait SerializeProperties {
     /// The successful return type.
     type Ok;

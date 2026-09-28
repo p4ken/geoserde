@@ -11,7 +11,10 @@ mod geo;
 ///
 /// Implement this trait for your own geometry types so they can be
 /// deserialized from any GIS source that exposes geometries through
-/// [`geo_traits`].
+/// [`geo_traits`]. The source lets you look into an existing geometry via
+/// [`GeometryTrait`](geo_traits::GeometryTrait), and this trait adds the other
+/// half, building `Self` from it, much as serde pairs `Deserialize` with
+/// `Serialize`.
 ///
 /// # Errors
 ///
