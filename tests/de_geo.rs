@@ -105,6 +105,15 @@ fn empty_polygon_to_multi_line_string() {
     );
 }
 
+#[test]
+fn empty_multi_line_string_to_polygon() {
+    let mls = MultiLineString::new(vec![]);
+    assert_eq!(
+        Polygon::deserialize_geometry(mls).unwrap(),
+        Polygon::new(LineString::new(vec![]), vec![])
+    );
+}
+
 /// The ring is closed by `Polygon::new`.
 #[test]
 fn multi_point_to_polygon() {
@@ -249,13 +258,6 @@ fn empty_polygon_to_line_string_rejected() {
     let poly = Polygon::new(LineString::new(vec![]), vec![]);
     let err = LineString::deserialize_geometry(poly).unwrap_err();
     assert_eq!(err.to_string(), "expected LineString, found Polygon");
-}
-
-#[test]
-fn empty_multi_line_string_to_polygon_rejected() {
-    let mls = MultiLineString::new(vec![]);
-    let err = Polygon::deserialize_geometry(mls).unwrap_err();
-    assert_eq!(err.to_string(), "expected Polygon, found MultiLineString");
 }
 
 // --- Unsupported geometry types ---

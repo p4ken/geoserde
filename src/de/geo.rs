@@ -120,13 +120,11 @@ impl DeserializeGeometry for geo_types::Polygon {
                 Ok(geo_types::Polygon::new(ls.to_line_string(), vec![]))
             }
             GeometryType::MultiLineString(mls) => {
-                let mut lines: Vec<geo_types::LineString> =
-                    mls.line_strings().map(|ls| ls.to_line_string()).collect();
-                if lines.is_empty() {
-                    return Err(GeometryTypeMismatch::new("Polygon", &source));
-                }
-                let exterior = lines.remove(0);
-                Ok(geo_types::Polygon::new(exterior, lines))
+                let mut lines = mls.line_strings().map(|ls| ls.to_line_string());
+                let exterior = lines
+                    .next()
+                    .unwrap_or_else(|| geo_types::LineString::new(vec![]));
+                Ok(geo_types::Polygon::new(exterior, lines.collect()))
             }
             GeometryType::Polygon(p) => Ok(p.to_polygon()),
             _ => Err(GeometryTypeMismatch::new("Polygon", &source)),

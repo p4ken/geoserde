@@ -22,7 +22,7 @@ use crate::Error;
 /// [`FgbWriter`] header, with the default
 /// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
 ///
-/// |                                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
+/// | Source \ Target                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
 /// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- | -------------- | ------------------- | ----------- | ---------------- | ---------------------- | ----------- |
 /// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok        | –              | –              | –                   | –           | –                | –                      | ok          |
 /// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –         | ok             | –              | –                   | –           | –                | –                      | ok          |
