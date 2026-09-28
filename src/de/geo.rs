@@ -8,9 +8,9 @@ use geo_traits::{
 
 use crate::de::{DeserializeGeometry, GeometryTypeMismatch};
 
-// `as_type()` で取り出した個別バリアントに `ToGeoPoint` 等の個別 trait を呼ぶ方式は
-// `GeometryTrait` を辿らないため、`ToGeoGeometry` で起きる trait solver overflow
-// (rustc #128887) の影響を受けない。
+// Calling per-variant traits such as `ToGeoPoint` on the variant taken out by `as_type()`
+// does not go through `GeometryTrait`, so it avoids the trait solver overflow that
+// `ToGeoGeometry` hits (rustc #128887).
 impl DeserializeGeometry for geo_types::Point {
     fn deserialize_geometry<T: GeometryTrait<T = f64>>(
         source: T,
