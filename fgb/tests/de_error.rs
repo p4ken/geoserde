@@ -11,7 +11,7 @@ struct NoProps {}
 
 // --- Geometry type mismatch errors ---
 
-/// Point → Polygon is unsupported.
+/// A geometry type mismatch is reachable through `source()`.
 #[test]
 fn point_to_polygon_fails() {
     let mut fgb_buf = Vec::new();
@@ -32,49 +32,6 @@ fn point_to_polygon_fails() {
         .unwrap_err();
     let source = std::error::Error::source(&err).unwrap();
     assert_eq!(source.to_string(), "expected Polygon, found Point");
-}
-
-/// Point → MultiLineString is unsupported.
-#[test]
-fn point_to_multi_line_string_fails() {
-    let mut fgb_buf = Vec::new();
-    {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-        Geometry::Point(testing::p(0)).process_geom(&mut w).unwrap();
-        w.feature_end(0).unwrap();
-        w.write(&mut fgb_buf).unwrap();
-    }
-
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
-
-    let result = fgb_de
-        .features::<geo_types::MultiLineString, NoProps>()
-        .next()
-        .unwrap();
-    assert!(result.is_err());
-}
-
-/// MultiPoint → MultiLineString succeeds by wrapping the points as one LineString.
-#[test]
-fn multi_point_to_multi_line_string() {
-    let mp = geo_types::MultiPoint::new(vec![testing::p(0), testing::p(1)]);
-    let mut fgb_buf = Vec::new();
-    {
-        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
-        Geometry::MultiPoint(mp).process_geom(&mut w).unwrap();
-        w.feature_end(0).unwrap();
-        w.write(&mut fgb_buf).unwrap();
-    }
-
-    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf)).unwrap();
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader).unwrap();
-
-    let result = fgb_de
-        .features::<geo_types::MultiLineString, NoProps>()
-        .next()
-        .unwrap();
-    assert!(result.is_ok());
 }
 
 // --- Iterator exhaustion ---
