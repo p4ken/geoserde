@@ -1,5 +1,5 @@
-//! [FlatGeobuf](https://flatgeobuf.org/) serialization and deserialization
-//! for [`geoserde`].
+//! Reads and writes [FlatGeobuf](https://flatgeobuf.org/) features as your own
+//! Rust data structures, built on [`geoserde`].
 //!
 //! Use [`FeatureDeserializer`] to read features from a FlatGeobuf file, and
 //! [`FeatureSerializer`] to write them.
