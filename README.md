@@ -5,6 +5,6 @@
 
 GeoSerde is an adapter between Rust data structures and geospatial file formats.
 
-See [API documantation](https://docs.rs/geoserde) with some examples.
+See [API documentation](https://docs.rs/geoserde) with some examples.
 
 Licensed under the [MIT License](LICENSE.txt).
