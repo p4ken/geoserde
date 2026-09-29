@@ -12,8 +12,10 @@ test: FORCE
 doc: FORCE
 	cargo +nightly doc --workspace --all-features
 
+PKG ?= geoserde
+
 version: FORCE
-	@grep '^version =' Cargo.toml | cut -d '"' -f 2
+	@cargo pkgid --package $(PKG) | sed 's/.*[#@]//'
 
 .PHONY: FORCE
 FORCE:
