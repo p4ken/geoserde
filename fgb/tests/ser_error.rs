@@ -116,7 +116,7 @@ fn root_rejection_source_chain() {
         .unwrap_err();
     assert!(matches!(
         err,
-        geoserde_fgb::Error::Table(geoserde::ser::TableError::Root)
+        geoserde_fgb::ser::Error::Table(geoserde::ser::TableError::Root)
     ));
     let source = std::error::Error::source(&err).unwrap();
     assert_eq!(source.to_string(), "data source must be a map or struct");
@@ -164,7 +164,7 @@ fn custom_error_source_chain() {
         .unwrap_err();
     assert!(matches!(
         &err,
-        geoserde_fgb::Error::Table(geoserde::ser::TableError::Source { key: Some(key), .. })
+        geoserde_fgb::ser::Error::Table(geoserde::ser::TableError::Source { key: Some(key), .. })
             if key == "a"
     ));
     let table = std::error::Error::source(&err).unwrap();

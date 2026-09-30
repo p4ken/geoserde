@@ -107,7 +107,7 @@ fn property_type_mismatch() {
         .unwrap_err();
     assert!(matches!(
         &err,
-        geoserde_fgb::Error::Feature { column: Some(c), .. } if c == "value"
+        geoserde_fgb::de::Error::Feature { column: Some(c), .. } if c == "value"
     ));
     assert_eq!(err.to_string(), "failed to deserialize column `value`");
 }
@@ -141,7 +141,7 @@ fn missing_required_field() {
     // The missing field is not tied to any column in the file.
     assert!(matches!(
         err,
-        geoserde_fgb::Error::Feature { column: None, .. }
+        geoserde_fgb::de::Error::Feature { column: None, .. }
     ));
 }
 

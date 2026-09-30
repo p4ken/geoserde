@@ -1,4 +1,7 @@
+//! Writing features to FlatGeobuf.
+
 use std::borrow::Cow;
+use std::convert::Infallible;
 
 use flatgeobuf::FgbWriter;
 use geo_traits::{
@@ -6,9 +9,7 @@ use geo_traits::{
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
 };
-use geoserde::ser::{FieldValue, SerializeProperties, TableSerializer};
-
-use crate::Error;
+use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
 /// Streaming FlatGeobuf feature serializer.
 ///
@@ -41,7 +42,7 @@ use crate::Error;
 /// [`GeometryCollection`]: flatgeobuf::GeometryType::GeometryCollection
 /// [`Unknown`]: flatgeobuf::GeometryType::Unknown
 ///
-/// - –: Fails with [`Error::Geozero`](crate::Error::Geozero).
+/// - –: Fails with [`Error::Geozero`].
 /// - promoted: Written as the multi type with one member, as
 ///   [`promote_to_multi`](flatgeobuf::FgbWriterOptions::promote_to_multi)
 ///   does. Fails if it is disabled.
@@ -350,4 +351,51 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
         _ => return None,
     };
     Some(column_value)
+}
+
+/// Error returned when writing features to a FlatGeobuf writer.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// Error during geozero geometry or property processing.
+    Geozero(flatgeobuf::geozero::error::GeozeroError),
+    /// The properties could not be flattened into a table.
+    Table(TableError<Infallible>),
+    /// A property value has no corresponding FlatGeobuf column type.
+    UnsupportedFieldValue(FieldValue<'static>),
+}
+
+impl From<flatgeobuf::geozero::error::GeozeroError> for Error {
+    fn from(e: flatgeobuf::geozero::error::GeozeroError) -> Self {
+        Self::Geozero(e)
+    }
+}
+
+impl From<TableError<Error>> for Error {
+    fn from(e: TableError<Error>) -> Self {
+        match e.into_sink() {
+            Ok(inner) => inner,
+            Err(table) => Self::Table(table),
+        }
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Geozero(_) => f.write_str("geozero processing failed"),
+            Self::Table(_) => f.write_str("properties serialization failed"),
+            Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Geozero(e) => Some(e),
+            Self::Table(e) => Some(e),
+            Self::UnsupportedFieldValue(_) => None,
+        }
+    }
 }
