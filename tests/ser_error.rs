@@ -105,6 +105,7 @@ fn flatten_non_string_key_map_rejected() {
         Err(ser::TableError::Key {
             parent: None,
             source: ser::StringifyError::Nested,
+            ..
         })
     ));
 }
@@ -123,6 +124,7 @@ fn flatten_none_key_map_rejected() {
         Err(ser::TableError::Key {
             parent: None,
             source: ser::StringifyError::Empty,
+            ..
         })
     ));
 }
@@ -254,7 +256,7 @@ fn source_error_has_key() {
         inner: Inner { bad: Failing },
     })
     .unwrap_err();
-    let ser::TableError::Source { key, source } = &err else {
+    let ser::TableError::Source { key, source, .. } = &err else {
         panic!("{err:?}");
     };
     assert_eq!(key.as_deref(), Some("inner.bad"));

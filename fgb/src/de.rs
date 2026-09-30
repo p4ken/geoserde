@@ -279,6 +279,7 @@ pub enum Error {
     /// The feature did not contain a geometry.
     MissingGeometry,
     /// Error from FlatGeobuf property deserialization via serde.
+    #[non_exhaustive]
     Feature {
         /// Name of the column being read, or `None` if the error is not
         /// specific to a column (e.g. a missing field).

@@ -371,12 +371,14 @@ pub enum TableError<E> {
     /// The root value was not a struct or map.
     Root,
     /// A map key could not be converted to a string.
+    #[non_exhaustive]
     Key {
         /// Flattened key of the map holding the key, or `None` for the root.
         parent: Option<String>,
         source: StringifyError,
     },
     /// An error originating from the user's `Serialize` implementation.
+    #[non_exhaustive]
     Source {
         /// Flattened key of the value being serialized, or `None` for the root.
         key: Option<String>,
