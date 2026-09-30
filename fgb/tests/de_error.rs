@@ -22,9 +22,9 @@ fn point_to_polygon_fails() {
         w.write(&mut fgb_buf).unwrap();
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
 
-    let err = fgb_de
+    let err = de
         .features::<geo_types::Polygon, NoProps>()
         .next()
         .unwrap()
@@ -44,9 +44,9 @@ fn empty_file_returns_none() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
-    let result = fgb_de.features::<geo_types::Point, NoProps>().next();
+    let result = de.features::<geo_types::Point, NoProps>().next();
     assert!(result.is_none());
     Ok(())
 }
@@ -62,14 +62,14 @@ fn exhausted_iterator_returns_none() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     // Consume the only feature.
-    let first = fgb_de.deserialize_feature::<geo_types::Point, NoProps>()?;
+    let first = de.deserialize_feature::<geo_types::Point, NoProps>()?;
     assert!(first.is_some());
 
     // Next call should return None.
-    let second = fgb_de.deserialize_feature::<geo_types::Point, NoProps>()?;
+    let second = de.deserialize_feature::<geo_types::Point, NoProps>()?;
     assert!(second.is_none());
     Ok(())
 }
@@ -94,9 +94,9 @@ fn property_type_mismatch() {
         value: Vec<i32>,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
 
-    let err = fgb_de
+    let err = de
         .features::<geo_types::Point, WrongType>()
         .next()
         .unwrap()
@@ -126,9 +126,9 @@ fn missing_required_field() {
         name: String,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
 
-    let err = fgb_de
+    let err = de
         .features::<geo_types::Point, Required>()
         .next()
         .unwrap()
@@ -151,9 +151,9 @@ fn no_properties_into_empty_struct() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
-    let result = fgb_de.deserialize_feature::<geo_types::Point, NoProps>()?;
+    let result = de.deserialize_feature::<geo_types::Point, NoProps>()?;
     assert!(result.is_some());
     Ok(())
 }
@@ -177,8 +177,8 @@ fn optional_field_missing_ok() -> anyhow::Result<()> {
         extra: Option<String>,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
-    let (_, props) = fgb_de
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (_, props) = de
         .features::<geo_types::Point, OptionalProps>()
         .next()
         .unwrap()?;

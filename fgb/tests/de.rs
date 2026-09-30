@@ -16,14 +16,11 @@ fn point_test() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de
-        .features::<geo_types::Point, NoProps>()
-        .next()
-        .unwrap()?;
+    let (geom, _) = de.features::<geo_types::Point, NoProps>().next().unwrap()?;
     assert_eq!(geom, testing::p(0));
     Ok(())
 }
@@ -38,11 +35,11 @@ fn line_string_test() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de
+    let (geom, _) = de
         .features::<geo_types::LineString, NoProps>()
         .next()
         .unwrap()?;
@@ -68,11 +65,8 @@ fn feature_test() -> anyhow::Result<()> {
         count: i32,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
-    let (_, props) = fgb_de
-        .features::<geo_types::Point, Feat>()
-        .next()
-        .unwrap()?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (_, props) = de.features::<geo_types::Point, Feat>().next().unwrap()?;
     assert_eq!(props.name, "gamma");
     assert_eq!(props.count, 5);
     Ok(())
@@ -100,9 +94,9 @@ fn features_test() -> anyhow::Result<()> {
         seq: i32,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
-    let mut iter = fgb_de.features::<geo_types::Point, Feat>();
+    let mut iter = de.features::<geo_types::Point, Feat>();
 
     let (geom1, feat1) = iter.next().unwrap()?;
     assert_eq!(geom1, testing::p(0));
@@ -124,11 +118,11 @@ fn polygon_test() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de
+    let (geom, _) = de
         .features::<geo_types::Polygon, NoProps>()
         .next()
         .unwrap()?;
@@ -174,11 +168,8 @@ fn primitive_test() -> anyhow::Result<()> {
         v_str: String,
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
-    let (_, p) = fgb_de
-        .features::<geo_types::Point, Prim>()
-        .next()
-        .unwrap()?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (_, p) = de.features::<geo_types::Point, Prim>().next().unwrap()?;
     assert!(p.v_bool);
     assert_eq!(p.v_i8, -1);
     assert_eq!(p.v_i16, -200);
@@ -205,11 +196,11 @@ fn multi_point_test() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de
+    let (geom, _) = de
         .features::<geo_types::MultiPoint, NoProps>()
         .next()
         .unwrap()?;
@@ -228,11 +219,11 @@ fn multi_line_string_test() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}
-    let (geom, _) = fgb_de
+    let (geom, _) = de
         .features::<geo_types::MultiLineString, NoProps>()
         .next()
         .unwrap()?;

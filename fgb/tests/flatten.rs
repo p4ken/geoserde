@@ -21,7 +21,7 @@ struct Child {
 
 #[test]
 fn ser_test() -> anyhow::Result<()> {
-    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
 
     let feat = Feat {
         name: "hello".into(),
@@ -30,11 +30,11 @@ fn ser_test() -> anyhow::Result<()> {
             shape: testing::ls(1),
         },
     };
-    fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
-    fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
+    ser.serialize_feature(&feat.child.shape, &feat)?;
+    ser.serialize_feature(&feat.child.shape, &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.write(&mut fgb_buf)?;
+    ser.write(&mut fgb_buf)?;
 
     // Read back and verify
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
@@ -77,8 +77,8 @@ fn de_test() -> anyhow::Result<()> {
     flatgeobuf::geozero::FeatureProcessor::feature_end(&mut fgb_writer, 0)?;
     fgb_writer.write(&mut fgb_buf)?;
 
-    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
-    let (geom, props) = fgb_de
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (geom, props) = de
         .features::<geo_types::LineString, Feat>()
         .next()
         .unwrap()?;
