@@ -27,6 +27,12 @@ use serde::de::IntoDeserializer;
 /// # Ok(())
 /// # }
 /// ```
+///
+/// # Limitations
+///
+/// - Corrupted properties are not always detected. A column index that is not
+///   in the header ends the properties of the feature, and the remaining bytes
+///   are ignored, so wrong values can be returned without an error.
 pub struct LayerDeserializer<R> {
     fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
     header: OwnedHeader,

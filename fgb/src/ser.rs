@@ -61,6 +61,9 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// - Only x and y are written, and Z and M are dropped.
 /// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
 ///   without coordinates.
+/// - The type of a column is fixed by the first value of its key. A later
+///   value of another type, such as `i64` after `i32`, is written without an
+///   error, and the file is corrupted.
 pub struct LayerSerializer {
     writer: flatgeobuf::FgbWriter<'static>,
     known_key: Vec<Cow<'static, str>>,
