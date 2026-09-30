@@ -13,3 +13,8 @@ OSSなのでコメントは英語で。
 # テスト
 
 ser のテストでは de を使わない。de のテストも然り。
+
+# 用語の整理
+
+layer = features (+ meta)
+feature = geometry + properties
