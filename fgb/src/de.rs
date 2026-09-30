@@ -20,10 +20,7 @@ use serde::de::IntoDeserializer;
 /// struct Props { name: String }
 ///
 /// let file = std::fs::File::open("example.fgb")?;
-/// let reader = geoserde_fgb::flatgeobuf::FgbReader::open(
-///     std::io::BufReader::new(file),
-/// )?;
-/// let mut de = LayerDeserializer::new(reader)?;
+/// let mut de = LayerDeserializer::new(std::io::BufReader::new(file))?;
 /// for result in de.features::<geo_types::Point, Props>() {
 ///     let (geom, props) = result?;
 /// }
@@ -36,16 +33,16 @@ pub struct LayerDeserializer<R> {
 }
 
 impl<R: Read + Seek> LayerDeserializer<R> {
-    /// Creates a new deserializer from an [`FgbReader`](flatgeobuf::FgbReader).
+    /// Creates a new deserializer reading all features from `reader`.
     ///
-    /// All features are selected. The header is cloned internally because
-    /// the underlying iterator requires mutable access.
+    /// The header is read here. Features are read in many small reads, so
+    /// wrap a [`File`](std::fs::File) in a [`BufReader`](std::io::BufReader).
     ///
     /// # Errors
     ///
-    /// Returns [`Error`] if the FlatGeobuf header is invalid.
-    pub fn new(fgb_reader: flatgeobuf::FgbReader<R>) -> Result<Self, Error> {
-        let fgb_iter = fgb_reader.select_all()?;
+    /// Returns [`Error::Fgb`] if the FlatGeobuf header is invalid.
+    pub fn new(reader: R) -> Result<Self, Error> {
+        let fgb_iter = flatgeobuf::FgbReader::open(reader)?.select_all()?;
         let header = fgb_iter.header().into();
         Ok(Self { fgb_iter, header })
     }

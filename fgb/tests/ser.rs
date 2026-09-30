@@ -17,8 +17,7 @@ struct Feat {
 
 #[test]
 fn point_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let feat = Feat {
         name: "a".into(),
@@ -27,7 +26,7 @@ fn point_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     {
@@ -45,8 +44,7 @@ fn point_test() -> anyhow::Result<()> {
 
 #[test]
 fn line_string_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::LineString);
 
     let feat = Feat {
         name: "b".into(),
@@ -55,7 +53,7 @@ fn line_string_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::ls(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     {
@@ -73,8 +71,7 @@ fn line_string_test() -> anyhow::Result<()> {
 
 #[test]
 fn properties_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let feat = Feat {
         name: "alpha".into(),
@@ -83,7 +80,7 @@ fn properties_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();
@@ -102,8 +99,7 @@ fn properties_test() -> anyhow::Result<()> {
 
 #[test]
 fn features_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     fgb_ser.serialize_feature(
         testing::p(0),
@@ -121,7 +117,7 @@ fn features_test() -> anyhow::Result<()> {
     )?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
 
@@ -143,8 +139,7 @@ fn features_test() -> anyhow::Result<()> {
 
 #[test]
 fn polygon_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Polygon);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Polygon);
 
     let feat = Feat {
         name: "c".into(),
@@ -153,7 +148,7 @@ fn polygon_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::donut(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     {
@@ -187,8 +182,7 @@ fn primitive_test() -> anyhow::Result<()> {
         v_str: &'static str,
     }
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     fgb_ser.serialize_feature(
         testing::p(0),
@@ -209,7 +203,7 @@ fn primitive_test() -> anyhow::Result<()> {
     )?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();
@@ -233,8 +227,7 @@ fn primitive_test() -> anyhow::Result<()> {
 
 #[test]
 fn multi_point_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint);
 
     let feat = Feat {
         name: "d".into(),
@@ -243,7 +236,7 @@ fn multi_point_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::multi_p(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     {
@@ -261,8 +254,7 @@ fn multi_point_test() -> anyhow::Result<()> {
 
 #[test]
 fn multi_line_string_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString);
 
     let feat = Feat {
         name: "e".into(),
@@ -271,7 +263,7 @@ fn multi_line_string_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::multi_ls(0), &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
     {
@@ -284,5 +276,38 @@ fn multi_line_string_test() -> anyhow::Result<()> {
         assert_eq!(mls, testing::multi_ls(0));
     }
     assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn options_test() -> anyhow::Result<()> {
+    let options = geoserde_fgb::ser::LayerOptions::new()
+        .name("layer")
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)
+        .epsg(4326)
+        .index(false)
+        .title("t")
+        .description("d")
+        .metadata("m");
+    let mut fgb_ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+    fgb_ser.serialize_feature(
+        testing::p(0),
+        &Feat {
+            name: "a".into(),
+            count: 0,
+        },
+    )?;
+    let mut fgb_buf = Vec::new();
+    fgb_ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    let header = fgb_reader.header();
+    assert_eq!(header.name(), Some("layer"));
+    assert_eq!(header.geometry_type(), flatgeobuf::GeometryType::Point);
+    assert_eq!(header.crs().map(|crs| crs.code()), Some(4326));
+    assert_eq!(header.index_node_size(), 0);
+    assert_eq!(header.title(), Some("t"));
+    assert_eq!(header.description(), Some("d"));
+    assert_eq!(header.metadata(), Some("m"));
     Ok(())
 }

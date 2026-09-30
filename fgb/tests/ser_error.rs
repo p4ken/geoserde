@@ -5,8 +5,7 @@ mod testing;
 /// A scalar value cannot be used as properties (must be struct or map).
 #[test]
 fn scalar_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), 42_i32);
     assert!(result.is_err());
@@ -15,8 +14,7 @@ fn scalar_properties_rejected() {
 /// A string value cannot be used as properties.
 #[test]
 fn string_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), "hello");
     assert!(result.is_err());
@@ -25,8 +23,7 @@ fn string_properties_rejected() {
 /// A Vec (sequence) cannot be used as properties.
 #[test]
 fn seq_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), vec![1, 2, 3]);
     assert!(result.is_err());
@@ -35,8 +32,7 @@ fn seq_properties_rejected() {
 /// A bool value cannot be used as properties.
 #[test]
 fn bool_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), true);
     assert!(result.is_err());
@@ -45,8 +41,7 @@ fn bool_properties_rejected() {
 /// Unit type cannot be used as properties.
 #[test]
 fn unit_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), ());
     assert!(result.is_err());
@@ -58,8 +53,7 @@ fn unit_struct_properties_rejected() {
     #[derive(Serialize)]
     struct Empty;
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), &Empty);
     assert!(result.is_err());
@@ -68,8 +62,7 @@ fn unit_struct_properties_rejected() {
 /// A tuple cannot be used as properties.
 #[test]
 fn tuple_properties_rejected() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), (1, 2));
     assert!(result.is_err());
@@ -83,8 +76,7 @@ fn enum_variant_properties_rejected() {
         A,
     }
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), &Kind::A);
     assert!(result.is_err());
@@ -98,8 +90,7 @@ fn non_string_key_map_rejected() {
     let mut map = HashMap::new();
     map.insert(vec![1, 2], "value");
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let result = fgb_ser.serialize_feature(testing::p(0), &map);
     assert!(result.is_err());
@@ -108,8 +99,7 @@ fn non_string_key_map_rejected() {
 /// A root-level rejection keeps the `TableError` in the source chain.
 #[test]
 fn root_rejection_source_chain() {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let err = fgb_ser
         .serialize_feature(testing::p(0), 42_i32)
@@ -130,8 +120,7 @@ fn non_string_key_source_chain() {
     let mut map = HashMap::new();
     map.insert(vec![1, 2], "value");
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let err = fgb_ser.serialize_feature(testing::p(0), &map).unwrap_err();
     let table = std::error::Error::source(&err).unwrap();
@@ -156,8 +145,7 @@ fn custom_error_source_chain() {
         a: Failing,
     }
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let err = fgb_ser
         .serialize_feature(testing::p(0), &Props { a: Failing })
@@ -197,8 +185,7 @@ fn failed_feature_discarded() -> anyhow::Result<()> {
         a: i32,
     }
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let bad = Bad {
         a: 1,
@@ -209,7 +196,7 @@ fn failed_feature_discarded() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::p(1), &Good { a: 2 })?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let fgb_reader = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?;
     let columns = fgb_reader.header().columns().unwrap();
@@ -237,8 +224,7 @@ fn mismatched_geometry_discarded() -> anyhow::Result<()> {
         a: i32,
     }
 
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Point);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     assert!(
         fgb_ser
@@ -248,7 +234,7 @@ fn mismatched_geometry_discarded() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(testing::p(1), &Props { a: 2 })?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     let mut fgb_iter = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?.select_all()?;
     let fgb_feat = fgb_iter.next()?.unwrap();

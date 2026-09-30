@@ -20,8 +20,7 @@ struct Child {
 
 #[test]
 fn ser_test() -> anyhow::Result<()> {
-    let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Unknown);
-    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
+    let mut fgb_ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
 
     let feat = Feat {
         name: "hello".into(),
@@ -34,7 +33,7 @@ fn ser_test() -> anyhow::Result<()> {
     fgb_ser.serialize_feature(&feat.child.shape, &feat)?;
 
     let mut fgb_buf = Vec::new();
-    fgb_ser.into_inner().write(&mut fgb_buf)?;
+    fgb_ser.write(&mut fgb_buf)?;
 
     // Read back and verify
     let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;

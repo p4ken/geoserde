@@ -2,8 +2,8 @@
 
 use std::borrow::Cow;
 use std::convert::Infallible;
+use std::io::Write;
 
-use flatgeobuf::FgbWriter;
 use geo_traits::{
     CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
@@ -11,17 +11,17 @@ use geo_traits::{
 };
 use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
-/// Streaming FlatGeobuf feature serializer.
+/// FlatGeobuf feature serializer.
 ///
-/// This serializer writes each feature to the [`FgbWriter`] as it is
-/// serialized. If serializing a feature fails, nothing of that feature is
-/// written, and the serializer can continue with the next feature.
+/// Features are buffered in a temporary file as they are serialized, and
+/// written to the output by [`write`](Self::write). If serializing a feature
+/// fails, nothing of that feature is written, and the serializer can continue
+/// with the next feature.
 ///
 /// # Geometry types
 ///
-/// Whether a geometry can be written depends on the geometry type of the
-/// [`FgbWriter`] header, with the default
-/// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
+/// Whether a geometry can be written depends on the
+/// [`geometry_type`](LayerOptions::geometry_type) of the layer.
 ///
 /// | Source \ Target                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
 /// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- | -------------- | ------------------- | ----------- | ---------------- | ---------------------- | ----------- |
@@ -43,14 +43,13 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// [`Unknown`]: flatgeobuf::GeometryType::Unknown
 ///
 /// - –: Fails with [`Error::Geozero`].
-/// - promoted: Written as the multi type with one member, as
-///   [`promote_to_multi`](flatgeobuf::FgbWriterOptions::promote_to_multi)
-///   does. Fails if it is disabled.
-/// - `Unknown`: The first feature fixes the geometry type of the dataset, and
+/// - promoted: Written as the multi type with one member. Fails if
+///   [`promote_to_multi`](LayerOptions::promote_to_multi) is disabled.
+/// - `Unknown`: The first feature fixes the geometry type of the layer, and
 ///   later features follow the column of that type. With `promote_to_multi`,
 ///   `LineString` fixes `MultiLineString` and `Polygon` fixes `MultiPolygon`.
-/// - members: [`FgbWriter`] ignores the collection itself, so its members are
-///   written as one geometry of their type. See [Limitations](#limitations).
+/// - members: The collection itself is ignored, so its members are written as
+///   one geometry of their type. See [Limitations](#limitations).
 /// - `Line`, `Rect` and `Triangle` are written as `LineString` or `Polygon`.
 ///
 /// # Limitations
@@ -58,25 +57,53 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// - A `GeometryCollection` is not written correctly. Its members are merged
 ///   into one geometry, so with more than one member, the extra coordinates
 ///   are lost when read.
-/// - Only x and y are written, and Z and M are dropped. Enabling `has_z` or
-///   `has_m` in [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions) is not
-///   supported.
+/// - Only x and y are written, and Z and M are dropped.
 /// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
 ///   without coordinates.
-pub struct LayerSerializer<'a> {
-    writer: FgbWriter<'a>,
+pub struct LayerSerializer {
+    writer: flatgeobuf::FgbWriter<'static>,
     known_key: Vec<Cow<'static, str>>,
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
-impl<'a> LayerSerializer<'a> {
-    /// Creates a new `LayerSerializer` wrapping the given [`FgbWriter`].
-    pub fn new(writer: FgbWriter<'a>) -> Self {
-        Self {
+impl LayerSerializer {
+    /// Creates a new `LayerSerializer` with the default [`LayerOptions`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Fgb`] if the temporary file cannot be created.
+    pub fn new() -> Result<Self, Error> {
+        Self::with_options(LayerOptions::new())
+    }
+
+    /// Creates a new `LayerSerializer` with the given options.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Fgb`] if the temporary file cannot be created.
+    pub fn with_options(options: LayerOptions) -> Result<Self, Error> {
+        let fgb_options = flatgeobuf::FgbWriterOptions {
+            write_index: options.index,
+            promote_to_multi: options.promote_to_multi,
+            crs: flatgeobuf::FgbCrs {
+                code: options.epsg,
+                ..Default::default()
+            },
+            title: options.title.as_deref(),
+            description: options.description.as_deref(),
+            metadata: options.metadata.as_deref(),
+            ..Default::default()
+        };
+        let writer = flatgeobuf::FgbWriter::create_with_options(
+            &options.name,
+            options.geometry_type,
+            fgb_options,
+        )?;
+        Ok(Self {
             writer,
             known_key: Vec::new(),
             pending: Vec::new(),
-        }
+        })
     }
 
     /// Serializes a single feature (geometry + properties) to the writer.
@@ -117,13 +144,128 @@ impl<'a> LayerSerializer<'a> {
         Ok(())
     }
 
-    /// Consumes this serializer and returns the inner [`FgbWriter`].
-    pub fn into_inner(self) -> FgbWriter<'a> {
-        self.writer
+    /// Writes the layer to `out`, and flushes it.
+    ///
+    /// Nothing is written until this is called. The layer is written in many
+    /// small writes, so wrap a [`File`](std::fs::File) in a
+    /// [`BufWriter`](std::io::BufWriter).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Fgb`] if writing to `out` fails.
+    pub fn write(self, mut out: impl Write) -> Result<(), Error> {
+        self.writer.write(&mut out)?;
+        out.flush().map_err(flatgeobuf::Error::IO)?;
+        Ok(())
     }
 }
 
-impl SerializeProperties for &mut LayerSerializer<'_> {
+/// Options for writing a FlatGeobuf layer.
+///
+/// # Example
+///
+/// ```
+/// # fn main() -> Result<(), geoserde_fgb::ser::Error> {
+/// let options = geoserde_fgb::ser::LayerOptions::new()
+///     .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)
+///     .epsg(4326);
+/// let ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct LayerOptions {
+    name: String,
+    geometry_type: flatgeobuf::GeometryType,
+    epsg: i32,
+    index: bool,
+    promote_to_multi: bool,
+    title: Option<String>,
+    description: Option<String>,
+    metadata: Option<String>,
+}
+
+impl Default for LayerOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LayerOptions {
+    /// Creates a new `LayerOptions` with the default options.
+    pub fn new() -> Self {
+        Self {
+            name: String::new(),
+            geometry_type: flatgeobuf::GeometryType::Unknown,
+            epsg: 0,
+            index: true,
+            promote_to_multi: true,
+            title: None,
+            description: None,
+            metadata: None,
+        }
+    }
+
+    /// Sets the layer name. Defaults to empty.
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
+    }
+
+    /// Sets the geometry type of the layer. Defaults to
+    /// [`Unknown`](flatgeobuf::GeometryType::Unknown).
+    ///
+    /// See [Geometry types](LayerSerializer#geometry-types).
+    pub fn geometry_type(mut self, geometry_type: flatgeobuf::GeometryType) -> Self {
+        self.geometry_type = geometry_type;
+        self
+    }
+
+    /// Sets the EPSG code of the coordinate reference system. Defaults to
+    /// unknown.
+    pub fn epsg(mut self, code: i32) -> Self {
+        self.epsg = code;
+        self
+    }
+
+    /// Sets whether to write the spatial index. Defaults to `true`.
+    ///
+    /// With the index, features are sorted along a Hilbert curve, so they are
+    /// not read in the order they were written.
+    pub fn index(mut self, index: bool) -> Self {
+        self.index = index;
+        self
+    }
+
+    /// Sets whether to write single geometries as the multi type with one
+    /// member. Defaults to `true`.
+    ///
+    /// See [Geometry types](LayerSerializer#geometry-types).
+    pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
+        self.promote_to_multi = promote_to_multi;
+        self
+    }
+
+    /// Sets the layer title.
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    /// Sets the layer description.
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Sets the application specific metadata of the layer.
+    pub fn metadata(mut self, metadata: impl Into<String>) -> Self {
+        self.metadata = Some(metadata.into());
+        self
+    }
+}
+
+impl SerializeProperties for &mut LayerSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -355,12 +497,21 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
+    /// FlatGeobuf error while creating the temporary file or writing the
+    /// output.
+    Fgb(flatgeobuf::Error),
     /// Error during geozero geometry or property processing.
     Geozero(flatgeobuf::geozero::error::GeozeroError),
     /// The properties could not be flattened into a table.
     Table(TableError<Infallible>),
     /// A property value has no corresponding FlatGeobuf column type.
     UnsupportedFieldValue(FieldValue<'static>),
+}
+
+impl From<flatgeobuf::Error> for Error {
+    fn from(e: flatgeobuf::Error) -> Self {
+        Self::Fgb(e)
+    }
 }
 
 impl From<flatgeobuf::geozero::error::GeozeroError> for Error {
@@ -381,6 +532,7 @@ impl From<TableError<Error>> for Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Fgb(_) => f.write_str("flatgeobuf writing failed"),
             Self::Geozero(_) => f.write_str("geozero processing failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
@@ -391,6 +543,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::Fgb(e) => Some(e),
             Self::Geozero(e) => Some(e),
             Self::Table(e) => Some(e),
             Self::UnsupportedFieldValue(_) => None,
