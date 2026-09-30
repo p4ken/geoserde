@@ -17,9 +17,8 @@ instead of the crate root.
 | `FeatureSink`, `GeometrySink` | No equivalent. |
 | `SerializeError` | `ser::TableError` for properties, `de::GeometryTypeMismatch` for geometries |
 | `geozero` feature | Removed. |
-| — | `geo` feature (default): `de::DeserializeGeometry` impls for `geo_types` |
 
-The crate now uses Rust edition 2024, which requires Rust 1.85 or later.
+The crate now uses Rust edition 2024.
 
 #### Keep the geometry out of the properties
 
@@ -109,8 +108,9 @@ field name instead of the enum name.
 #### Reading geometries
 
 Deserialization is new in v0.6. Implement `de::DeserializeGeometry` to build
-your geometry type from any `geo_traits::GeometryTrait` source. With the `geo`
-feature, `geo_types::{Point, MultiPoint, LineString, MultiLineString, Polygon}`
+your geometry type from any `geo_traits::GeometryTrait` source. With the
+`geo-types` feature,
+`geo_types::{Point, MultiPoint, LineString, MultiLineString, Polygon}`
 implement it. Properties are read with plain `serde::Deserialize`.
 
 #### geozero formats

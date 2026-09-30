@@ -1,4 +1,4 @@
-#![cfg(feature = "geo")]
+#![cfg(feature = "geo-types")]
 
 use geo_traits::{
     CoordTrait, GeometryTrait, GeometryType, LineStringTrait, MultiLineStringTrait,

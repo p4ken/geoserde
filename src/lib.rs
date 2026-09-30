@@ -43,7 +43,7 @@
 //!
 //! # Cargo features
 //!
-//! * `geo` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
+//! * `geo-types` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
 
 pub mod de;
 pub mod ser;

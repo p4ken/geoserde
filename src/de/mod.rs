@@ -2,7 +2,7 @@
 //!
 //! The central trait is [`DeserializeGeometry`], which converts a
 //! [`GeometryTrait`](geo_traits::GeometryTrait) value into a concrete Rust type.
-//! When the `geo` feature is enabled, implementations are provided for the
+//! When the `geo-types` feature is enabled, implementations are provided for the
 //! common [`geo_types`] geometry types.
 //!
 //! # Geometry type conversion

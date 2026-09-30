@@ -1,4 +1,4 @@
-#![cfg(feature = "geo")]
+#![cfg(feature = "geo-types")]
 
 use geo_types::{
     LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, coord, line_string,

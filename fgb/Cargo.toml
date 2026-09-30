@@ -12,8 +12,8 @@ license.workspace = true
 all-features = true
 
 [features]
-default = ["geo"]
-geo = ["geoserde/geo"]
+default = ["geo-types"]
+geo-types = ["geoserde/geo-types"]
 
 [dependencies]
 geoserde = { version = "0.5.3-beta.1", path = "..", default-features = false }

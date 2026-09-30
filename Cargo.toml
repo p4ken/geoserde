@@ -22,8 +22,8 @@ exclude = [".*"]
 all-features = true
 
 [features]
-default = ["geo"]
-geo = ["dep:geo-types", "geo-traits/geo-types"]
+default = ["geo-types"]
+geo-types = ["dep:geo-types", "geo-traits/geo-types"]
 
 [dependencies]
 serde = { version = "1.0.214", features = ["derive"] }
