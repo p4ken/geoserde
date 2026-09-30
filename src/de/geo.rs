@@ -2,36 +2,32 @@
 
 use geo_traits::{
     CoordTrait, GeometryTrait, GeometryType, LineStringTrait, MultiLineStringTrait,
-    MultiPointTrait, PolygonTrait,
-    to_geo::{ToGeoLineString, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoPoint, ToGeoPolygon},
+    MultiPointTrait, PointTrait, PolygonTrait,
+    to_geo::{ToGeoLineString, ToGeoMultiLineString, ToGeoPoint, ToGeoPolygon},
 };
 
-use crate::de::{DeserializeGeometry, GeometryTypeMismatch};
+use crate::de::{DeserializeGeometry, GeometryError};
 
 // Calling per-variant traits such as `ToGeoPoint` on the variant taken out by `as_type()`
 // does not go through `GeometryTrait`, so it avoids the trait solver overflow that
 // `ToGeoGeometry` hits (rustc #128887).
 impl DeserializeGeometry for geo_types::Point {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
-    ) -> Result<Self, GeometryTypeMismatch> {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Result<Self, GeometryError> {
         match source.as_type() {
-            GeometryType::Point(p) => Ok(p.to_point()),
+            GeometryType::Point(p) => point(p),
             GeometryType::MultiPoint(mp) => only(mp.points())
-                .map(|p| p.to_point())
-                .ok_or(GeometryTypeMismatch::new("Point", &source)),
-            _ => Err(GeometryTypeMismatch::new("Point", &source)),
+                .ok_or(GeometryError::type_mismatch("Point", &source))
+                .and_then(|p| point(&p)),
+            _ => Err(GeometryError::type_mismatch("Point", &source)),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::MultiPoint {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
-    ) -> Result<Self, GeometryTypeMismatch> {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Result<Self, GeometryError> {
         match source.as_type() {
-            GeometryType::Point(p) => Ok(geo_types::MultiPoint::new(vec![p.to_point()])),
-            GeometryType::MultiPoint(mp) => Ok(mp.to_multi_point()),
+            GeometryType::Point(p) => Ok(geo_types::MultiPoint::new(vec![point(p)?])),
+            GeometryType::MultiPoint(mp) => mp.points().map(|p| point(&p)).collect(),
             GeometryType::LineString(ls) => Ok(geo_types::MultiPoint::new(
                 ls.coords()
                     .map(|c| geo_types::Point::new(c.x(), c.y()))
@@ -39,7 +35,7 @@ impl DeserializeGeometry for geo_types::MultiPoint {
             )),
             GeometryType::MultiLineString(mls) => {
                 let ls = only(mls.line_strings())
-                    .ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
+                    .ok_or(GeometryError::type_mismatch("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ls.coords()
                         .map(|c| geo_types::Point::new(c.x(), c.y()))
@@ -48,46 +44,40 @@ impl DeserializeGeometry for geo_types::MultiPoint {
             }
             GeometryType::Polygon(poly) => {
                 let ring =
-                    only_ring(poly).ok_or(GeometryTypeMismatch::new("MultiPoint", &source))?;
+                    only_ring(poly).ok_or(GeometryError::type_mismatch("MultiPoint", &source))?;
                 Ok(geo_types::MultiPoint::new(
                     ring.coords()
                         .map(|c| geo_types::Point::new(c.x(), c.y()))
                         .collect(),
                 ))
             }
-            _ => Err(GeometryTypeMismatch::new("MultiPoint", &source)),
+            _ => Err(GeometryError::type_mismatch("MultiPoint", &source)),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::LineString {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
-    ) -> Result<Self, GeometryTypeMismatch> {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Result<Self, GeometryError> {
         match source.as_type() {
-            GeometryType::MultiPoint(mp) => Ok(geo_types::LineString::new(
-                mp.points().map(|p| p.to_point().0).collect(),
-            )),
+            GeometryType::MultiPoint(mp) => line_string(mp),
             GeometryType::LineString(ls) => Ok(ls.to_line_string()),
             GeometryType::MultiLineString(mls) => only(mls.line_strings())
                 .map(|ls| ls.to_line_string())
-                .ok_or(GeometryTypeMismatch::new("LineString", &source)),
+                .ok_or(GeometryError::type_mismatch("LineString", &source)),
             GeometryType::Polygon(poly) => only_ring(poly)
                 .map(|ring| ring.to_line_string())
-                .ok_or(GeometryTypeMismatch::new("LineString", &source)),
-            _ => Err(GeometryTypeMismatch::new("LineString", &source)),
+                .ok_or(GeometryError::type_mismatch("LineString", &source)),
+            _ => Err(GeometryError::type_mismatch("LineString", &source)),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::MultiLineString {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
-    ) -> Result<Self, GeometryTypeMismatch> {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Result<Self, GeometryError> {
         match source.as_type() {
-            GeometryType::MultiPoint(mp) => Ok(geo_types::MultiLineString::new(vec![
-                geo_types::LineString::new(mp.points().map(|p| p.to_point().0).collect()),
-            ])),
+            GeometryType::MultiPoint(mp) => {
+                Ok(geo_types::MultiLineString::new(vec![line_string(mp)?]))
+            }
             GeometryType::LineString(ls) => {
                 Ok(geo_types::MultiLineString::new(vec![ls.to_line_string()]))
             }
@@ -102,20 +92,15 @@ impl DeserializeGeometry for geo_types::MultiLineString {
                 }
                 Ok(geo_types::MultiLineString::new(lines))
             }
-            _ => Err(GeometryTypeMismatch::new("MultiLineString", &source)),
+            _ => Err(GeometryError::type_mismatch("MultiLineString", &source)),
         }
     }
 }
 
 impl DeserializeGeometry for geo_types::Polygon {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
-    ) -> Result<Self, GeometryTypeMismatch> {
+    fn deserialize_geometry<T: GeometryTrait<T = f64>>(source: T) -> Result<Self, GeometryError> {
         match source.as_type() {
-            GeometryType::MultiPoint(mp) => Ok(geo_types::Polygon::new(
-                geo_types::LineString::new(mp.points().map(|p| p.to_point().0).collect()),
-                vec![],
-            )),
+            GeometryType::MultiPoint(mp) => Ok(geo_types::Polygon::new(line_string(mp)?, vec![])),
             GeometryType::LineString(ls) => {
                 Ok(geo_types::Polygon::new(ls.to_line_string(), vec![]))
             }
@@ -127,9 +112,21 @@ impl DeserializeGeometry for geo_types::Polygon {
                 Ok(geo_types::Polygon::new(exterior, lines.collect()))
             }
             GeometryType::Polygon(p) => Ok(p.to_polygon()),
-            _ => Err(GeometryTypeMismatch::new("Polygon", &source)),
+            _ => Err(GeometryError::type_mismatch("Polygon", &source)),
         }
     }
+}
+
+/// Fails on an empty point instead of panicking like [`ToGeoPoint::to_point`].
+fn point<P: PointTrait<T = f64>>(p: &P) -> Result<geo_types::Point, GeometryError> {
+    p.try_to_point()
+        .ok_or_else(|| GeometryError::custom("geo-types cannot represent an empty point"))
+}
+
+fn line_string<M: MultiPointTrait<T = f64>>(
+    mp: &M,
+) -> Result<geo_types::LineString, GeometryError> {
+    mp.points().map(|p| point(&p).map(|p| p.0)).collect()
 }
 
 /// Returns the item if `iter` has exactly one, so that flattening never drops

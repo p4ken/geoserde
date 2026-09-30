@@ -286,3 +286,64 @@ fn point_to_polygon_rejected() {
     let err = Polygon::deserialize_geometry(Point::new(1., 2.)).unwrap_err();
     assert_eq!(err.to_string(), "expected Polygon, found Point");
 }
+
+// --- Empty points ---
+
+#[test]
+fn empty_point_to_point_rejected() {
+    let err = Point::deserialize_geometry(EmptyPoint).unwrap_err();
+    assert_eq!(err.to_string(), "geo-types cannot represent an empty point");
+}
+
+#[test]
+fn empty_point_to_multi_point_rejected() {
+    let err = MultiPoint::deserialize_geometry(EmptyPoint).unwrap_err();
+    assert_eq!(err.to_string(), "geo-types cannot represent an empty point");
+}
+
+/// `geo_types::Point` cannot be empty, so the source implements `PointTrait` on its own.
+struct EmptyPoint;
+
+impl geo_traits::PointTrait for EmptyPoint {
+    type CoordType<'a> = geo_types::Coord;
+
+    fn coord(&self) -> Option<Self::CoordType<'_>> {
+        None
+    }
+}
+
+impl geo_traits::GeometryTrait for EmptyPoint {
+    type T = f64;
+    type PointType<'a> = EmptyPoint;
+    type LineStringType<'a> = geo_traits::UnimplementedLineString<f64>;
+    type PolygonType<'a> = geo_traits::UnimplementedPolygon<f64>;
+    type MultiPointType<'a> = geo_traits::UnimplementedMultiPoint<f64>;
+    type MultiLineStringType<'a> = geo_traits::UnimplementedMultiLineString<f64>;
+    type MultiPolygonType<'a> = geo_traits::UnimplementedMultiPolygon<f64>;
+    type GeometryCollectionType<'a> = geo_traits::UnimplementedGeometryCollection<f64>;
+    type RectType<'a> = geo_traits::UnimplementedRect<f64>;
+    type TriangleType<'a> = geo_traits::UnimplementedTriangle<f64>;
+    type LineType<'a> = geo_traits::UnimplementedLine<f64>;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn as_type(
+        &self,
+    ) -> geo_traits::GeometryType<
+        '_,
+        Self::PointType<'_>,
+        Self::LineStringType<'_>,
+        Self::PolygonType<'_>,
+        Self::MultiPointType<'_>,
+        Self::MultiLineStringType<'_>,
+        Self::MultiPolygonType<'_>,
+        Self::GeometryCollectionType<'_>,
+        Self::RectType<'_>,
+        Self::TriangleType<'_>,
+        Self::LineType<'_>,
+    > {
+        geo_traits::GeometryType::Point(self)
+    }
+}

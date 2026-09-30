@@ -15,7 +15,7 @@ instead of the crate root.
 | `PropertySerializer` | `ser::TableSerializer` |
 | `PropertySink` | `ser::SerializeProperties` |
 | `FeatureSink`, `GeometrySink` | No equivalent. |
-| `SerializeError` | `ser::TableError` for properties, `de::GeometryTypeMismatch` for geometries |
+| `SerializeError` | `ser::TableError` for properties, `de::GeometryError` for geometries |
 | `geozero` feature | Removed. |
 
 The crate now uses Rust edition 2024.

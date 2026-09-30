@@ -28,12 +28,12 @@
 //!   `Triangle` and `Line` sources for every target.
 //! - \*: Fails unless there is exactly one point or line, or the polygon has
 //!   an exterior and no interiors, so that no coordinates are dropped.
-//! - Failures are [`GeometryTypeMismatch`]. The number of coordinates is not
+//! - Failures are [`GeometryError`]s. The number of coordinates is not
 //!   checked otherwise, so a single point becomes a one-coordinate
 //!   `LineString`, an empty `Polygon` becomes an empty `MultiLineString`, and
 //!   an empty `MultiLineString` becomes an empty `Polygon`.
 //! - Rings of a `Polygon` target are closed by [`geo_types::Polygon::new`].
-//! - An empty point in a `Point` or `MultiPoint` source panics, because
+//! - An empty point in a `Point` or `MultiPoint` source fails, because
 //!   [`geo_types`] cannot represent it.
 
 mod geo;
@@ -49,27 +49,27 @@ mod geo;
 ///
 /// # Errors
 ///
-/// Returns [`GeometryTypeMismatch`] if the source geometry cannot be
-/// interpreted as the target type.
+/// Returns a [`GeometryError`] if the source geometry cannot be interpreted as
+/// the target type.
 ///
 /// # Example
 ///
 /// ```
-/// use geoserde::de::{DeserializeGeometry, GeometryTypeMismatch};
+/// use geoserde::de::{DeserializeGeometry, GeometryError};
 ///
 /// struct Xy { x: f64, y: f64 }
 ///
 /// impl DeserializeGeometry for Xy {
 ///     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
 ///         source: T,
-///     ) -> Result<Self, GeometryTypeMismatch> {
+///     ) -> Result<Self, GeometryError> {
 ///         use geo_traits::{CoordTrait, GeometryType, PointTrait};
 ///         match source.as_type() {
 ///             GeometryType::Point(p) => {
-///                 let c = p.coord().ok_or(GeometryTypeMismatch::new("Point", &source))?;
+///                 let c = p.coord().ok_or(GeometryError::custom("empty point"))?;
 ///                 Ok(Xy { x: c.x(), y: c.y() })
 ///             }
-///             _ => Err(GeometryTypeMismatch::new("Point", &source)),
+///             _ => Err(GeometryError::type_mismatch("Point", &source)),
 ///         }
 ///     }
 /// }
@@ -78,20 +78,29 @@ pub trait DeserializeGeometry: Sized {
     /// Deserialize `source` into `Self`.
     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
         source: T,
-    ) -> Result<Self, GeometryTypeMismatch>;
+    ) -> Result<Self, GeometryError>;
 }
 
-/// Error returned when a geometry's type does not match the expected target.
 #[derive(Debug, Clone)]
-pub struct GeometryTypeMismatch {
-    expected: &'static str,
-    found: &'static str,
+enum ErrorKind {
+    TypeMismatch {
+        expected: &'static str,
+        found: &'static str,
+    },
+    Custom(String),
 }
 
-impl GeometryTypeMismatch {
-    /// Creates a new error indicating which geometry type was expected, and
-    /// which type `source` actually is.
-    pub fn new(expected: &'static str, source: &impl geo_traits::GeometryTrait) -> Self {
+/// Error returned when a geometry cannot be deserialized.
+///
+/// The contents are private so that new kinds of failures can be added
+/// without breaking [`DeserializeGeometry`] impls.
+#[derive(Debug, Clone)]
+pub struct GeometryError(ErrorKind);
+
+impl GeometryError {
+    /// Creates an error indicating which geometry type was expected, and which
+    /// type `source` actually is.
+    pub fn type_mismatch(expected: &'static str, source: &impl geo_traits::GeometryTrait) -> Self {
         use geo_traits::GeometryType;
         let found = match source.as_type() {
             GeometryType::Point(_) => "Point",
@@ -105,14 +114,25 @@ impl GeometryTypeMismatch {
             GeometryType::Triangle(_) => "Triangle",
             GeometryType::Line(_) => "Line",
         };
-        Self { expected, found }
+        Self(ErrorKind::TypeMismatch { expected, found })
+    }
+
+    /// Creates an error with a custom message, like
+    /// [`serde::de::Error::custom`].
+    pub fn custom(msg: impl std::fmt::Display) -> Self {
+        Self(ErrorKind::Custom(msg.to_string()))
     }
 }
 
-impl std::fmt::Display for GeometryTypeMismatch {
+impl std::fmt::Display for GeometryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "expected {}, found {}", self.expected, self.found)
+        match &self.0 {
+            ErrorKind::TypeMismatch { expected, found } => {
+                write!(f, "expected {expected}, found {found}")
+            }
+            ErrorKind::Custom(msg) => f.write_str(msg),
+        }
     }
 }
 
-impl std::error::Error for GeometryTypeMismatch {}
+impl std::error::Error for GeometryError {}

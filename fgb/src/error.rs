@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use geoserde::de::GeometryTypeMismatch;
+use geoserde::de::GeometryError;
 use geoserde::ser::{FieldValue, TableError};
 
 /// Error type for FlatGeobuf operations.
@@ -11,9 +11,9 @@ pub enum Error {
     Fgb(flatgeobuf::Error),
     /// Error during geozero geometry processing (writing).
     Geozero(flatgeobuf::geozero::error::GeozeroError),
-    /// The user's [`DeserializeGeometry`](geoserde::DeserializeGeometry) impl
-    /// returned a geometry type mismatch.
-    GeometryType(GeometryTypeMismatch),
+    /// The [`DeserializeGeometry`](geoserde::DeserializeGeometry) impl
+    /// returned an error.
+    Geometry(GeometryError),
     /// The feature did not contain a geometry.
     MissingGeometry,
     /// Error from FlatGeobuf property deserialization via serde.
@@ -41,9 +41,9 @@ impl From<flatgeobuf::geozero::error::GeozeroError> for Error {
     }
 }
 
-impl From<GeometryTypeMismatch> for Error {
-    fn from(e: GeometryTypeMismatch) -> Self {
-        Self::GeometryType(e)
+impl From<GeometryError> for Error {
+    fn from(e: GeometryError) -> Self {
+        Self::Geometry(e)
     }
 }
 
@@ -61,7 +61,7 @@ impl std::fmt::Display for Error {
         match self {
             Self::Fgb(_) => f.write_str("flatgeobuf format error"),
             Self::Geozero(_) => f.write_str("geozero processing failed"),
-            Self::GeometryType(_) => f.write_str("geometry type mismatch"),
+            Self::Geometry(_) => f.write_str("geometry deserialization failed"),
             Self::MissingGeometry => f.write_str("feature has no geometry"),
             Self::Feature {
                 column: Some(column),
@@ -81,7 +81,7 @@ impl std::error::Error for Error {
         match self {
             Self::Fgb(e) => Some(e),
             Self::Geozero(e) => Some(e),
-            Self::GeometryType(e) => Some(e),
+            Self::Geometry(e) => Some(e),
             Self::Feature { source, .. } => Some(source),
             Self::Table(e) => Some(e),
             Self::MissingGeometry | Self::UnsupportedFieldValue(_) => None,
