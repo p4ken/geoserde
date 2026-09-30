@@ -72,7 +72,7 @@ fn simple_array_separator() {
     );
     assert_eq!(
         entries,
-        vec![("tags".into(), ser::FieldValue::BoxedStr("1|2|3".into()))]
+        vec![("tags".into(), ser::FieldValue::Str("1|2|3".into()))]
     );
 }
 

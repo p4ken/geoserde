@@ -344,9 +344,7 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
         FieldValue::F32(v) => flatgeobuf::geozero::ColumnValue::Float(*v),
         FieldValue::F64(v) => flatgeobuf::geozero::ColumnValue::Double(*v),
         FieldValue::Str(s) => flatgeobuf::geozero::ColumnValue::String(s),
-        FieldValue::BoxedStr(s) => flatgeobuf::geozero::ColumnValue::String(s),
         FieldValue::Bytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
-        FieldValue::BoxedBytes(b) => flatgeobuf::geozero::ColumnValue::Binary(b),
         // In case geoserde adds a variant that has no corresponding ColumnType
         _ => return None,
     };

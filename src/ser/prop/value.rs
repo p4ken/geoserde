@@ -1,14 +1,10 @@
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 /// A dynamically-typed property value.
 ///
 /// `FieldValue` represents a single scalar value in a flattened property table.
-/// Borrowed variants ([`Str`](Self::Str), [`Bytes`](Self::Bytes)) reference the
-/// original data, while owned variants ([`BoxedStr`](Self::BoxedStr),
-/// [`BoxedBytes`](Self::BoxedBytes)) hold heap-allocated copies.
-///
-/// Use [`into_owned`](Self::into_owned) to convert borrowed variants into their
-/// owned equivalents.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 #[non_exhaustive]
@@ -24,14 +20,8 @@ pub enum FieldValue<'a> {
     U64(u64),
     F32(f32),
     F64(f64),
-    /// Borrowed string slice.
-    Str(&'a str),
-    /// Owned, heap-allocated string.
-    BoxedStr(Box<str>),
-    /// Borrowed byte slice.
-    Bytes(&'a [u8]),
-    /// Owned, heap-allocated byte buffer.
-    BoxedBytes(Box<[u8]>),
+    Str(Cow<'a, str>),
+    Bytes(Cow<'a, [u8]>),
 }
 
 impl FieldValue<'_> {
@@ -50,10 +40,8 @@ impl FieldValue<'_> {
             Self::U64(v) => FieldValue::U64(v),
             Self::F32(v) => FieldValue::F32(v),
             Self::F64(v) => FieldValue::F64(v),
-            Self::Str(s) => FieldValue::BoxedStr(Box::from(s)),
-            Self::BoxedStr(s) => FieldValue::BoxedStr(s),
-            Self::Bytes(b) => FieldValue::BoxedBytes(Box::from(b)),
-            Self::BoxedBytes(b) => FieldValue::BoxedBytes(b),
+            Self::Str(s) => FieldValue::Str(Cow::Owned(s.into_owned())),
+            Self::Bytes(b) => FieldValue::Bytes(Cow::Owned(b.into_owned())),
         }
     }
 }
@@ -126,12 +114,12 @@ impl From<f64> for FieldValue<'static> {
 
 impl<'a> From<&'a str> for FieldValue<'a> {
     fn from(value: &'a str) -> Self {
-        Self::Str(value)
+        Self::Str(Cow::Borrowed(value))
     }
 }
 
 impl<'a> From<&'a [u8]> for FieldValue<'a> {
     fn from(value: &'a [u8]) -> Self {
-        Self::Bytes(value)
+        Self::Bytes(Cow::Borrowed(value))
     }
 }
