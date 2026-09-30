@@ -54,6 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Pass the geometry type and the properties type to read into
     for feature in de.features::<geo_types::Point, City>() {
         let (geom, prop) = feature?;
+        println!("{} {} {:?}", prop.name, prop.population, geom);
     }
     Ok(())
 }
