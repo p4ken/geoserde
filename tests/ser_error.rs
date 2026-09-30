@@ -6,8 +6,9 @@ use serde::Serialize;
 /// Scalar i32 is rejected at the root level.
 #[test]
 fn flatten_scalar_rejected() {
-    let result = ser::flatten_keys(42_i32);
-    assert!(result.is_err());
+    let err = ser::flatten_keys(42_i32).unwrap_err();
+    assert!(matches!(err, ser::TableError::Root));
+    assert_eq!(err.to_string(), "data source must be a map or struct");
 }
 
 /// String is rejected at the root level.
@@ -99,15 +100,18 @@ fn flatten_non_string_key_map_rejected() {
     let mut map = HashMap::new();
     map.insert(vec![1, 2], "value");
 
-    let result = ser::flatten_keys(&map);
+    let err = ser::flatten_keys(&map).unwrap_err();
     assert!(matches!(
-        result,
-        Err(ser::TableError::Key {
+        err,
+        ser::TableError::Key {
             parent: None,
             source: ser::StringifyError::Nested,
             ..
-        })
+        }
     ));
+    assert_eq!(err.to_string(), "map key must be a string");
+    let source = std::error::Error::source(&err).unwrap();
+    assert_eq!(source.to_string(), "found a nested value");
 }
 
 /// A `None` map key is rejected.
@@ -165,6 +169,28 @@ fn flatten_nested_struct_keys() {
     })
     .unwrap();
     assert_eq!(keys, vec!["a", "inner.b"]);
+}
+
+/// `#[serde(flatten)]` merges the child's keys into the parent without a prefix.
+#[test]
+fn flatten_serde_flatten_keys() {
+    #[derive(Serialize)]
+    struct Outer {
+        a: i32,
+        #[serde(flatten)]
+        inner: Inner,
+    }
+    #[derive(Serialize)]
+    struct Inner {
+        b: i32,
+    }
+
+    let keys = ser::flatten_keys(&Outer {
+        a: 1,
+        inner: Inner { b: 2 },
+    })
+    .unwrap();
+    assert_eq!(keys, vec!["a", "b"]);
 }
 
 /// Option::None fields are omitted from the flattened output.
@@ -261,6 +287,7 @@ fn source_error_has_key() {
     };
     assert_eq!(key.as_deref(), Some("inner.bad"));
     assert_eq!(source.to_string(), "boom");
+    assert_eq!(err.to_string(), "failed to serialize `inner.bad`");
 }
 
 /// An error from an array element reports the indexed key.
