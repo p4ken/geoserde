@@ -22,7 +22,7 @@ struct Child {
 #[test]
 fn ser_test() -> anyhow::Result<()> {
     let fgb_writer = testing::fgb_writer(flatgeobuf::GeometryType::Unknown);
-    let mut fgb_ser = geoserde_fgb::FeatureSerializer::new(fgb_writer);
+    let mut fgb_ser = geoserde_fgb::LayerSerializer::new(fgb_writer);
 
     let feat = Feat {
         name: "hello".into(),
@@ -79,7 +79,7 @@ fn de_test() -> anyhow::Result<()> {
     fgb_writer.write(&mut fgb_buf)?;
 
     let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
-    let mut fgb_de = geoserde_fgb::FeatureDeserializer::new(fgb_reader)?;
+    let mut fgb_de = geoserde_fgb::LayerDeserializer::new(fgb_reader)?;
     let (geom, props) = fgb_de
         .features::<geo_types::LineString, Feat>()
         .next()

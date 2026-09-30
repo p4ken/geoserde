@@ -63,14 +63,14 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 ///   supported.
 /// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
 ///   without coordinates.
-pub struct FeatureSerializer<'a> {
+pub struct LayerSerializer<'a> {
     writer: FgbWriter<'a>,
     known_key: Vec<Cow<'static, str>>,
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
-impl<'a> FeatureSerializer<'a> {
-    /// Creates a new `FeatureSerializer` wrapping the given [`FgbWriter`].
+impl<'a> LayerSerializer<'a> {
+    /// Creates a new `LayerSerializer` wrapping the given [`FgbWriter`].
     pub fn new(writer: FgbWriter<'a>) -> Self {
         Self {
             writer,
@@ -123,7 +123,7 @@ impl<'a> FeatureSerializer<'a> {
     }
 }
 
-impl SerializeProperties for &mut FeatureSerializer<'_> {
+impl SerializeProperties for &mut LayerSerializer<'_> {
     type Ok = ();
     type Error = Error;
 

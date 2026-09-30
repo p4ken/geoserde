@@ -13,7 +13,7 @@ use serde::de::IntoDeserializer;
 /// ```no_run
 /// # use std::error::Error;
 /// # fn main() -> Result<(), Box<dyn Error>> {
-/// use geoserde_fgb::FeatureDeserializer;
+/// use geoserde_fgb::LayerDeserializer;
 /// use serde::Deserialize;
 ///
 /// #[derive(Deserialize)]
@@ -23,19 +23,19 @@ use serde::de::IntoDeserializer;
 /// let reader = geoserde_fgb::flatgeobuf::FgbReader::open(
 ///     std::io::BufReader::new(file),
 /// )?;
-/// let mut de = FeatureDeserializer::new(reader)?;
+/// let mut de = LayerDeserializer::new(reader)?;
 /// for result in de.features::<geo_types::Point, Props>() {
 ///     let (geom, props) = result?;
 /// }
 /// # Ok(())
 /// # }
 /// ```
-pub struct FeatureDeserializer<R> {
+pub struct LayerDeserializer<R> {
     fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
     header: OwnedHeader,
 }
 
-impl<R: Read + Seek> FeatureDeserializer<R> {
+impl<R: Read + Seek> LayerDeserializer<R> {
     /// Creates a new deserializer from an [`FgbReader`](flatgeobuf::FgbReader).
     ///
     /// All features are selected. The header is cloned internally because
@@ -88,9 +88,9 @@ impl<R: Read + Seek> FeatureDeserializer<R> {
     }
 }
 
-/// Iterator adapter returned by [`FeatureDeserializer::features`].
+/// Iterator adapter returned by [`LayerDeserializer::features`].
 pub struct Features<'a, R, G, P> {
-    inner: &'a mut FeatureDeserializer<R>,
+    inner: &'a mut LayerDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,
 }
 

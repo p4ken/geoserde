@@ -3,7 +3,7 @@
 pub mod de;
 pub mod ser;
 
-pub use de::FeatureDeserializer;
-pub use ser::FeatureSerializer;
+pub use de::LayerDeserializer;
+pub use ser::LayerSerializer;
 
 pub use flatgeobuf;

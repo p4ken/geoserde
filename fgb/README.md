@@ -23,7 +23,7 @@ struct City {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let writer = flatgeobuf::FgbWriter::create("cities", flatgeobuf::GeometryType::Point)?;
-    let mut ser = geoserde_fgb::FeatureSerializer::new(writer);
+    let mut ser = geoserde_fgb::LayerSerializer::new(writer);
     let prop = City { name: "Tokyo".into(), population: 14_000_000 };
     let geom = geo_types::Point::new(139.7, 35.7);
     ser.serialize_feature(&geom, &prop)?;
@@ -49,7 +49,7 @@ struct City {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reader = flatgeobuf::FgbReader::open(BufReader::new(File::open("cities.fgb")?))?;
-    let mut de = geoserde_fgb::FeatureDeserializer::new(reader)?;
+    let mut de = geoserde_fgb::LayerDeserializer::new(reader)?;
     // Pass the geometry type and the properties type to read into
     for feature in de.features::<geo_types::Point, City>() {
         let (geom, prop) = feature?;
