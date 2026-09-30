@@ -8,7 +8,7 @@ use serde::{
     },
 };
 
-use crate::ser::prop::{
+use crate::ser::{
     FieldValue, FlattenOption, TableError,
     elem::{StringLike, Stringifier, StringifyError},
 };

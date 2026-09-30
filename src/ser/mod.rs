@@ -6,12 +6,17 @@
 //!
 //! See [`TableSerializer`] for the main entry point.
 
-mod prop;
+mod elem;
+mod field;
+mod flat;
+mod table;
+mod value;
 
-pub use prop::{
-    FieldValue, FlattenOption, SerializeProperties, StringifyError, TableError, TableSerializer,
-    flatten_keys,
-};
+pub use elem::StringifyError;
+pub use field::SerializeProperties;
+pub use flat::flatten_keys;
+pub use table::{FlattenOption, TableError, TableSerializer};
+pub use value::FieldValue;
 
 /// An error originating from the data source during property serialization.
 #[derive(Debug, Clone)]

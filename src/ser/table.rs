@@ -5,10 +5,7 @@ use serde::{
     ser::{Impossible, SerializeMap, SerializeStruct, StdError},
 };
 
-use crate::ser::{
-    SourceError,
-    prop::{SerializeProperties, elem::StringifyError, field::FieldSerializer},
-};
+use crate::ser::{SerializeProperties, SourceError, elem::StringifyError, field::FieldSerializer};
 
 /// Controls how nested structures and arrays are flattened into property keys.
 ///
