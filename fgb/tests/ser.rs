@@ -98,6 +98,29 @@ fn properties_test() -> anyhow::Result<()> {
 }
 
 #[test]
+fn into_inner_test() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    let feat = Feat {
+        name: "alpha".into(),
+        count: 3,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.into_inner().write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(props["name"], "alpha");
+    assert_eq!(props["count"], "3");
+
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
 fn features_test() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 

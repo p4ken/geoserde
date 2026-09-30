@@ -162,6 +162,14 @@ impl LayerSerializer {
         out.flush().map_err(flatgeobuf::Error::IO)?;
         Ok(())
     }
+
+    /// Unwraps this `LayerSerializer`, returning the underlying writer.
+    ///
+    /// This is for advanced use cases that `LayerSerializer` does not
+    /// offer. To just write the layer, use [`write`](Self::write) instead.
+    pub fn into_inner(self) -> flatgeobuf::FgbWriter<'static> {
+        self.writer
+    }
 }
 
 /// Options for writing a FlatGeobuf layer.
