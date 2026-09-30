@@ -243,3 +243,14 @@ fn mismatched_geometry_discarded() -> anyhow::Result<()> {
     assert!(fgb_iter.next()?.is_none());
     Ok(())
 }
+
+/// Without promote_to_multi, a LineString cannot be written to a MultiLineString layer.
+#[test]
+fn not_promoted_rejected() {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString);
+
+    #[derive(Serialize)]
+    struct NoProps {}
+    let result = ser.serialize_feature(testing::ls(0), NoProps {});
+    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+}

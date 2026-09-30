@@ -43,8 +43,9 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// [`Unknown`]: flatgeobuf::GeometryType::Unknown
 ///
 /// - –: Fails with [`Error::Geozero`].
-/// - promoted: Written as the multi type with one member. Fails if
-///   [`promote_to_multi`](LayerOptions::promote_to_multi) is disabled.
+/// - promoted: Fails by default. With
+///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
+///   multi type with one member.
 /// - `Unknown`: The first feature fixes the geometry type of the layer, and
 ///   later features follow the column of that type. With `promote_to_multi`,
 ///   `LineString` fixes `MultiLineString` and `Polygon` fixes `MultiPolygon`.
@@ -199,7 +200,8 @@ impl LayerOptions {
             geometry_type: flatgeobuf::GeometryType::Unknown,
             epsg: 0,
             index: true,
-            promote_to_multi: true,
+            // Unlike flatgeobuf crate, following GDAL (PROMOTE_TO_MULTI).
+            promote_to_multi: false,
             title: None,
             description: None,
             metadata: None,
@@ -238,7 +240,8 @@ impl LayerOptions {
     }
 
     /// Sets whether to write single geometries as the multi type with one
-    /// member. Defaults to `true`.
+    /// member. Defaults to `false`, unlike
+    /// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
     ///
     /// See [Geometry types](LayerSerializer#geometry-types).
     pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {

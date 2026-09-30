@@ -280,6 +280,59 @@ fn multi_line_string_test() -> anyhow::Result<()> {
 }
 
 #[test]
+fn promote_to_multi_test() -> anyhow::Result<()> {
+    let options = geoserde_fgb::ser::LayerOptions::new()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString)
+        .index(false)
+        .promote_to_multi(true);
+    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+
+    let feat = Feat {
+        name: "f".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mls = match geom.as_type() {
+            GeometryType::MultiLineString(mls) => mls.to_multi_line_string(),
+            _ => panic!("expected MultiLineString"),
+        };
+        assert_eq!(mls, geo_types::MultiLineString::new(vec![testing::ls(0)]));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+/// Without promote_to_multi, an Unknown layer takes the type of the first feature as is.
+#[test]
+fn unknown_not_promoted_test() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
+
+    let feat = Feat {
+        name: "g".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert_eq!(
+        fgb_reader.header().geometry_type(),
+        flatgeobuf::GeometryType::LineString
+    );
+    Ok(())
+}
+
+#[test]
 fn options_test() -> anyhow::Result<()> {
     let options = geoserde_fgb::ser::LayerOptions::new()
         .name("layer")
