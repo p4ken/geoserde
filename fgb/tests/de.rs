@@ -72,6 +72,37 @@ fn feature_test() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Top-level columns → `#[serde(flatten)]` child struct
+#[test]
+fn serde_flatten_test() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+        Geometry::Point(testing::p(0)).process_geom(&mut w)?;
+        w.property(0, "name", &ColumnValue::String("hello"))?;
+        w.property(1, "value", &ColumnValue::Int(42))?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Feat {
+        name: String,
+        #[serde(flatten)]
+        child: Child,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Child {
+        value: i32,
+    }
+
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (_, props) = de.features::<geo_types::Point, Feat>().next().unwrap()?;
+    assert_eq!(props.name, "hello");
+    assert_eq!(props.child.value, 42);
+    Ok(())
+}
+
 #[test]
 fn features_test() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
