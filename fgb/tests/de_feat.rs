@@ -261,3 +261,27 @@ fn de_multi_line_string() -> anyhow::Result<()> {
     assert_eq!(geom, testing::multi_ls(0));
     Ok(())
 }
+
+/// LineString format → MultiLineString struct (promoted)
+#[test]
+fn de_promote_to_multi() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
+        Geometry::LineString(testing::ls(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let options = geoserde_fgb::de::LayerOptions::new().promote_to_multi(true);
+    let mut de = geoserde_fgb::LayerDeserializer::with_options(Cursor::new(fgb_buf), options)?;
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    let (geom, _) = de
+        .features::<geo_types::MultiLineString, NoProps>()
+        .next()
+        .unwrap()?;
+    assert_eq!(geom, geo_types::MultiLineString::new(vec![testing::ls(0)]));
+    Ok(())
+}

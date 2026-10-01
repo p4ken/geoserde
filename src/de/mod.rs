@@ -7,16 +7,16 @@
 //!
 //! # Geometry type conversion
 //!
-//! The [`geo_types`] implementations also accept a source of a different
-//! geometry type.
+//! The [`geo_types`] implementations accept a source of the same geometry
+//! type only, unless [`GeometryOptions`] allows otherwise.
 //!
-//! | Source \ Target                                                | [`Point`]     | [`MultiPoint`] | [`LineString`] | [`MultiLineString`]      | [`Polygon`]                 |
-//! | -------------------------------------------------------------- | ------------- | -------------- | -------------- | ------------------------ | --------------------------- |
-//! | [`Point`](geo_traits::GeometryType::Point)                     | ok            | ok (one point) | –              | –                        | –                           |
-//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | only point \* | ok             | ok             | ok (one line)            | ok (exterior)               |
-//! | [`LineString`](geo_traits::GeometryType::LineString)           | –             | ok             | ok             | ok (one line)            | ok (exterior)               |
-//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | –             | only line \*   | only line \*   | ok                       | ok (first line is exterior) |
-//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | –             | exterior \*    | exterior \*    | ok (exterior, interiors) | ok                          |
+//! | Source \ Target                                                | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] |
+//! | -------------------------------------------------------------- | --------- | -------------- | -------------- | ------------------- | ----------- |
+//! | [`Point`](geo_traits::GeometryType::Point)                     | ok        | promoted       | –              | –                   | –           |
+//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | –         | ok             | –              | –                   | –           |
+//! | [`LineString`](geo_traits::GeometryType::LineString)           | –         | –              | ok             | promoted            | –           |
+//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | –         | –              | –              | ok                  | –           |
+//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | –         | –              | –              | –                   | ok          |
 //!
 //! [`Point`]: geo_types::Point
 //! [`MultiPoint`]: geo_types::MultiPoint
@@ -26,12 +26,10 @@
 //!
 //! - –: Always fails. So do `MultiPolygon`, `GeometryCollection`, `Rect`,
 //!   `Triangle` and `Line` sources for every target.
-//! - \*: Fails unless there is exactly one point or line, or the polygon has
-//!   an exterior and no interiors, so that no coordinates are dropped.
-//! - Failures are [`GeometryError`]s. The number of coordinates is not
-//!   checked otherwise, so a single point becomes a one-coordinate
-//!   `LineString`, an empty `Polygon` becomes an empty `MultiLineString`, and
-//!   an empty `MultiLineString` becomes an empty `Polygon`.
+//! - promoted: Fails by default. With
+//!   [`set_promote_to_multi`](GeometryOptions::set_promote_to_multi), read as the
+//!   multi type with one member.
+//! - Failures are [`GeometryError`]s.
 //! - Rings of a `Polygon` target are closed by [`geo_types::Polygon::new`].
 //! - An empty point in a `Point` or `MultiPoint` source fails, because
 //!   [`geo_types`] cannot represent it.
@@ -50,18 +48,19 @@ mod geo;
 /// # Errors
 ///
 /// Returns a [`GeometryError`] if the source geometry cannot be interpreted as
-/// the target type.
+/// the target type under `options`.
 ///
 /// # Example
 ///
 /// ```
-/// use geoserde::de::{DeserializeGeometry, GeometryError};
+/// use geoserde::de::{DeserializeGeometry, GeometryError, GeometryOptions};
 ///
 /// struct Xy { x: f64, y: f64 }
 ///
 /// impl DeserializeGeometry for Xy {
 ///     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
 ///         source: T,
+///         _options: &GeometryOptions,
 ///     ) -> Result<Self, GeometryError> {
 ///         use geo_traits::{CoordTrait, GeometryType, PointTrait};
 ///         match source.as_type() {
@@ -76,9 +75,62 @@ mod geo;
 /// ```
 pub trait DeserializeGeometry: Sized {
     /// Deserialize `source` into `Self`.
+    ///
+    /// `options` tells which conversions between geometry types the caller
+    /// allows. Impls may ignore the options that do not apply to `Self`.
     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
         source: T,
+        options: &GeometryOptions,
     ) -> Result<Self, GeometryError>;
+}
+
+/// Controls which conversions between geometry types
+/// [`DeserializeGeometry`] allows.
+///
+/// By default, every conversion is disallowed, so the source must be of the
+/// target type.
+///
+/// # Example
+///
+/// ```
+/// use geoserde::de::GeometryOptions;
+///
+/// // Also read a Point as a MultiPoint with one member
+/// let mut options = GeometryOptions::new();
+/// options.set_promote_to_multi(true);
+/// ```
+#[derive(Debug, Clone)]
+pub struct GeometryOptions {
+    promote_to_multi: bool,
+}
+
+impl Default for GeometryOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GeometryOptions {
+    /// Creates a new `GeometryOptions` with the default options.
+    pub fn new() -> Self {
+        Self {
+            // Following GDAL (PROMOTE_TO_MULTI) and serde, which require it to be explicit.
+            promote_to_multi: false,
+        }
+    }
+
+    /// Sets whether to read a single geometry as the multi type with one
+    /// member. Defaults to `false`.
+    ///
+    /// See [Geometry type conversion](crate::de#geometry-type-conversion).
+    pub fn set_promote_to_multi(&mut self, promote_to_multi: bool) {
+        self.promote_to_multi = promote_to_multi;
+    }
+
+    /// Returns whether a single geometry may be read as the multi type.
+    pub fn promote_to_multi(&self) -> bool {
+        self.promote_to_multi
+    }
 }
 
 #[derive(Debug, Clone)]

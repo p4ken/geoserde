@@ -3,7 +3,7 @@
 use std::io::{Read, Seek};
 
 use geoserde::DeserializeGeometry;
-use geoserde::de::GeometryError;
+use geoserde::de::{GeometryError, GeometryOptions};
 use serde::de::IntoDeserializer;
 
 /// Deserializes features (geometry + properties) from a FlatGeobuf source.
@@ -36,10 +36,12 @@ use serde::de::IntoDeserializer;
 pub struct LayerDeserializer<R> {
     fgb_iter: flatgeobuf::FeatureIter<R, flatgeobuf::Seekable>,
     header: OwnedHeader,
+    geometry_options: GeometryOptions,
 }
 
 impl<R: Read + Seek> LayerDeserializer<R> {
-    /// Creates a new deserializer reading all features from `reader`.
+    /// Creates a new deserializer reading all features from `reader`, with
+    /// the default [`LayerOptions`].
     ///
     /// The header is read here. Features are read in many small reads, so
     /// wrap a [`File`](std::fs::File) in a [`BufReader`](std::io::BufReader).
@@ -48,9 +50,25 @@ impl<R: Read + Seek> LayerDeserializer<R> {
     ///
     /// Returns [`Error::Fgb`] if the FlatGeobuf header is invalid.
     pub fn new(reader: R) -> Result<Self, Error> {
+        Self::with_options(reader, LayerOptions::new())
+    }
+
+    /// Creates a new deserializer reading all features from `reader`, with
+    /// the given options.
+    ///
+    /// See [`new`](Self::new) for details.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Fgb`] if the FlatGeobuf header is invalid.
+    pub fn with_options(reader: R, options: LayerOptions) -> Result<Self, Error> {
         let fgb_iter = flatgeobuf::FgbReader::open(reader)?.select_all()?;
         let header = fgb_iter.header().into();
-        Ok(Self { fgb_iter, header })
+        Ok(Self {
+            fgb_iter,
+            header,
+            geometry_options: options.geometry,
+        })
     }
 
     /// Deserializes the next feature into a geometry and a properties struct.
@@ -68,7 +86,7 @@ impl<R: Read + Seek> LayerDeserializer<R> {
             None => return Ok(None),
         };
         let geom_trait = fgb_feat.geometry_trait()?.ok_or(Error::MissingGeometry)?;
-        let geom = G::deserialize_geometry(geom_trait)?;
+        let geom = G::deserialize_geometry(geom_trait, &self.geometry_options)?;
         let mut prop_access = FeatureAccess::new(&self.header, fgb_feat);
         let prop_de = serde::de::value::MapAccessDeserializer::new(&mut prop_access);
         let prop = P::deserialize(prop_de).map_err(|source| ColumnError {
@@ -88,6 +106,47 @@ impl<R: Read + Seek> LayerDeserializer<R> {
             inner: self,
             _marker: std::marker::PhantomData,
         }
+    }
+}
+
+/// Options for reading a FlatGeobuf layer.
+///
+/// # Example
+///
+/// ```no_run
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let options = geoserde_fgb::de::LayerOptions::new().promote_to_multi(true);
+/// let file = std::fs::File::open("example.fgb")?;
+/// let de = geoserde_fgb::LayerDeserializer::with_options(std::io::BufReader::new(file), options)?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct LayerOptions {
+    geometry: GeometryOptions,
+}
+
+impl Default for LayerOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LayerOptions {
+    /// Creates a new `LayerOptions` with the default options.
+    pub fn new() -> Self {
+        Self {
+            geometry: GeometryOptions::new(),
+        }
+    }
+
+    /// Sets whether to read a single geometry as the multi type with one
+    /// member, such as a `Point` as a `MultiPoint`. Defaults to `false`.
+    ///
+    /// See [`GeometryOptions::set_promote_to_multi`].
+    pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
+        self.geometry.set_promote_to_multi(promote_to_multi);
+        self
     }
 }
 

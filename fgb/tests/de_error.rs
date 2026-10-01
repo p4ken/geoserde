@@ -33,6 +33,33 @@ fn point_to_polygon_fails() {
     assert_eq!(source.to_string(), "expected Polygon, found Point");
 }
 
+/// Promotion to multi is disabled by default.
+#[test]
+fn line_string_to_multi_line_string_fails() {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
+        Geometry::LineString(testing::ls(0))
+            .process_geom(&mut w)
+            .unwrap();
+        w.feature_end(0).unwrap();
+        w.write(&mut fgb_buf).unwrap();
+    }
+
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf)).unwrap();
+
+    let err = de
+        .features::<geo_types::MultiLineString, NoProps>()
+        .next()
+        .unwrap()
+        .unwrap_err();
+    let source = std::error::Error::source(&err).unwrap();
+    assert_eq!(
+        source.to_string(),
+        "expected MultiLineString, found LineString"
+    );
+}
+
 // --- Iterator exhaustion ---
 
 /// Iterating past the last feature returns None.

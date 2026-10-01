@@ -1,9 +1,9 @@
 #![cfg(feature = "geo-types")]
 
 use geo_types::{
-    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, coord, line_string,
+    LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, line_string,
 };
-use geoserde::de::DeserializeGeometry;
+use geoserde::de::{DeserializeGeometry, GeometryOptions};
 
 fn ring() -> LineString {
     line_string![(x: 0., y: 0.), (x: 1., y: 0.), (x: 1., y: 1.), (x: 0., y: 0.)]
@@ -18,286 +18,191 @@ fn two_lines() -> MultiLineString {
     MultiLineString::new(vec![ring(), line_string![(x: 5., y: 5.), (x: 6., y: 6.)]])
 }
 
-// --- Converting without dropping coordinates ---
+fn promoting() -> GeometryOptions {
+    let mut options = GeometryOptions::new();
+    options.set_promote_to_multi(true);
+    options
+}
+
+// --- Same type ---
 
 #[test]
 fn point_to_point() {
     let p = Point::new(1., 2.);
-    assert_eq!(Point::deserialize_geometry(p).unwrap(), p);
-}
-
-#[test]
-fn point_to_multi_point() {
-    let expected = MultiPoint::new(vec![Point::new(1., 2.)]);
     assert_eq!(
-        MultiPoint::deserialize_geometry(Point::new(1., 2.)).unwrap(),
-        expected
+        Point::deserialize_geometry(p, &GeometryOptions::new()).unwrap(),
+        p
     );
 }
 
 #[test]
 fn multi_point_to_multi_point() {
     let mp: MultiPoint = ring().points().collect();
-    assert_eq!(MultiPoint::deserialize_geometry(&mp).unwrap(), mp);
-}
-
-#[test]
-fn line_string_to_multi_point() {
-    let expected: MultiPoint = ring().points().collect();
-    assert_eq!(MultiPoint::deserialize_geometry(ring()).unwrap(), expected);
-}
-
-#[test]
-fn multi_point_to_line_string() {
-    let mp: MultiPoint = ring().points().collect();
-    assert_eq!(LineString::deserialize_geometry(mp).unwrap(), ring());
+    assert_eq!(
+        MultiPoint::deserialize_geometry(&mp, &GeometryOptions::new()).unwrap(),
+        mp
+    );
 }
 
 #[test]
 fn line_string_to_line_string() {
-    assert_eq!(LineString::deserialize_geometry(ring()).unwrap(), ring());
-}
-
-#[test]
-fn multi_point_to_multi_line_string() {
-    let mp: MultiPoint = ring().points().collect();
-    let expected = MultiLineString::new(vec![ring()]);
-    assert_eq!(MultiLineString::deserialize_geometry(mp).unwrap(), expected);
-}
-
-#[test]
-fn line_string_to_multi_line_string() {
-    let expected = MultiLineString::new(vec![ring()]);
     assert_eq!(
-        MultiLineString::deserialize_geometry(ring()).unwrap(),
-        expected
+        LineString::deserialize_geometry(ring(), &GeometryOptions::new()).unwrap(),
+        ring()
     );
 }
 
 #[test]
 fn multi_line_string_to_multi_line_string() {
     assert_eq!(
-        MultiLineString::deserialize_geometry(two_lines()).unwrap(),
+        MultiLineString::deserialize_geometry(two_lines(), &GeometryOptions::new()).unwrap(),
         two_lines()
     );
 }
 
 #[test]
-fn donut_to_multi_line_string() {
-    let donut = donut();
-    let expected = MultiLineString::new(
-        std::iter::once(donut.exterior().clone())
-            .chain(donut.interiors().iter().cloned())
-            .collect(),
-    );
+fn polygon_to_polygon() {
     assert_eq!(
-        MultiLineString::deserialize_geometry(&donut).unwrap(),
+        Polygon::deserialize_geometry(donut(), &GeometryOptions::new()).unwrap(),
+        donut()
+    );
+}
+
+// --- Promoting to multi ---
+
+#[test]
+fn point_to_multi_point_rejected() {
+    let err =
+        MultiPoint::deserialize_geometry(Point::new(1., 2.), &GeometryOptions::new()).unwrap_err();
+    assert_eq!(err.to_string(), "expected MultiPoint, found Point");
+}
+
+#[test]
+fn point_to_multi_point_promoted() {
+    let expected = MultiPoint::new(vec![Point::new(1., 2.)]);
+    assert_eq!(
+        MultiPoint::deserialize_geometry(Point::new(1., 2.), &promoting()).unwrap(),
         expected
     );
 }
 
 #[test]
-fn empty_polygon_to_multi_line_string() {
-    let poly = Polygon::new(LineString::new(vec![]), vec![]);
+fn line_string_to_multi_line_string_rejected() {
+    let err = MultiLineString::deserialize_geometry(ring(), &GeometryOptions::new()).unwrap_err();
     assert_eq!(
-        MultiLineString::deserialize_geometry(poly).unwrap(),
-        MultiLineString::new(vec![])
+        err.to_string(),
+        "expected MultiLineString, found LineString"
     );
 }
 
 #[test]
-fn empty_multi_line_string_to_polygon() {
-    let mls = MultiLineString::new(vec![]);
+fn line_string_to_multi_line_string_promoted() {
+    let expected = MultiLineString::new(vec![ring()]);
     assert_eq!(
-        Polygon::deserialize_geometry(mls).unwrap(),
-        Polygon::new(LineString::new(vec![]), vec![])
+        MultiLineString::deserialize_geometry(ring(), &promoting()).unwrap(),
+        expected
     );
 }
 
-/// The ring is closed by `Polygon::new`.
-#[test]
-fn multi_point_to_polygon() {
-    let mp: MultiPoint = ring().points().take(3).collect();
-    let expected = Polygon::new(ring(), vec![]);
-    assert_eq!(Polygon::deserialize_geometry(mp).unwrap(), expected);
-}
+// --- Demoting to single ---
 
-/// The ring is closed by `Polygon::new`.
+/// `promote_to_multi` does not allow the opposite direction.
 #[test]
-fn line_string_to_polygon() {
-    let open = line_string![(x: 0., y: 0.), (x: 1., y: 0.), (x: 1., y: 1.)];
-    let expected = Polygon::new(ring(), vec![]);
-    assert_eq!(Polygon::deserialize_geometry(open).unwrap(), expected);
-}
-
-#[test]
-fn multi_line_string_to_polygon() {
-    let donut = donut();
-    let mls = MultiLineString::new(
-        std::iter::once(donut.exterior().clone())
-            .chain(donut.interiors().iter().cloned())
-            .collect(),
-    );
-    assert_eq!(Polygon::deserialize_geometry(mls).unwrap(), donut);
-}
-
-#[test]
-fn polygon_to_polygon() {
-    assert_eq!(Polygon::deserialize_geometry(donut()).unwrap(), donut());
-}
-
-// --- Flattening a single element ---
-
-#[test]
-fn single_multi_point_to_point() {
+fn single_multi_point_to_point_rejected() {
     let mp = MultiPoint::new(vec![Point::new(1., 2.)]);
-    assert_eq!(
-        Point::deserialize_geometry(&mp).unwrap(),
-        Point::new(1., 2.)
-    );
-}
-
-#[test]
-fn single_multi_line_string_to_line_string() {
-    let mls = MultiLineString::new(vec![ring()]);
-    assert_eq!(LineString::deserialize_geometry(&mls).unwrap(), ring());
-}
-
-#[test]
-fn single_multi_line_string_to_multi_point() {
-    let mls = MultiLineString::new(vec![ring()]);
-    let expected: MultiPoint = ring().points().collect();
-    assert_eq!(MultiPoint::deserialize_geometry(&mls).unwrap(), expected);
-}
-
-#[test]
-fn simple_polygon_to_line_string() {
-    let poly = Polygon::new(ring(), vec![]);
-    assert_eq!(LineString::deserialize_geometry(&poly).unwrap(), ring());
-}
-
-#[test]
-fn simple_polygon_to_multi_point() {
-    let poly = Polygon::new(ring(), vec![]);
-    let expected: MultiPoint = ring().points().collect();
-    assert_eq!(MultiPoint::deserialize_geometry(&poly).unwrap(), expected);
-}
-
-// --- Rejected instead of dropping coordinates ---
-
-#[test]
-fn multi_point_to_point_rejected() {
-    let mp = MultiPoint::new(vec![Point::new(1., 2.), Point::new(3., 4.)]);
-    let err = Point::deserialize_geometry(&mp).unwrap_err();
+    let err = Point::deserialize_geometry(&mp, &promoting()).unwrap_err();
     assert_eq!(err.to_string(), "expected Point, found MultiPoint");
 }
 
 #[test]
-fn line_string_to_point_rejected() {
-    let ls = LineString::new(vec![coord! { x: 1., y: 2. }]);
-    let err = Point::deserialize_geometry(&ls).unwrap_err();
-    assert_eq!(err.to_string(), "expected Point, found LineString");
-}
-
-#[test]
-fn multi_line_string_to_point_rejected() {
+fn single_multi_line_string_to_line_string_rejected() {
     let mls = MultiLineString::new(vec![ring()]);
-    let err = Point::deserialize_geometry(&mls).unwrap_err();
-    assert_eq!(err.to_string(), "expected Point, found MultiLineString");
-}
-
-#[test]
-fn polygon_to_point_rejected() {
-    let poly = Polygon::new(ring(), vec![]);
-    let err = Point::deserialize_geometry(&poly).unwrap_err();
-    assert_eq!(err.to_string(), "expected Point, found Polygon");
-}
-
-#[test]
-fn multi_line_string_to_line_string_rejected() {
-    let err = LineString::deserialize_geometry(two_lines()).unwrap_err();
+    let err = LineString::deserialize_geometry(&mls, &promoting()).unwrap_err();
     assert_eq!(
         err.to_string(),
         "expected LineString, found MultiLineString"
     );
 }
 
+// --- Crossing dimensions ---
+
 #[test]
-fn multi_line_string_to_multi_point_rejected() {
-    let err = MultiPoint::deserialize_geometry(two_lines()).unwrap_err();
-    assert_eq!(
-        err.to_string(),
-        "expected MultiPoint, found MultiLineString"
-    );
+fn multi_point_to_line_string_rejected() {
+    let mp: MultiPoint = ring().points().collect();
+    let err = LineString::deserialize_geometry(&mp, &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected LineString, found MultiPoint");
 }
 
 #[test]
-fn donut_to_line_string_rejected() {
-    let err = LineString::deserialize_geometry(donut()).unwrap_err();
-    assert_eq!(err.to_string(), "expected LineString, found Polygon");
-}
-
-#[test]
-fn donut_to_multi_point_rejected() {
-    let err = MultiPoint::deserialize_geometry(donut()).unwrap_err();
-    assert_eq!(err.to_string(), "expected MultiPoint, found Polygon");
-}
-
-#[test]
-fn empty_multi_line_string_to_line_string_rejected() {
-    let mls = MultiLineString::new(vec![]);
-    let err = LineString::deserialize_geometry(&mls).unwrap_err();
-    assert_eq!(
-        err.to_string(),
-        "expected LineString, found MultiLineString"
-    );
-}
-
-#[test]
-fn empty_polygon_to_line_string_rejected() {
-    let poly = Polygon::new(LineString::new(vec![]), vec![]);
-    let err = LineString::deserialize_geometry(poly).unwrap_err();
-    assert_eq!(err.to_string(), "expected LineString, found Polygon");
-}
-
-// --- Unsupported geometry types ---
-
-#[test]
-fn multi_polygon_to_multi_point_rejected() {
-    let mp = MultiPolygon::new(vec![donut()]);
-    let err = MultiPoint::deserialize_geometry(mp).unwrap_err();
-    assert_eq!(err.to_string(), "expected MultiPoint, found MultiPolygon");
+fn line_string_to_multi_point_rejected() {
+    let err = MultiPoint::deserialize_geometry(ring(), &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected MultiPoint, found LineString");
 }
 
 #[test]
 fn point_to_line_string_rejected() {
-    let err = LineString::deserialize_geometry(Point::new(1., 2.)).unwrap_err();
+    let err = LineString::deserialize_geometry(Point::new(1., 2.), &promoting()).unwrap_err();
     assert_eq!(err.to_string(), "expected LineString, found Point");
 }
 
 #[test]
 fn point_to_multi_line_string_rejected() {
-    let err = MultiLineString::deserialize_geometry(Point::new(1., 2.)).unwrap_err();
+    let err = MultiLineString::deserialize_geometry(Point::new(1., 2.), &promoting()).unwrap_err();
     assert_eq!(err.to_string(), "expected MultiLineString, found Point");
 }
 
 #[test]
-fn point_to_polygon_rejected() {
-    let err = Polygon::deserialize_geometry(Point::new(1., 2.)).unwrap_err();
-    assert_eq!(err.to_string(), "expected Polygon, found Point");
+fn line_string_to_polygon_rejected() {
+    let err = Polygon::deserialize_geometry(ring(), &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected Polygon, found LineString");
+}
+
+#[test]
+fn multi_line_string_to_polygon_rejected() {
+    let err = Polygon::deserialize_geometry(two_lines(), &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected Polygon, found MultiLineString");
+}
+
+#[test]
+fn polygon_to_line_string_rejected() {
+    let poly = Polygon::new(ring(), vec![]);
+    let err = LineString::deserialize_geometry(&poly, &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected LineString, found Polygon");
+}
+
+#[test]
+fn polygon_to_multi_line_string_rejected() {
+    let err = MultiLineString::deserialize_geometry(donut(), &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected MultiLineString, found Polygon");
+}
+
+#[test]
+fn polygon_to_point_rejected() {
+    let poly = Polygon::new(ring(), vec![]);
+    let err = Point::deserialize_geometry(&poly, &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected Point, found Polygon");
+}
+
+// --- Unsupported geometry types ---
+
+#[test]
+fn multi_polygon_to_polygon_rejected() {
+    let mp = MultiPolygon::new(vec![donut()]);
+    let err = Polygon::deserialize_geometry(mp, &promoting()).unwrap_err();
+    assert_eq!(err.to_string(), "expected Polygon, found MultiPolygon");
 }
 
 // --- Empty points ---
 
 #[test]
 fn empty_point_to_point_rejected() {
-    let err = Point::deserialize_geometry(EmptyPoint).unwrap_err();
+    let err = Point::deserialize_geometry(EmptyPoint, &GeometryOptions::new()).unwrap_err();
     assert_eq!(err.to_string(), "geo-types cannot represent an empty point");
 }
 
 #[test]
 fn empty_point_to_multi_point_rejected() {
-    let err = MultiPoint::deserialize_geometry(EmptyPoint).unwrap_err();
+    let err = MultiPoint::deserialize_geometry(EmptyPoint, &promoting()).unwrap_err();
     assert_eq!(err.to_string(), "geo-types cannot represent an empty point");
 }
 
