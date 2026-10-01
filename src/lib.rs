@@ -36,10 +36,10 @@
 //! | **Write** | (walks the `GeometryTrait`) | [`SerializeProperties`] |
 //! | **Read** | (hands out a `GeometryTrait`) | [`serde::Deserializer`] |
 //!
-//! Reading properties needs no trait of geoserde's own. A flat row is already
-//! a map in serde's data model, so implementing
-//! [`MapAccess`](serde::de::MapAccess) and wrapping it in
-//! [`MapAccessDeserializer`](serde::de::value::MapAccessDeserializer) is enough.
+//! Reading properties needs no trait of geoserde's own, since a flat row is
+//! already a map in serde's data model: expose it as a
+//! [`MapAccess`](serde::de::MapAccess). Beware that serde's built-in value
+//! deserializers do not read a present value into an `Option` field.
 //!
 //! # Cargo features
 //!
