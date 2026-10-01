@@ -14,9 +14,7 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// FlatGeobuf feature serializer.
 ///
 /// Features are buffered in a temporary file as they are serialized, and
-/// written to the output by [`write`](Self::write). If serializing a feature
-/// fails, nothing of that feature is written, and the serializer can continue
-/// with the next feature.
+/// written to the output by [`write`](Self::write).
 ///
 /// # Geometry types
 ///
@@ -50,14 +48,17 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 ///   later features follow the column of that type. With `promote_to_multi`,
 ///   `LineString` fixes `MultiLineString` and `Polygon` fixes `MultiPolygon`.
 /// - members: The collection itself is ignored, so its members are written as
-///   one geometry of their type. See [Limitations](#limitations).
+///   one geometry of their type. Members of different types fail. See
+///   [Limitations](#limitations).
 /// - `Line`, `Rect` and `Triangle` are written as `LineString` or `Polygon`.
 ///
 /// # Limitations
 ///
 /// - A `GeometryCollection` is not written correctly. Its members are merged
 ///   into one geometry, so with more than one member, the extra coordinates
-///   are lost when read.
+///   are lost when read. If its members are of different types, the members
+///   before the failing one are left behind, and the geometry of the next
+///   feature is corrupted.
 /// - Only x and y are written, and Z and M are dropped.
 /// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
 ///   without coordinates.
