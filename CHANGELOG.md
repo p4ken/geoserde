@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 (2026-XX-XX)
+## v0.6.0
 
 ### Migration guide from v0.5
 
@@ -15,7 +15,6 @@ instead of the crate root.
 | `PropertySerializer` | `ser::TableSerializer` |
 | `PropertySink` | `ser::SerializeProperties` |
 | `FeatureSink`, `GeometrySink` | No equivalent. |
-| `SerializeError` | `ser::TableError` for properties, `de::GeometryError` for geometries |
 | `geozero` feature | Removed. |
 
 The crate now uses Rust edition 2024.
