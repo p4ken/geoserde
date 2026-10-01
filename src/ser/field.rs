@@ -252,6 +252,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializ
     }
 }
 
+#[derive(Debug)]
 pub struct VariantSerializer<'a, P> {
     inner: &'a mut FieldSerializer<P>,
 }

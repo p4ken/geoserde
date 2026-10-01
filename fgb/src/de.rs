@@ -44,6 +44,16 @@ pub struct LayerDeserializer<R> {
     geometry_options: GeometryOptions,
 }
 
+impl<R> std::fmt::Debug for LayerDeserializer<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // `flatgeobuf::FeatureIter` does not implement `Debug`.
+        f.debug_struct("LayerDeserializer")
+            .field("header", &self.header)
+            .field("geometry_options", &self.geometry_options)
+            .finish_non_exhaustive()
+    }
+}
+
 impl<R: Read + Seek> LayerDeserializer<R> {
     /// Creates a new deserializer reading all features from `reader`, with
     /// the default [`LayerOptions`].
@@ -159,6 +169,15 @@ impl LayerOptions {
 pub struct Features<'a, R, G, P> {
     inner: &'a mut LayerDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,
+}
+
+// Manual impl to not require `G: Debug` and `P: Debug`.
+impl<R, G, P> std::fmt::Debug for Features<'_, R, G, P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Features")
+            .field("inner", &self.inner)
+            .finish_non_exhaustive()
+    }
 }
 
 impl<R, G, P> Iterator for Features<'_, R, G, P>

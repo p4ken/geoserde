@@ -70,6 +70,16 @@ pub struct LayerSerializer {
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
 }
 
+impl std::fmt::Debug for LayerSerializer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // `flatgeobuf::FgbWriter` does not implement `Debug`.
+        f.debug_struct("LayerSerializer")
+            .field("known_key", &self.known_key)
+            .field("pending", &self.pending)
+            .finish_non_exhaustive()
+    }
+}
+
 impl LayerSerializer {
     /// Creates a new `LayerSerializer` with the default [`LayerOptions`].
     ///
