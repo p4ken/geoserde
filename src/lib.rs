@@ -1,4 +1,4 @@
-#![cfg_attr(all(doc, not(doctest)), feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! Geoserde is an adapter between Rust data structures and geospatial file formats.
 //!

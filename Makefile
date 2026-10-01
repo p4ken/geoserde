@@ -10,7 +10,7 @@ test: FORCE
 	cargo test --workspace --all-features --release
 
 doc: FORCE
-	cargo +nightly doc --workspace --all-features
+	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --workspace --all-features
 
 PKG ?= geoserde
 
