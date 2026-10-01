@@ -260,7 +260,7 @@ fn nested_map_key_error_has_parent() {
 
 /// An error from a nested `Serialize` impl reports the flattened key.
 #[test]
-fn source_error_has_key() {
+fn value_error_has_key() {
     #[derive(Serialize)]
     struct Outer {
         ok: i32,
@@ -276,7 +276,7 @@ fn source_error_has_key() {
         inner: Inner { bad: Failing },
     })
     .unwrap_err();
-    let ser::TableError::Source(value_err) = &err else {
+    let ser::TableError::Value(value_err) = &err else {
         panic!("{err:?}");
     };
     assert_eq!(value_err.key(), Some("inner.bad"));
@@ -287,7 +287,7 @@ fn source_error_has_key() {
 
 /// An error from an array element reports the indexed key.
 #[test]
-fn source_error_in_array_has_index() {
+fn value_error_in_array_has_index() {
     #[derive(Serialize)]
     struct Props {
         items: Vec<Failing>,
@@ -297,7 +297,7 @@ fn source_error_in_array_has_index() {
         items: vec![Failing],
     })
     .unwrap_err();
-    let ser::TableError::Source(value_err) = &err else {
+    let ser::TableError::Value(value_err) = &err else {
         panic!("{err:?}");
     };
     assert_eq!(value_err.key(), Some("items[0]"));
@@ -305,9 +305,9 @@ fn source_error_in_array_has_index() {
 
 /// An error from the root `Serialize` impl has no key.
 #[test]
-fn source_error_at_root_has_no_key() {
+fn value_error_at_root_has_no_key() {
     let err = ser::flatten_keys(&Failing).unwrap_err();
-    let ser::TableError::Source(value_err) = &err else {
+    let ser::TableError::Value(value_err) = &err else {
         panic!("{err:?}");
     };
     assert_eq!(value_err.key(), None);

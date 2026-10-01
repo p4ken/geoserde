@@ -79,7 +79,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
         match e {
             // An error returns before popping `key_stack`, so it still points
             // to the innermost value being serialized.
-            TableError::Source(e) if e.key().is_none() => {
+            TableError::Value(e) if e.key().is_none() => {
                 ValueError::new(self.current_key(), e.into_inner()).into()
             }
             e => e,

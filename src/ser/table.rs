@@ -370,7 +370,7 @@ pub enum TableError<E> {
     /// A map key could not be converted to a string.
     Key(KeyError),
     /// An error originating from the user's `Serialize` implementation.
-    Source(ValueError),
+    Value(ValueError),
     /// An error propagated from the downstream [`SerializeProperties`] sink.
     Sink(E),
 }
@@ -385,7 +385,7 @@ impl<E> TableError<E> {
         match self {
             Self::Root => Err(TableError::Root),
             Self::Key(e) => Err(e.into()),
-            Self::Source(e) => Err(e.into()),
+            Self::Value(e) => Err(e.into()),
             Self::Sink(e) => Ok(e),
         }
     }
@@ -396,7 +396,7 @@ impl<E: std::fmt::Display> std::fmt::Display for TableError<E> {
         match self {
             Self::Root => f.write_str("data source must be a map or struct"),
             Self::Key(e) => e.fmt(f),
-            Self::Source(e) => e.fmt(f),
+            Self::Value(e) => e.fmt(f),
             Self::Sink(_) => f.write_str("properties sink failed"),
         }
     }
@@ -408,7 +408,7 @@ impl<E: StdError + 'static> StdError for TableError<E> {
             Self::Root => None,
             // Transparent, so that the key is not reported twice
             Self::Key(e) => e.source(),
-            Self::Source(e) => e.source(),
+            Self::Value(e) => e.source(),
             Self::Sink(e) => Some(e),
         }
     }
@@ -429,7 +429,7 @@ impl<E> From<KeyError> for TableError<E> {
 
 impl<E> From<ValueError> for TableError<E> {
     fn from(e: ValueError) -> Self {
-        Self::Source(e)
+        Self::Value(e)
     }
 }
 
