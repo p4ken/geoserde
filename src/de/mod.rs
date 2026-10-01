@@ -143,9 +143,6 @@ enum ErrorKind {
 }
 
 /// Error returned when a geometry cannot be deserialized.
-///
-/// The contents are private so that new kinds of failures can be added
-/// without breaking [`DeserializeGeometry`] impls.
 #[derive(Debug, Clone)]
 pub struct GeometryError(ErrorKind);
 

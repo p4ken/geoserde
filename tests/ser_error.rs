@@ -105,7 +105,6 @@ fn flatten_non_string_key_map_rejected() {
         panic!("{err:?}");
     };
     assert_eq!(key_err.parent(), None);
-    assert!(matches!(key_err.inner(), ser::StringifyError::Nested));
     assert_eq!(err.to_string(), "map key must be a string");
     let source = std::error::Error::source(&err).unwrap();
     assert_eq!(source.to_string(), "found a nested value");
@@ -124,7 +123,8 @@ fn flatten_none_key_map_rejected() {
         panic!("{err:?}");
     };
     assert_eq!(key_err.parent(), None);
-    assert!(matches!(key_err.inner(), ser::StringifyError::Empty));
+    let source = std::error::Error::source(key_err).unwrap();
+    assert_eq!(source.to_string(), "found an empty value");
 }
 
 /// flatten_keys succeeds on a struct with fields.
@@ -280,7 +280,8 @@ fn source_error_has_key() {
         panic!("{err:?}");
     };
     assert_eq!(value_err.key(), Some("inner.bad"));
-    assert_eq!(value_err.inner().to_string(), "boom");
+    let source = std::error::Error::source(value_err).unwrap();
+    assert_eq!(source.to_string(), "boom");
     assert_eq!(err.to_string(), "failed to serialize `inner.bad`");
 }
 

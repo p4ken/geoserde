@@ -449,11 +449,6 @@ impl KeyError {
     pub fn parent(&self) -> Option<&str> {
         self.parent.as_deref()
     }
-
-    /// The reason why the key could not be converted.
-    pub fn inner(&self) -> &StringifyError {
-        &self.source
-    }
 }
 
 impl std::fmt::Display for KeyError {
@@ -486,11 +481,6 @@ impl ValueError {
     /// Flattened key of the value being serialized, or `None` for the root.
     pub fn key(&self) -> Option<&str> {
         self.key.as_deref()
-    }
-
-    /// The error returned by the `Serialize` implementation.
-    pub fn inner(&self) -> &SourceError {
-        &self.source
     }
 
     pub(crate) fn into_inner(self) -> SourceError {

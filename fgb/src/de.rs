@@ -218,10 +218,10 @@ impl<'de> FeatureAccess<'de> {
 }
 
 impl FeatureAccess<'_> {
-    fn take_prop(&mut self, n: usize) -> Result<&[u8], DecodeError> {
+    fn take_prop(&mut self, n: usize) -> Result<&[u8], FeatureError> {
         self.properties_buf
             .split_off(..n)
-            .ok_or(DecodeError::Short)
+            .ok_or(FeatureError::Short)
     }
 }
 
@@ -298,12 +298,12 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
             }
             flatgeobuf::ColumnType::String => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
-                let s = std::str::from_utf8(self.take_prop(len)?).map_err(DecodeError::from)?;
+                let s = std::str::from_utf8(self.take_prop(len)?).map_err(FeatureError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Json | flatgeobuf::ColumnType::DateTime => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
-                let s = std::str::from_utf8(self.take_prop(len)?).map_err(DecodeError::from)?;
+                let s = std::str::from_utf8(self.take_prop(len)?).map_err(FeatureError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Binary => {
@@ -479,11 +479,6 @@ impl PropertiesError {
     pub fn column(&self) -> Option<&str> {
         self.column.as_deref()
     }
-
-    /// The error raised while deserializing the properties.
-    pub fn inner(&self) -> &FeatureError {
-        &self.source
-    }
 }
 
 impl std::fmt::Display for PropertiesError {
@@ -503,12 +498,13 @@ impl std::error::Error for PropertiesError {
 
 /// Error returned when deserializing a single FlatGeobuf feature's properties.
 #[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum FeatureError {
+pub(crate) enum FeatureError {
     /// The column key could not be deserialized.
     Key(serde::de::value::Error),
-    /// The property buffer was truncated or contained invalid data.
-    Decode(DecodeError),
+    /// The property buffer ended before the expected number of bytes.
+    Short,
+    /// A string property contained invalid UTF-8.
+    Utf8(std::str::Utf8Error),
     /// The column type is not supported by this deserializer.
     UnsupportedColumnType(u8),
     /// A `serde::Deserialize` implementation returned an error.
@@ -523,12 +519,11 @@ impl serde::de::Error for FeatureError {
 
 impl std::error::Error for FeatureError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(match self {
-            Self::Key(e) => e,
-            Self::Decode(e) => e,
-            Self::Deserialize(e) => e,
-            Self::UnsupportedColumnType(_) => return None,
-        })
+        match self {
+            Self::Key(e) => Some(e),
+            Self::Deserialize(e) => Some(e),
+            Self::Short | Self::Utf8(_) | Self::UnsupportedColumnType(_) => None,
+        }
     }
 }
 
@@ -536,42 +531,10 @@ impl std::fmt::Display for FeatureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Key(_) => write!(f, "attribute key deserializer failed"),
-            Self::Decode(_) => write!(f, "properties deserializer failed"),
+            Self::Short => write!(f, "unexpected end of buffer"),
+            Self::Utf8(e) => e.fmt(f),
             Self::UnsupportedColumnType(c) => write!(f, "unsupported column type: {c}"),
             Self::Deserialize(_) => write!(f, "deserialize impl failed"),
         }
-    }
-}
-
-impl From<DecodeError> for FeatureError {
-    fn from(e: DecodeError) -> Self {
-        Self::Decode(e)
-    }
-}
-
-/// Error returned when reading raw property bytes from a FlatGeobuf feature.
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum DecodeError {
-    /// The property buffer ended before the expected number of bytes.
-    Short,
-    /// A string property contained invalid UTF-8.
-    Utf8(std::str::Utf8Error),
-}
-
-impl std::error::Error for DecodeError {}
-
-impl std::fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Short => write!(f, "unexpected end of buffer"),
-            Self::Utf8(e) => e.fmt(f),
-        }
-    }
-}
-
-impl From<std::str::Utf8Error> for DecodeError {
-    fn from(e: std::str::Utf8Error) -> Self {
-        Self::Utf8(e)
     }
 }
