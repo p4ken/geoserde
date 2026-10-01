@@ -15,7 +15,7 @@ mod value;
 pub use elem::StringifyError;
 pub use field::SerializeProperties;
 pub use flat::flatten_keys;
-pub use table::{FlattenOption, TableError, TableSerializer};
+pub use table::{FlattenOption, KeyError, TableError, TableSerializer, ValueError};
 pub use value::FieldValue;
 
 /// An error originating from the data source during property serialization.

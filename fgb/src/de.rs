@@ -71,7 +71,7 @@ impl<R: Read + Seek> LayerDeserializer<R> {
         let geom = G::deserialize_geometry(geom_trait)?;
         let mut prop_access = FeatureAccess::new(&self.header, fgb_feat);
         let prop_de = serde::de::value::MapAccessDeserializer::new(&mut prop_access);
-        let prop = P::deserialize(prop_de).map_err(|source| Error::Feature {
+        let prop = P::deserialize(prop_de).map_err(|source| ColumnError {
             column: prop_access.col.map(|c| c.name.clone()),
             source,
         })?;
@@ -282,13 +282,7 @@ pub enum Error {
     /// The feature did not contain a geometry.
     MissingGeometry,
     /// Error from FlatGeobuf property deserialization via serde.
-    #[non_exhaustive]
-    Feature {
-        /// Name of the column being read, or `None` if the error is not
-        /// specific to a column (e.g. a missing field).
-        column: Option<String>,
-        source: FeatureError,
-    },
+    Feature(ColumnError),
 }
 
 impl From<flatgeobuf::Error> for Error {
@@ -303,19 +297,19 @@ impl From<GeometryError> for Error {
     }
 }
 
+impl From<ColumnError> for Error {
+    fn from(e: ColumnError) -> Self {
+        Self::Feature(e)
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Fgb(_) => f.write_str("flatgeobuf format error"),
             Self::Geometry(_) => f.write_str("geometry deserialization failed"),
             Self::MissingGeometry => f.write_str("feature has no geometry"),
-            Self::Feature {
-                column: Some(column),
-                ..
-            } => write!(f, "failed to deserialize column `{column}`"),
-            Self::Feature { column: None, .. } => {
-                f.write_str("feature properties deserialization failed")
-            }
+            Self::Feature(e) => e.fmt(f),
         }
     }
 }
@@ -325,9 +319,46 @@ impl std::error::Error for Error {
         match self {
             Self::Fgb(e) => Some(e),
             Self::Geometry(e) => Some(e),
-            Self::Feature { source, .. } => Some(source),
+            // Transparent, so that the column is not reported twice
+            Self::Feature(e) => e.source(),
             Self::MissingGeometry => None,
         }
+    }
+}
+
+/// Error returned when deserializing a feature's properties, with the column
+/// being read.
+#[derive(Debug, Clone)]
+pub struct ColumnError {
+    column: Option<String>,
+    source: FeatureError,
+}
+
+impl ColumnError {
+    /// Name of the column being read, or `None` if the error is not specific
+    /// to a column (e.g. a missing field).
+    pub fn column(&self) -> Option<&str> {
+        self.column.as_deref()
+    }
+
+    /// The error raised while deserializing the properties.
+    pub fn inner(&self) -> &FeatureError {
+        &self.source
+    }
+}
+
+impl std::fmt::Display for ColumnError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.column {
+            Some(column) => write!(f, "failed to deserialize column `{column}`"),
+            None => f.write_str("feature properties deserialization failed"),
+        }
+    }
+}
+
+impl std::error::Error for ColumnError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.source)
     }
 }
 

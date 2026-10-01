@@ -368,19 +368,9 @@ pub enum TableError<E> {
     /// The root value was not a struct or map.
     Root,
     /// A map key could not be converted to a string.
-    #[non_exhaustive]
-    Key {
-        /// Flattened key of the map holding the key, or `None` for the root.
-        parent: Option<String>,
-        source: StringifyError,
-    },
+    Key(KeyError),
     /// An error originating from the user's `Serialize` implementation.
-    #[non_exhaustive]
-    Source {
-        /// Flattened key of the value being serialized, or `None` for the root.
-        key: Option<String>,
-        source: SourceError,
-    },
+    Source(ValueError),
     /// An error propagated from the downstream [`SerializeProperties`] sink.
     Sink(E),
 }
@@ -394,8 +384,8 @@ impl<E> TableError<E> {
     pub fn into_sink(self) -> Result<E, TableError<Infallible>> {
         match self {
             Self::Root => Err(TableError::Root),
-            Self::Key { parent, source } => Err(TableError::Key { parent, source }),
-            Self::Source { key, source } => Err(TableError::Source { key, source }),
+            Self::Key(e) => Err(e.into()),
+            Self::Source(e) => Err(e.into()),
             Self::Sink(e) => Ok(e),
         }
     }
@@ -405,13 +395,8 @@ impl<E: std::fmt::Display> std::fmt::Display for TableError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Root => f.write_str("data source must be a map or struct"),
-            Self::Key {
-                parent: Some(parent),
-                ..
-            } => write!(f, "map key in `{parent}` must be a string"),
-            Self::Key { parent: None, .. } => f.write_str("map key must be a string"),
-            Self::Source { key: Some(key), .. } => write!(f, "failed to serialize `{key}`"),
-            Self::Source { key: None, .. } => f.write_str("failed to serialize data source"),
+            Self::Key(e) => e.fmt(f),
+            Self::Source(e) => e.fmt(f),
             Self::Sink(_) => f.write_str("properties sink failed"),
         }
     }
@@ -421,8 +406,9 @@ impl<E: StdError + 'static> StdError for TableError<E> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Root => None,
-            Self::Key { source, .. } => Some(source),
-            Self::Source { source, .. } => Some(source),
+            // Transparent, so that the key is not reported twice
+            Self::Key(e) => e.source(),
+            Self::Source(e) => e.source(),
             Self::Sink(e) => Some(e),
         }
     }
@@ -431,9 +417,98 @@ impl<E: StdError + 'static> StdError for TableError<E> {
 impl<E: StdError + 'static> serde::ser::Error for TableError<E> {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
         // The key is not known here; the outermost serializer fills it in.
-        Self::Source {
-            key: None,
-            source: msg.to_string().into(),
+        ValueError::new(None, msg.to_string().into()).into()
+    }
+}
+
+impl<E> From<KeyError> for TableError<E> {
+    fn from(e: KeyError) -> Self {
+        Self::Key(e)
+    }
+}
+
+impl<E> From<ValueError> for TableError<E> {
+    fn from(e: ValueError) -> Self {
+        Self::Source(e)
+    }
+}
+
+/// Error returned when a map key cannot be converted to a string.
+#[derive(Debug, Clone)]
+pub struct KeyError {
+    parent: Option<String>,
+    source: StringifyError,
+}
+
+impl KeyError {
+    pub(crate) fn new(parent: Option<String>, source: StringifyError) -> Self {
+        Self { parent, source }
+    }
+
+    /// Flattened key of the map holding the key, or `None` for the root.
+    pub fn parent(&self) -> Option<&str> {
+        self.parent.as_deref()
+    }
+
+    /// The reason why the key could not be converted.
+    pub fn inner(&self) -> &StringifyError {
+        &self.source
+    }
+}
+
+impl std::fmt::Display for KeyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.parent {
+            Some(parent) => write!(f, "map key in `{parent}` must be a string"),
+            None => f.write_str("map key must be a string"),
         }
+    }
+}
+
+impl StdError for KeyError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(&self.source)
+    }
+}
+
+/// Error returned when the user's `Serialize` implementation fails on a value.
+#[derive(Debug, Clone)]
+pub struct ValueError {
+    key: Option<String>,
+    source: SourceError,
+}
+
+impl ValueError {
+    pub(crate) fn new(key: Option<String>, source: SourceError) -> Self {
+        Self { key, source }
+    }
+
+    /// Flattened key of the value being serialized, or `None` for the root.
+    pub fn key(&self) -> Option<&str> {
+        self.key.as_deref()
+    }
+
+    /// The error returned by the `Serialize` implementation.
+    pub fn inner(&self) -> &SourceError {
+        &self.source
+    }
+
+    pub(crate) fn into_inner(self) -> SourceError {
+        self.source
+    }
+}
+
+impl std::fmt::Display for ValueError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.key {
+            Some(key) => write!(f, "failed to serialize `{key}`"),
+            None => f.write_str("failed to serialize data source"),
+        }
+    }
+}
+
+impl StdError for ValueError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(&self.source)
     }
 }

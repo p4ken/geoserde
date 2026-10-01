@@ -9,7 +9,7 @@ use serde::{
 };
 
 use crate::ser::{
-    FieldValue, FlattenOption, TableError,
+    FieldValue, FlattenOption, KeyError, TableError, ValueError,
     elem::{StringLike, Stringifier, StringifyError},
 };
 
@@ -79,10 +79,9 @@ impl<P: SerializeProperties> FieldSerializer<P> {
         match e {
             // An error returns before popping `key_stack`, so it still points
             // to the innermost value being serialized.
-            TableError::Source { key: None, source } => TableError::Source {
-                key: self.current_key(),
-                source,
-            },
+            TableError::Source(e) if e.key().is_none() => {
+                ValueError::new(self.current_key(), e.into_inner()).into()
+            }
             e => e,
         }
     }
@@ -234,10 +233,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializ
         // WARNING: Some formats may accept empty keys
         let key = key
             .serialize(Stringifier)
-            .map_err(|source| TableError::Key {
-                parent: self.current_key(),
-                source,
-            })?;
+            .map_err(|source| KeyError::new(self.current_key(), source))?;
         self.key_stack.push(key.into());
         Ok(())
     }
