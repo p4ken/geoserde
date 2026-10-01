@@ -16,7 +16,7 @@ struct Feat {
 }
 
 #[test]
-fn point_test() -> anyhow::Result<()> {
+fn ser_point() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let feat = Feat {
@@ -43,7 +43,7 @@ fn point_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn line_string_test() -> anyhow::Result<()> {
+fn ser_line_string() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::LineString);
 
     let feat = Feat {
@@ -70,7 +70,7 @@ fn line_string_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn properties_test() -> anyhow::Result<()> {
+fn ser_properties() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let feat = Feat {
@@ -98,7 +98,7 @@ fn properties_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn features_test() -> anyhow::Result<()> {
+fn ser_features_in_order() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     ser.serialize_feature(
@@ -138,7 +138,7 @@ fn features_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn polygon_test() -> anyhow::Result<()> {
+fn ser_polygon() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Polygon);
 
     let feat = Feat {
@@ -165,7 +165,7 @@ fn polygon_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn primitive_test() -> anyhow::Result<()> {
+fn ser_primitive_types() -> anyhow::Result<()> {
     #[derive(Serialize)]
     struct Prim {
         v_bool: bool,
@@ -226,7 +226,7 @@ fn primitive_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn multi_point_test() -> anyhow::Result<()> {
+fn ser_multi_point() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint);
 
     let feat = Feat {
@@ -253,7 +253,7 @@ fn multi_point_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn multi_line_string_test() -> anyhow::Result<()> {
+fn ser_multi_line_string() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString);
 
     let feat = Feat {
@@ -280,7 +280,7 @@ fn multi_line_string_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn promote_to_multi_test() -> anyhow::Result<()> {
+fn line_string_promoted_to_multi() -> anyhow::Result<()> {
     let options = geoserde_fgb::ser::LayerOptions::new()
         .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString)
         .index(false)
@@ -312,7 +312,7 @@ fn promote_to_multi_test() -> anyhow::Result<()> {
 
 /// Without promote_to_multi, an Unknown layer takes the type of the first feature as is.
 #[test]
-fn unknown_not_promoted_test() -> anyhow::Result<()> {
+fn unknown_layer_takes_first_type() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
 
     let feat = Feat {

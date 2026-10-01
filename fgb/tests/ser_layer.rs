@@ -12,7 +12,7 @@ struct Feat {
 }
 
 #[test]
-fn into_inner_test() -> anyhow::Result<()> {
+fn into_inner_keeps_features() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
 
     let feat = Feat {
@@ -35,7 +35,7 @@ fn into_inner_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn options_test() -> anyhow::Result<()> {
+fn options_written_to_header() -> anyhow::Result<()> {
     let options = geoserde_fgb::ser::LayerOptions::new()
         .name("layer")
         .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)

@@ -7,7 +7,7 @@ use serde::Deserialize;
 mod testing;
 
 #[test]
-fn point_test() -> anyhow::Result<()> {
+fn de_point() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
@@ -26,7 +26,7 @@ fn point_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn line_string_test() -> anyhow::Result<()> {
+fn de_line_string() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::LineString);
@@ -48,7 +48,7 @@ fn line_string_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn feature_test() -> anyhow::Result<()> {
+fn de_properties() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
@@ -74,7 +74,7 @@ fn feature_test() -> anyhow::Result<()> {
 
 /// Top-level columns → `#[serde(flatten)]` child struct
 #[test]
-fn serde_flatten_test() -> anyhow::Result<()> {
+fn de_flatten_properties() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
@@ -104,7 +104,7 @@ fn serde_flatten_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn features_test() -> anyhow::Result<()> {
+fn de_features_in_order() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
@@ -140,7 +140,7 @@ fn features_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn polygon_test() -> anyhow::Result<()> {
+fn de_polygon() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Polygon);
@@ -162,7 +162,7 @@ fn polygon_test() -> anyhow::Result<()> {
 }
 
 #[test]
-fn primitive_test() -> anyhow::Result<()> {
+fn de_primitive_types() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
@@ -218,7 +218,7 @@ fn primitive_test() -> anyhow::Result<()> {
 
 /// MultiPoint format → MultiPoint struct (ok, diagonal)
 #[test]
-fn multi_point_test() -> anyhow::Result<()> {
+fn de_multi_point() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiPoint);
@@ -241,7 +241,7 @@ fn multi_point_test() -> anyhow::Result<()> {
 
 /// MultiLineString format → MultiLineString struct (ok, diagonal)
 #[test]
-fn multi_line_string_test() -> anyhow::Result<()> {
+fn de_multi_line_string() -> anyhow::Result<()> {
     let mut fgb_buf = Vec::new();
     {
         let mut w = testing::fgb_writer(flatgeobuf::GeometryType::MultiLineString);
