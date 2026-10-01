@@ -72,6 +72,43 @@ fn de_properties() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn de_wrapped_properties() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = testing::fgb_writer(flatgeobuf::GeometryType::Point);
+        Geometry::Point(testing::p(0)).process_geom(&mut w)?;
+        w.property(0, "name", &ColumnValue::String("delta"))?;
+        w.property(1, "count", &ColumnValue::Int(7))?;
+        w.property(2, "id", &ColumnValue::Long(9))?;
+        w.property(3, "kind", &ColumnValue::String("Station"))?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    #[derive(Debug, PartialEq, Deserialize)]
+    struct Id(i64);
+    #[derive(Debug, PartialEq, Deserialize)]
+    enum Kind {
+        Station,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Feat {
+        name: Option<String>,
+        count: Option<i32>,
+        id: Option<Id>,
+        kind: Kind,
+    }
+
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    let (_, props) = de.features::<geo_types::Point, Feat>().next().unwrap()?;
+    assert_eq!(props.name.as_deref(), Some("delta"));
+    assert_eq!(props.count, Some(7));
+    assert_eq!(props.id, Some(Id(9)));
+    assert_eq!(props.kind, Kind::Station);
+    Ok(())
+}
+
 /// Top-level columns → `#[serde(flatten)]` child struct
 #[test]
 fn de_flatten_properties() -> anyhow::Result<()> {
