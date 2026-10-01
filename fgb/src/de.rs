@@ -102,7 +102,7 @@ impl<R: Read + Seek> LayerDeserializer<R> {
         };
         let geom_trait = fgb_feat.geometry_trait()?.ok_or(Error::MissingGeometry)?;
         let geom = G::deserialize_geometry(geom_trait, &self.geometry_options)?;
-        let mut prop_access = FeatureAccess::new(&self.header, fgb_feat);
+        let mut prop_access = PropertiesAccess::new(&self.header, fgb_feat);
         let prop_de = serde::de::value::MapAccessDeserializer::new(&mut prop_access);
         let prop = P::deserialize(prop_de).map_err(|source| PropertiesError {
             column: prop_access.col.map(|c| c.name.clone()),
@@ -196,15 +196,15 @@ where
 /// Low-level serde [`MapAccess`](serde::de::MapAccess) over a single
 /// FlatGeobuf feature's property columns.
 #[derive(Debug)]
-pub(crate) struct FeatureAccess<'de> {
+pub(crate) struct PropertiesAccess<'de> {
     header: &'de OwnedHeader,
     // Stays set on an error, telling which column failed.
     col: Option<&'de OwnedColumn>,
     properties_buf: &'de [u8],
 }
 
-impl<'de> FeatureAccess<'de> {
-    /// Creates a new `FeatureAccess` from a header and a FlatGeobuf feature.
+impl<'de> PropertiesAccess<'de> {
+    /// Creates a new `PropertiesAccess` from a header and a FlatGeobuf feature.
     pub(crate) fn new(header: &'de OwnedHeader, feat: &'de flatgeobuf::FgbFeature) -> Self {
         Self {
             header,
@@ -217,16 +217,16 @@ impl<'de> FeatureAccess<'de> {
     }
 }
 
-impl FeatureAccess<'_> {
-    fn take_prop(&mut self, n: usize) -> Result<&[u8], FeatureError> {
+impl PropertiesAccess<'_> {
+    fn take_prop(&mut self, n: usize) -> Result<&[u8], PropertiesAccessError> {
         self.properties_buf
             .split_off(..n)
-            .ok_or(FeatureError::Short)
+            .ok_or(PropertiesAccessError::Short)
     }
 }
 
-impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
-    type Error = FeatureError;
+impl<'de> serde::de::MapAccess<'de> for PropertiesAccess<'de> {
+    type Error = PropertiesAccessError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
@@ -243,7 +243,7 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
         self.col = Some(col);
         let key = seed
             .deserialize(col.name.as_str().into_deserializer())
-            .map_err(FeatureError::Key)?;
+            .map_err(PropertiesAccessError::Key)?;
         Ok(Some(key))
     }
 
@@ -298,12 +298,14 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
             }
             flatgeobuf::ColumnType::String => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
-                let s = std::str::from_utf8(self.take_prop(len)?).map_err(FeatureError::Utf8)?;
+                let s = std::str::from_utf8(self.take_prop(len)?)
+                    .map_err(PropertiesAccessError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Json | flatgeobuf::ColumnType::DateTime => {
                 let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
-                let s = std::str::from_utf8(self.take_prop(len)?).map_err(FeatureError::Utf8)?;
+                let s = std::str::from_utf8(self.take_prop(len)?)
+                    .map_err(PropertiesAccessError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Binary => {
@@ -311,7 +313,7 @@ impl<'de> serde::de::MapAccess<'de> for FeatureAccess<'de> {
                 let b = self.take_prop(len)?;
                 seed.deserialize(ValueDeserializer(b.into_deserializer()))
             }
-            x => Err(FeatureError::UnsupportedColumnType(x.0)),
+            x => Err(PropertiesAccessError::UnsupportedColumnType(x.0)),
         }?;
         self.col = None;
         Ok(value)
@@ -470,7 +472,7 @@ impl std::error::Error for Error {
 #[derive(Debug, Clone)]
 pub struct PropertiesError {
     column: Option<String>,
-    source: FeatureError,
+    source: PropertiesAccessError,
 }
 
 impl PropertiesError {
@@ -498,7 +500,7 @@ impl std::error::Error for PropertiesError {
 
 /// Error returned when deserializing a single FlatGeobuf feature's properties.
 #[derive(Debug, Clone)]
-pub(crate) enum FeatureError {
+pub(crate) enum PropertiesAccessError {
     /// The column key could not be deserialized.
     Key(serde::de::value::Error),
     /// The property buffer ended before the expected number of bytes.
@@ -511,13 +513,13 @@ pub(crate) enum FeatureError {
     Deserialize(serde::de::value::Error),
 }
 
-impl serde::de::Error for FeatureError {
+impl serde::de::Error for PropertiesAccessError {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Self::Deserialize(serde::de::Error::custom(msg))
     }
 }
 
-impl std::error::Error for FeatureError {
+impl std::error::Error for PropertiesAccessError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Key(e) => Some(e),
@@ -527,7 +529,7 @@ impl std::error::Error for FeatureError {
     }
 }
 
-impl std::fmt::Display for FeatureError {
+impl std::fmt::Display for PropertiesAccessError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Key(_) => write!(f, "attribute key deserializer failed"),
