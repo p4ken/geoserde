@@ -28,6 +28,11 @@ use serde::de::IntoDeserializer;
 /// # }
 /// ```
 ///
+/// # Geometry types
+///
+/// Whether a geometry can be read depends on the [`DeserializeGeometry`] impl
+/// of the target type. For `geo_types`, see [`geoserde::de`].
+///
 /// # Limitations
 ///
 /// - Corrupted properties are not always detected. A column index that is not
