@@ -128,10 +128,10 @@ fn property_type_mismatch() {
         .next()
         .unwrap()
         .unwrap_err();
-    let geoserde_fgb::de::Error::Feature(column_err) = &err else {
+    let geoserde_fgb::de::Error::Properties(properties_err) = &err else {
         panic!("{err:?}");
     };
-    assert_eq!(column_err.column(), Some("value"));
+    assert_eq!(properties_err.column(), Some("value"));
     assert_eq!(err.to_string(), "failed to deserialize column `value`");
 }
 
@@ -161,10 +161,10 @@ fn missing_required_field() {
         .unwrap()
         .unwrap_err();
     // The missing field is not tied to any column in the file.
-    let geoserde_fgb::de::Error::Feature(column_err) = &err else {
+    let geoserde_fgb::de::Error::Properties(properties_err) = &err else {
         panic!("{err:?}");
     };
-    assert_eq!(column_err.column(), None);
+    assert_eq!(properties_err.column(), None);
 }
 
 /// A feature with no properties can be deserialized into an empty struct.
