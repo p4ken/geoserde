@@ -1,45 +1,26 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
-//! Geoserde is an adapter between Rust data structures and geospatial file formats.
+#![doc = include_str!("../README.md")]
 //!
-//! It bridges [`serde`]-based property serialization with geometry handling,
-//! letting you read and write geospatial features as plain Rust structs.
-//!
-//! * **[`de`]** — Deserialize geometries from GIS sources into Rust types.
-//! * **[`ser`]** — Serialize struct properties into flat key-value tables.
-//!
-//! # Getting started
-//!
-//! ```sh
-//! cargo add geoserde
-//! ```
-//!
-//! To read and write [FlatGeobuf](https://flatgeobuf.org/) files, use the
-//! [`geoserde-fgb`](https://docs.rs/geoserde-fgb) crate.
-//!
-//! # Traits to implement
-//!
-//! A feature consists of a geometry and properties. Geoserde defines only two
-//! traits of its own; the rest is covered by [`geo_traits`] and [`serde`].
-//!
-//! ## Your data types
+//! # Traits for your data types
 //!
 //! | | Geometry | Properties |
 //! |---|---|---|
-//! | **Write** | [`GeometryTrait`](geo_traits::GeometryTrait) | [`serde::Serialize`] |
-//! | **Read** | [`DeserializeGeometry`] | [`serde::Deserialize`] |
+//! | **Write** | [`geo_traits::GeometryTrait`] | [`serde::Serialize`] |
+//! | **Read** | [`geoserde::DeserializeGeometry`](DeserializeGeometry) | [`serde::Deserialize`] |
 //!
-//! ## Formats
+//! # Traits for file formats
 //!
 //! | | Geometry | Properties |
 //! |---|---|---|
-//! | **Write** | (walks the `GeometryTrait`) | [`SerializeProperties`] |
-//! | **Read** | (hands out a `GeometryTrait`) | [`serde::Deserializer`] |
+//! | **Write** | (walks the `geo_traits::GeometryTrait`) | [`geoserde::SerializeProperties`](SerializeProperties) |
+//! | **Read** | (hands out a `geo_traits::GeometryTrait`) | [`serde::Deserializer`] |
 //!
 //! Reading properties needs no trait of geoserde's own, since a flat row is
 //! already a map in serde's data model: expose it as a
-//! [`MapAccess`](serde::de::MapAccess). Beware that serde's built-in value
-//! deserializers do not read a present value into an `Option` field.
+//! [`MapAccess`](serde::de::MapAccess). For its values, the built-in
+//! deserializers in [`serde::de::value`] do not read a present value into an
+//! `Option` field, so a format crate needs its own value deserializer to
+//! support `Option` fields.
 //!
 //! # Cargo features
 //!

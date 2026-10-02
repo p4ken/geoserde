@@ -16,6 +16,11 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// Features are buffered in a temporary file as they are serialized, and
 /// written to the output by [`write`](Self::write).
 ///
+/// # Properties
+///
+/// Each property is written as a column. Nested properties are flattened into
+/// columns as described in [`geoserde::ser`].
+///
 /// # Geometry types
 ///
 /// Whether a geometry can be written depends on the
