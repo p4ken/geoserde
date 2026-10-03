@@ -38,7 +38,7 @@ jobs:
     - run: |
         case $PKG in
           geoserde) echo "TAG=v$VERSION" >> $GITHUB_ENV ;;
-          geoserde-fgb) echo "TAG=fgb-v$VERSION" >> $GITHUB_ENV ;;
+          geoserde-fgb) echo "TAG=fgb/v$VERSION" >> $GITHUB_ENV ;;
         esac
     - run: git config user.name "github-actions"
     - run: git config user.email "action@github.com"
