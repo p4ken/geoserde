@@ -1,9 +1,9 @@
-# geoserde-fgb
+# Geoserde FGB
 
 [![crates.io](https://img.shields.io/crates/v/geoserde-fgb.svg)](https://crates.io/crates/geoserde-fgb)
 [![docs.rs](https://img.shields.io/badge/_-docs.rs-slategray?logo=docsdotrs)](https://docs.rs/geoserde-fgb/)
 
-geoserde-fgb provides a serde-based API for reading and writing the [FlatGeobuf](https://crates.io/crates/flatgeobuf) format.
+`geoserde-fgb` provides a serde-based API for reading and writing the [FlatGeobuf](https://crates.io/crates/flatgeobuf) format.
 
 ## Write
 
