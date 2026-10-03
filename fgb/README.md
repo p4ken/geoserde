@@ -21,9 +21,11 @@ struct City {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut ser = geoserde_fgb::LayerSerializer::new()?;
     let prop = City { name: "Tokyo".into(), population: 14_000_000 };
     let geom = geo_types::Point::new(139.7, 35.7);
+
+    let mut ser = geoserde_fgb::LayerSerializer::new()?;
+    // Call once for every feature you have
     ser.serialize_feature(&geom, &prop)?;
     ser.write(BufWriter::new(File::create("cities.fgb")?))?;
     Ok(())
@@ -49,6 +51,7 @@ struct City {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file = BufReader::new(File::open("cities.fgb")?);
     let mut de = geoserde_fgb::LayerDeserializer::new(file)?;
+
     // Pass the geometry type and the properties type to read into
     for feature in de.features::<geo_types::Point, City>() {
         let (geom, prop) = feature?;
