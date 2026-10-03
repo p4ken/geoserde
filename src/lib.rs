@@ -1,77 +1,33 @@
-#![cfg_attr(all(doc, not(doctest)), feature(doc_auto_cfg))]
-
-//! Geoserde is an adapter between geographic feature structs and GIS file formats.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
 //!
-//! # Getting started
+//! # Traits for your data types
 //!
-//! ```sh
-//! cargo add geoserde
-//! ```
+//! | | Geometry | Properties |
+//! |---|---|---|
+//! | **Write** | [`geo_traits::GeometryTrait`] | [`serde::Serialize`] |
+//! | **Read** | [`geoserde::DeserializeGeometry`](DeserializeGeometry) | [`serde::Deserialize`] |
+//!
+//! # Traits for file formats
+//!
+//! | | Geometry | Properties |
+//! |---|---|---|
+//! | **Write** | (walks the `geo_traits::GeometryTrait`) | [`geoserde::SerializeProperties`](SerializeProperties) |
+//! | **Read** | (hands out a `geo_traits::GeometryTrait`) | [`serde::Deserializer`] |
+//!
+//! Reading properties needs no trait of geoserde's own, since a flat row is
+//! already a map in serde's data model: expose it as a
+//! [`MapAccess`](serde::de::MapAccess). For its values, the built-in
+//! deserializers in [`serde::de::value`] do not read a present value into an
+//! `Option` field, so a format crate needs its own value deserializer to
+//! support `Option` fields.
 //!
 //! # Cargo features
 //!
-//! * `geozero` - Implement geoserde sink for geozero processors. Enabled by default.
-//!
-//! # Examples
-//!
-//! ```
-//! use geo_types::Point;
-//! use geoserde::FeatureSerializer;
-//! use geozero::geojson::GeoJsonWriter;
-//! use serde::Serialize;
-//!
-//! // Print two features to the console in GeoJson format
-//! fn main() -> anyhow::Result<()> {
-//!     // If you want to write to a file, use BufWriter<File> instead
-//!     let mut buf = vec![];
-//!
-//!     // Any format that has an implementation of geozero::FeatureProcessor can be used,
-//!     // such as wkt, shp, fgb, etc. See also https://docs.rs/geozero/latest/geozero/
-//!     let mut geojson = GeoJsonWriter::new(&mut buf);
-//!
-//!     // Serialize features to GeoJson format
-//!     let mut ser = FeatureSerializer::new(&mut geojson);
-//!     my_features().serialize(&mut ser)?;
-//!
-//!     println!("{}", std::str::from_utf8(&buf)?);
-//!     Ok(())
-//! }
-//!
-//! // Create feature array
-//! fn my_features() -> impl Serialize {
-//!     [
-//!         Station {
-//!             name: "King's Cross",
-//!             europe: true,
-//!             loc: Point::new(51.5321, -0.1233),
-//!         },
-//!         Station {
-//!             name: "Tokyo",
-//!             europe: false,
-//!             loc: Point::new(139.7661, 35.6812),
-//!         },
-//!     ]
-//! }
-//!
-//! // Geographic feature
-//! #[derive(Serialize)]
-//! struct Station {
-//!     // Property
-//!     name: &'static str,
-//!
-//!     // Property
-//!     europe: bool,
-//!
-//!     // Geometry
-//!     loc: Point,
-//! }
-//! ```
+//! * `geo-types` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
 
-mod v0_5;
-pub mod v0_6;
+pub mod de;
+pub mod ser;
 
-pub use crate::v0_5::*;
-pub use crate::v0_6::{DeserializeFeature, ParseFeature};
-#[cfg(feature="macros")]
-pub use geoserde_macros::*;
-pub use serde;
+pub use de::DeserializeGeometry;
+pub use ser::SerializeProperties;

@@ -5,13 +5,15 @@ on:
       bump:
         type: choice
         options:
+          - beta
           - patch
           - minor
+          - release
       package:
         type: choice
         options:
-          - --package geoserde
-          - --workspace
+          - geoserde
+          - geoserde-fgb
       dry-run:
         type: choice
         options:
@@ -22,16 +24,25 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+  PKG: ${{ inputs.package }}
 jobs:
   Publish:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - run: cargo install cargo-edit
-    - run: cargo set-version --bump ${{ inputs.bump }} ${{ inputs.package }}
+    # Bumping geoserde also rewrites the requirement in fgb/Cargo.toml, which is committed together
+    # and released with geoserde-fgb separately.
+    - run: cargo set-version --bump ${{ inputs.bump }} --package $PKG
+    - run: echo "VERSION=$(make version PKG=$PKG)" >> $GITHUB_ENV
+    - run: |
+        case $PKG in
+          geoserde) echo "TAG=v$VERSION" >> $GITHUB_ENV ;;
+          geoserde-fgb) echo "TAG=fgb/v$VERSION" >> $GITHUB_ENV ;;
+        esac
     - run: git config user.name "github-actions"
     - run: git config user.email "action@github.com"
-    - run: git commit --all --message "v$(make version)"
-    - run: git tag "v$(make version)"
-    - run: git push --tags origin HEAD ${{ inputs.dry-run }}
-    - run: cargo publish ${{ inputs.package }} ${{ inputs.dry-run }}
+    - run: git commit --all --message "$PKG v$VERSION"
+    - run: git tag "$TAG"
+    - run: cargo publish --package $PKG ${{ inputs.dry-run }}
+    - run: git push --atomic origin HEAD "$TAG" ${{ inputs.dry-run }}

@@ -1,0 +1,57 @@
+#![allow(dead_code)]
+
+pub fn c(i: i32) -> geo_types::Coord {
+    let x = f64::from(i);
+    [x, x + 0.1].into()
+}
+
+pub fn p(i: i32) -> geo_types::Point {
+    c(i).into()
+}
+
+pub fn ls(i: i32) -> geo_types::LineString {
+    line(i).into()
+}
+
+pub fn line(i: i32) -> geo_types::Line {
+    geo_types::Line::new(c(i), c(i + 1))
+}
+
+pub fn rect(i: i32) -> geo_types::Rect {
+    geo_types::Rect::new(c(-i), c(i))
+}
+
+pub fn triangle(i: i32) -> geo_types::Triangle {
+    geo_types::Triangle::new([0.0, 0.0].into(), c(i + 1), c(i + 2))
+}
+
+pub fn multi_p(i: i32) -> geo_types::MultiPoint {
+    geo_types::MultiPoint::new(vec![p(i), p(i + 1)])
+}
+
+pub fn multi_ls(i: i32) -> geo_types::MultiLineString {
+    geo_types::MultiLineString::new(vec![ls(i), ls(i + 1)])
+}
+
+pub fn donut(i: i32) -> geo_types::Polygon {
+    let mut donut = rect(i + 2).to_polygon();
+    donut.interiors_push(rect(i + 1).to_polygon().into_inner().0);
+    donut
+}
+
+pub fn fgb_writer(geom_type: flatgeobuf::GeometryType) -> flatgeobuf::FgbWriter<'static> {
+    let opt = flatgeobuf::FgbWriterOptions {
+        write_index: false,
+        ..Default::default()
+    };
+    flatgeobuf::FgbWriter::create_with_options("", geom_type, opt).unwrap()
+}
+
+pub fn layer_ser(
+    geom_type: geoserde_fgb::flatgeobuf::GeometryType,
+) -> geoserde_fgb::LayerSerializer {
+    let options = geoserde_fgb::ser::LayerOptions::new()
+        .geometry_type(geom_type)
+        .index(false);
+    geoserde_fgb::LayerSerializer::with_options(options).unwrap()
+}

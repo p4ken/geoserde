@@ -1,0 +1,28 @@
+[package]
+name = "geoserde-fgb"
+version = "0.1.0-beta.1"
+edition.workspace = true
+description = "serde-based API for reading and writing the FlatGeobuf format"
+repository.workspace = true
+license.workspace = true
+keywords = ["geo", "geospatial", "gis", "serialization"]
+categories = ["science::geo", "encoding", "parser-implementations"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["geo-types"]
+geo-types = ["geoserde/geo-types"]
+
+[dependencies]
+geoserde = { version = "0.5.3-beta.2", path = "..", default-features = false }
+serde = { version = "1.0.214" }
+geo-traits = { version = "0.3.0", default-features = false }
+flatgeobuf = { version = "6.0.1", default-features = false }
+
+[dev-dependencies]
+anyhow = { version = "1.0.75", features = ["backtrace"] }
+geo-types = { version = "0.7.11", features = ["serde"] }
+geozero = { version = "0.15.0" }
+serde = { version = "1.0.214", features = ["derive"] }
