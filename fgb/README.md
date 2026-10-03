@@ -3,7 +3,7 @@
 
 `geoserde-fgb` provides a serde-based API for reading and writing the [FlatGeobuf](https://crates.io/crates/flatgeobuf) format.
 
-## Write
+# Create FlatGeobuf
 
 Write geometries and your own [serde](https://serde.rs/) structs as features.
 The geometry can be any [geo-traits](https://crates.io/crates/geo-traits) type, such as [geo-types](https://crates.io/crates/geo-types).
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Read
+# Parse FlatGeobuf
 
 Read features into geo-types geometries and your own serde structs.
 
@@ -58,6 +58,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Cargo features
+# Cargo features
 
 * `geo-types` — Supports [geo-types](https://crates.io/crates/geo-types) geometries. Enabled by default.
