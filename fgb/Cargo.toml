@@ -1,6 +1,6 @@
 [package]
 name = "geoserde-fgb"
-version = "0.1.0-beta.0"
+version = "0.1.0-beta.1"
 edition.workspace = true
 description = "serde-based API for reading and writing the FlatGeobuf format"
 repository.workspace = true
