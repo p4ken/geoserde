@@ -1,5 +1,3 @@
-# Geoserde
-
 [![crates.io](https://img.shields.io/crates/v/geoserde.svg)](https://crates.io/crates/geoserde)
 [![docs.rs](https://img.shields.io/badge/_-docs.rs-slategray?logo=docsdotrs)](https://docs.rs/geoserde/)
 
