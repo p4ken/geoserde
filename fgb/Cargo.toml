@@ -2,11 +2,11 @@
 name = "geoserde-fgb"
 version = "0.1.0-beta.0"
 edition.workspace = true
-description = "Read and write FlatGeobuf features as your own Rust data structures"
+description = "serde-based API for reading and writing the FlatGeobuf format"
 repository.workspace = true
 license.workspace = true
-# TODO: keywords = ["gis", "geospatial", "serde", "flatgeobuf", "fgb"] (最大5個)
-# TODO: categories = ["science::geo", "encoding", "parser-implementations"]
+keywords = ["geo", "geospatial", "gis", "serialization"]
+categories = ["science::geo", "encoding", "parser-implementations"]
 
 [package.metadata.docs.rs]
 all-features = true

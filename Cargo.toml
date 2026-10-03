@@ -14,10 +14,9 @@ edition.workspace = true
 description = "Framework for reading and writing geospatial data as Rust types"
 repository.workspace = true
 license.workspace = true
-exclude = [".*"]
-# TODO: exclude = [".*", "AGENTS.md"]
-# TODO: keywords = ["gis", "geospatial", "serde", "geo"] (最大5個)
-# TODO: categories = ["science::geo", "encoding"] (https://crates.io/category_slugs から選ぶ)
+exclude = [".*", "AGENTS.md", "Makefile"]
+keywords = ["geo", "geospatial", "gis", "serialization"]
+categories = ["science::geo", "encoding"]
 
 [package.metadata.docs.rs]
 all-features = true
