@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{Error, Impossible, StdError},
+    Serialize, Serializer,
 };
 
 use crate::ser::SourceError;
 
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum StringLike {
     Empty,
     Bool(bool),
@@ -25,6 +24,31 @@ pub enum StringLike {
     Char(char),
     String(String),
     Ident(&'static str),
+}
+
+impl Serialize for StringLike {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Empty => serde::Serialize::serialize(&(), serializer),
+            Self::Bool(value) => serde::Serialize::serialize(value, serializer),
+            Self::I8(value) => serde::Serialize::serialize(value, serializer),
+            Self::I16(value) => serde::Serialize::serialize(value, serializer),
+            Self::I32(value) => serde::Serialize::serialize(value, serializer),
+            Self::I64(value) => serde::Serialize::serialize(value, serializer),
+            Self::U8(value) => serde::Serialize::serialize(value, serializer),
+            Self::U16(value) => serde::Serialize::serialize(value, serializer),
+            Self::U32(value) => serde::Serialize::serialize(value, serializer),
+            Self::U64(value) => serde::Serialize::serialize(value, serializer),
+            Self::F32(value) => serde::Serialize::serialize(value, serializer),
+            Self::F64(value) => serde::Serialize::serialize(value, serializer),
+            Self::Char(value) => serde::Serialize::serialize(value, serializer),
+            Self::String(value) => serde::Serialize::serialize(value, serializer),
+            Self::Ident(value) => serde::Serialize::serialize(value, serializer),
+        }
+    }
 }
 
 impl From<StringLike> for Cow<'static, str> {

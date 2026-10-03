@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 /// A dynamically-typed property value.
 ///
 /// `FieldValue` represents a single scalar value in a flattened property table.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum FieldValue<'a> {
     Bool(bool),
@@ -22,6 +21,29 @@ pub enum FieldValue<'a> {
     F64(f64),
     Str(Cow<'a, str>),
     Bytes(Cow<'a, [u8]>),
+}
+
+impl Serialize for FieldValue<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Bool(value) => serde::Serialize::serialize(value, serializer),
+            Self::I8(value) => serde::Serialize::serialize(value, serializer),
+            Self::I16(value) => serde::Serialize::serialize(value, serializer),
+            Self::I32(value) => serde::Serialize::serialize(value, serializer),
+            Self::I64(value) => serde::Serialize::serialize(value, serializer),
+            Self::U8(value) => serde::Serialize::serialize(value, serializer),
+            Self::U16(value) => serde::Serialize::serialize(value, serializer),
+            Self::U32(value) => serde::Serialize::serialize(value, serializer),
+            Self::U64(value) => serde::Serialize::serialize(value, serializer),
+            Self::F32(value) => serde::Serialize::serialize(value, serializer),
+            Self::F64(value) => serde::Serialize::serialize(value, serializer),
+            Self::Str(value) => serde::Serialize::serialize(value, serializer),
+            Self::Bytes(value) => serde::Serialize::serialize(value, serializer),
+        }
+    }
 }
 
 impl FieldValue<'_> {

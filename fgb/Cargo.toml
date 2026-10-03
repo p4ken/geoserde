@@ -25,3 +25,4 @@ flatgeobuf = { version = "6.0.1", default-features = false }
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 geo-types = { version = "0.7.11", features = ["serde"] }
 geozero = { version = "0.15.0" }
+serde = { version = "1.0.214", features = ["derive"] }
