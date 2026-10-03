@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/geoserde-fgb.svg)](https://crates.io/crates/geoserde-fgb)
 [![docs.rs](https://img.shields.io/badge/_-docs.rs-slategray?logo=docsdotrs)](https://docs.rs/geoserde-fgb/)
 
-geoserde-fgb reads and writes FlatGeobuf files, built on top of the [flatgeobuf](https://crates.io/crates/flatgeobuf) crate.
+geoserde-fgb provides a serde-based API for reading and writing [FlatGeobuf](https://crates.io/crates/flatgeobuf).
 
 ## Write
 

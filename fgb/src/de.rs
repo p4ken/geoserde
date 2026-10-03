@@ -2,8 +2,8 @@
 
 use std::io::{Read, Seek};
 
-use geoserde::DeserializeGeometry;
 use geoserde::de::{GeometryError, GeometryOptions};
+use geoserde::DeserializeGeometry;
 use serde::de::IntoDeserializer;
 
 /// Deserializes features (geometry + properties) from a FlatGeobuf source.
@@ -85,6 +85,8 @@ impl<R: Read + Seek> LayerDeserializer<R> {
             geometry_options: options.geometry,
         })
     }
+
+    /* NOTE: `from_feature_iter(iter, options)` is planned. */
 
     /// Deserializes the next feature into a geometry and a properties struct.
     ///
