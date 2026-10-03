@@ -1,20 +1,20 @@
-# 進め方
+# Development
 
-本crateは開発途上であり、APIは未公開で、自由に変更して良い。
+This crate is v0 in the sense that we are free to change its API.
 
-`make` 相当のテストを通す。
+Run the equivalent of `make test`.
 
-# コードスタイル
+# Code Style
 
-関数はモジュール名付きで呼ぶ。
+Qualify function calls with their module path.
 
-OSSなのでコメントは英語で。
+Write comments in English.
 
-# テスト
+# Tests
 
-ser のテストでは de を使わない。de のテストも然り。
+Do not use `de` in `ser` tests, or `ser` in `de` tests.
 
-# 用語の整理
+# Terminology
 
-layer = features (+ meta)
-feature = geometry + properties
+- A layer contains features.
+- A feature consists of a geometry and properties.
