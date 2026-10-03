@@ -9,7 +9,7 @@ license = "MIT"
 
 [package]
 name = "geoserde"
-version = "0.5.3-beta.1"
+version = "0.5.3-beta.2"
 edition.workspace = true
 description = "Framework for reading and writing geospatial data as Rust types"
 repository.workspace = true

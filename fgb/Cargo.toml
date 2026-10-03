@@ -16,7 +16,7 @@ default = ["geo-types"]
 geo-types = ["geoserde/geo-types"]
 
 [dependencies]
-geoserde = { version = "0.5.3-beta.1", path = "..", default-features = false }
+geoserde = { version = "0.5.3-beta.2", path = "..", default-features = false }
 serde = { version = "1.0.214" }
 geo-traits = { version = "0.3.0", default-features = false }
 flatgeobuf = { version = "6.0.1", default-features = false }
