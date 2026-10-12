@@ -1,11 +1,11 @@
 use std::convert::Infallible;
 
 use serde::{
-    Serialize, Serializer,
     ser::{Impossible, SerializeMap, SerializeStruct, StdError},
+    Serialize, Serializer,
 };
 
-use crate::ser::{SerializeProperties, SourceError, elem::StringifyError, field::FieldSerializer};
+use crate::ser::{elem::StringifyError, field::FieldSerializer, SerializeProperties, SourceError};
 
 /// Controls how nested structures and arrays are flattened into property keys.
 ///
@@ -365,6 +365,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum TableError<E> {
+    // TODO: rootにkeyの概念がないが、果たしてvalueという表現は正しいのか？（key/valueのvalueと混同する問題）
     /// The root value was not a struct or map.
     Root,
     /// A map key could not be converted to a string.

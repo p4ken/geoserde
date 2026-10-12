@@ -6,6 +6,7 @@ use geoserde::de::{GeometryError, GeometryOptions};
 use geoserde::DeserializeGeometry;
 use serde::de::IntoDeserializer;
 
+// TODO: 当時のAGENTS.mdに features = geometry + properties と書いてあったのに釣られすぎ。
 /// Deserializes features (geometry + properties) from a FlatGeobuf source.
 ///
 /// # Example
@@ -157,6 +158,7 @@ impl LayerOptions {
         }
     }
 
+    // TODO: GeometryOptionsよりも饒舌でありながら、GeometryOptionsにリンクしているのが理解できない。ほぼリンクのみで済ませるか、リンク先の追加情報がないなら直接、表にリンクしてあげるのも親切。ここだけを見ず、全体としてどうあるべきか熟考してほしい。
     /// Sets whether to read a single geometry as the multi type with one
     /// member, such as a `Point` as a `MultiPoint`. Defaults to `false`.
     ///

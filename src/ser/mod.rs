@@ -29,7 +29,6 @@
 //! - `None`, `()` and an empty array write no property.
 //! - A struct variant has its fields under the variant name, as in
 //!   `shape.Rect.width`.
-//! - The separators `.`, `,`, `[` and `]` can be changed by [`FlattenOption`].
 //! - A map key must be a string or another scalar, or [`TableError::Key`] is
 //!   returned.
 //! - The properties themselves must be a struct or a map, or

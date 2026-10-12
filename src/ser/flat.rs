@@ -7,6 +7,7 @@ use super::{FieldValue, SerializeProperties, TableError, TableSerializer};
 /// Flattens a serializable value and collects only its property keys,
 /// discarding the values.
 ///
+// TODO: これはAIの勝手な推測。実際の利用箇所を確認して書き直す。ser modのdocは許容範囲だが再考しても良い。
 /// This is useful for inspecting the schema of a struct before writing
 /// features.
 ///

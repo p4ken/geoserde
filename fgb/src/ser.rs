@@ -49,24 +49,24 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// - promoted: Fails by default. With
 ///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
 ///   multi type with one member.
-/// - `Unknown`: The first feature fixes the geometry type of the layer, and
-///   later features follow the column of that type. With `promote_to_multi`,
-///   `LineString` fixes `MultiLineString` and `Polygon` fixes `MultiPolygon`.
 /// - members: The collection itself is ignored, so its members are written as
 ///   one geometry of their type. Members of different types fail. See
 ///   [Limitations](#limitations).
-/// - `Line`, `Rect` and `Triangle` are written as `LineString` or `Polygon`.
 ///
 /// # Limitations
 ///
+// TODO: ジオメトリコレクションは一切未対応に変えたい。deとの統一感も出る。そもそもGeometryは表にないのにCollectionだけ登場するのはなぜか。
 /// - A `GeometryCollection` is not written correctly. Its members are merged
 ///   into one geometry, so with more than one member, the extra coordinates
 ///   are lost when read. If its members are of different types, the members
 ///   before the failing one are left behind, and the geometry of the next
 ///   feature is corrupted.
+// TODO: ZとMも今回対応した方が良い。
 /// - Only x and y are written, and Z and M are dropped.
+// TODO: deの方には記載がないが、どうなのか。仕様とdocのどちがが不統一なのか。
 /// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
 ///   without coordinates.
+// TODO: エラーとしてハンドリングしたい。
 /// - The type of a column is fixed by the first value of its key. A later
 ///   value of another type, such as `i64` after `i32`, is written without an
 ///   error, and the file is corrupted.
@@ -91,6 +91,7 @@ impl LayerSerializer {
     ///
     /// # Errors
     ///
+    // TODO: Error::fgbは自身で決めているから言及して良いが、tmpファイルは限定しすぎ。flatgeobuf側でどのような変更があるかにこのコメントを追従するのが困難。ただ便利ではあるので、言い回しをボカす程度が良い。
     /// Returns [`Error::Fgb`] if the temporary file cannot be created.
     pub fn new() -> Result<Self, Error> {
         Self::with_options(LayerOptions::new())
@@ -100,6 +101,7 @@ impl LayerSerializer {
     ///
     /// # Errors
     ///
+    // TODO: ここも
     /// Returns [`Error::Fgb`] if the temporary file cannot be created.
     pub fn with_options(options: LayerOptions) -> Result<Self, Error> {
         let fgb_options = flatgeobuf::FgbWriterOptions {
@@ -188,6 +190,8 @@ impl LayerSerializer {
     }
 }
 
+// TODO: ビルダーであることを明記。
+// TODO: into_serializer()みたいなのを用意するpros/consを調査。
 /// Options for writing a FlatGeobuf layer.
 ///
 /// # Example
@@ -266,6 +270,7 @@ impl LayerOptions {
         self
     }
 
+    // TODO: FgbWriterOptions だと字面で分からないのでフルパスで。他にもないか調査。
     /// Sets whether to write single geometries as the multi type with one
     /// member. Defaults to `false`, unlike
     /// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).

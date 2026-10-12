@@ -29,7 +29,6 @@
 //! - promoted: Fails by default. With
 //!   [`set_promote_to_multi`](GeometryOptions::set_promote_to_multi), read as the
 //!   multi type with one member.
-//! - Failures are [`GeometryError`]s.
 //! - Rings of a `Polygon` target are closed by [`geo_types::Polygon::new`].
 //! - An empty point in a `Point` or `MultiPoint` source fails, because
 //!   [`geo_types`] cannot represent it.

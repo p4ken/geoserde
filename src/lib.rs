@@ -12,6 +12,7 @@
 //!
 //! | | Geometry | Properties |
 //! |---|---|---|
+// TODO: カッコのセルについて。これ以前、your dara typesとまとめて1つの表だった頃は、セル自体なかった。表を2つに分けてもらったらこのセルができた。結果としてこのカラムを見て実装者がかえって混乱しないか気になる。
 //! | **Write** | (walks the `geo_traits::GeometryTrait`) | [`geoserde::SerializeProperties`](SerializeProperties) |
 //! | **Read** | (hands out a `geo_traits::GeometryTrait`) | [`serde::Deserializer`] |
 //!
