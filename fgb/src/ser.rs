@@ -28,7 +28,7 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 ///
 /// | Source \ Target                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
 /// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- | -------------- | ------------------- | ----------- | ---------------- | ---------------------- | ----------- |
-/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok        | –              | –              | –                   | –           | –                | –                      | ok          |
+/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok        | promoted       | –              | –                   | –           | –                | –                      | promoted    |
 /// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –         | ok             | –              | –                   | –           | –                | –                      | ok          |
 /// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –         | –              | ok             | promoted            | –           | –                | –                      | promoted    |
 /// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –         | –              | –              | ok                  | –           | –                | –                      | ok          |
@@ -74,6 +74,7 @@ pub struct LayerSerializer {
     writer: flatgeobuf::FgbWriter<'static>,
     known_key: Vec<Cow<'static, str>>,
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
+    promote_point_to_multi: bool,
 }
 
 impl std::fmt::Debug for LayerSerializer {
@@ -82,6 +83,7 @@ impl std::fmt::Debug for LayerSerializer {
         f.debug_struct("LayerSerializer")
             .field("known_key", &self.known_key)
             .field("pending", &self.pending)
+            .field("promote_point_to_multi", &self.promote_point_to_multi)
             .finish_non_exhaustive()
     }
 }
@@ -104,6 +106,13 @@ impl LayerSerializer {
     // TODO: ここも
     /// Returns [`Error::Fgb`] if the temporary file cannot be created.
     pub fn with_options(options: LayerOptions) -> Result<Self, Error> {
+        // FgbWriter promotes LineString and Polygon only. Promote Point likewise, also in an
+        // Unknown layer, which then takes the type of the promoted first feature.
+        let promote_point_to_multi = options.promote_to_multi
+            && matches!(
+                options.geometry_type,
+                flatgeobuf::GeometryType::MultiPoint | flatgeobuf::GeometryType::Unknown
+            );
         let fgb_options = flatgeobuf::FgbWriterOptions {
             write_index: options.index,
             promote_to_multi: options.promote_to_multi,
@@ -125,6 +134,7 @@ impl LayerSerializer {
             writer,
             known_key: Vec::new(),
             pending: Vec::new(),
+            promote_point_to_multi,
         })
     }
 
@@ -147,7 +157,12 @@ impl LayerSerializer {
         self.pending.clear();
         let prop_ser = TableSerializer::new(&mut *self);
         properties.serialize(prop_ser)?;
-        process_geometry(&geometry, &mut self.writer)?;
+        match geometry.as_type() {
+            GeometryType::Point(p) if self.promote_point_to_multi => {
+                process_point_as_multi(p, &mut self.writer)?
+            }
+            _ => process_geometry(&geometry, &mut self.writer)?,
+        }
         for (key, value) in self.pending.drain(..) {
             let column_value = to_column_value(&value).expect("checked in serialize_property");
             let index_of_key = self.known_key.iter().position(|k| k == &key);
@@ -367,6 +382,17 @@ fn process_point(
         process_coord(&coord, 0, processor)?;
     }
     processor.point_end(idx)
+}
+
+fn process_point_as_multi(
+    point: &impl PointTrait<T = f64>,
+    processor: &mut impl flatgeobuf::geozero::GeomProcessor,
+) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+    processor.multipoint_begin(1, 0)?;
+    if let Some(coord) = point.coord() {
+        process_coord(&coord, 0, processor)?;
+    }
+    processor.multipoint_end(0)
 }
 
 fn process_line_string(

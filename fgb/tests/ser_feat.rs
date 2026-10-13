@@ -310,6 +310,63 @@ fn line_string_promoted_to_multi() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn point_promoted_to_multi() -> anyhow::Result<()> {
+    let options = geoserde_fgb::ser::LayerOptions::new()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint)
+        .index(false)
+        .promote_to_multi(true);
+    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+
+    let feat = Feat {
+        name: "f".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, geo_types::MultiPoint::new(vec![testing::p(0)]));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+/// With promote_to_multi, an Unknown layer takes the multi type of a first Point.
+#[test]
+fn unknown_layer_takes_promoted_point_type() -> anyhow::Result<()> {
+    let options = geoserde_fgb::ser::LayerOptions::new()
+        .index(false)
+        .promote_to_multi(true);
+    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+
+    let feat = Feat {
+        name: "g".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+    ser.serialize_feature(testing::multi_p(1), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert_eq!(
+        fgb_reader.header().geometry_type(),
+        flatgeobuf::GeometryType::MultiPoint
+    );
+    Ok(())
+}
+
 /// Without promote_to_multi, an Unknown layer takes the type of the first feature as is.
 #[test]
 fn unknown_layer_takes_first_type() -> anyhow::Result<()> {
