@@ -6,15 +6,14 @@
 //! | | Geometry | Properties |
 //! |---|---|---|
 //! | **Write** | [`geo_traits::GeometryTrait`] | [`serde::Serialize`] |
-//! | **Read** | [`geoserde::DeserializeGeometry`](DeserializeGeometry) | [`serde::Deserialize`] |
+//! | **Read** | [`DeserializeGeometry`] | [`serde::Deserialize`] |
 //!
 //! # Traits for file formats
 //!
 //! | | Geometry | Properties |
 //! |---|---|---|
-// TODO: カッコのセルについて。これ以前、your dara typesとまとめて1つの表だった頃は、セル自体なかった。表を2つに分けてもらったらこのセルができた。結果としてこのカラムを見て実装者がかえって混乱しないか気になる。
-//! | **Write** | (walks the `geo_traits::GeometryTrait`) | [`geoserde::SerializeProperties`](SerializeProperties) |
-//! | **Read** | (hands out a `geo_traits::GeometryTrait`) | [`serde::Deserializer`] |
+//! | **Write** | — (takes any [`geo_traits::GeometryTrait`]) | [`SerializeProperties`] |
+//! | **Read** | [`geo_traits::GeometryTrait`] | [`serde::Deserializer`] |
 //!
 //! Reading properties needs no trait of geoserde's own, since a flat row is
 //! already a map in serde's data model: expose it as a
