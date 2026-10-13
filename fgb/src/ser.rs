@@ -13,8 +13,8 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 
 /// FlatGeobuf feature serializer.
 ///
-/// Features are buffered in a temporary file as they are serialized, and
-/// written to the output by [`write`](Self::write).
+/// Features are buffered as they are serialized, and written to the output by
+/// [`write`](Self::write).
 ///
 /// # Properties
 ///
@@ -93,8 +93,7 @@ impl LayerSerializer {
     ///
     /// # Errors
     ///
-    // TODO: Error::fgbは自身で決めているから言及して良いが、tmpファイルは限定しすぎ。flatgeobuf側でどのような変更があるかにこのコメントを追従するのが困難。ただ便利ではあるので、言い回しをボカす程度が良い。
-    /// Returns [`Error::Fgb`] if the temporary file cannot be created.
+    /// Returns [`Error::Fgb`] if the FlatGeobuf writer cannot be set up.
     pub fn new() -> Result<Self, Error> {
         Self::with_options(LayerOptions::new())
     }
@@ -103,8 +102,7 @@ impl LayerSerializer {
     ///
     /// # Errors
     ///
-    // TODO: ここも
-    /// Returns [`Error::Fgb`] if the temporary file cannot be created.
+    /// Returns [`Error::Fgb`] if the FlatGeobuf writer cannot be set up.
     pub fn with_options(options: LayerOptions) -> Result<Self, Error> {
         // FgbWriter promotes LineString and Polygon only. Promote Point likewise, also in an
         // Unknown layer, which then takes the type of the promoted first feature.
@@ -556,8 +554,7 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    /// FlatGeobuf error while creating the temporary file or writing the
-    /// output.
+    /// FlatGeobuf error while setting up the writer or writing the output.
     Fgb(flatgeobuf::Error),
     /// Error during geozero geometry or property processing.
     Geozero(flatgeobuf::geozero::error::GeozeroError),
