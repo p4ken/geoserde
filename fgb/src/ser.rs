@@ -285,10 +285,8 @@ impl LayerOptions {
         self
     }
 
-    // TODO: FgbWriterOptions だと字面で分からないのでフルパスで。他にもないか調査。
     /// Sets whether to write a single geometry as the multi type with one
-    /// member. Defaults to `false`, unlike
-    /// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
+    /// member. Defaults to `false`, unlike [`flatgeobuf::FgbWriterOptions`].
     ///
     /// See [Geometry types](LayerSerializer#geometry-types).
     pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
