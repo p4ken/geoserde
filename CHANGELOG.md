@@ -90,7 +90,7 @@ impl SerializeProperties for &mut MyWriter {
 props.serialize(TableSerializer::new(&mut writer))?;
 ```
 
-The root value must be a struct or a map. `TableError::Sink` wraps the error of
+The root must be a struct or a map. `TableError::Sink` wraps the error of
 your sink, and `TableError::into_sink` takes it out.
 
 #### Nested properties

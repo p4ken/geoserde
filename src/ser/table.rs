@@ -104,8 +104,8 @@ impl FlattenOption {
 /// A serde [`Serializer`] that flattens structs and maps into key-value
 /// property pairs.
 ///
-/// The root value must be a struct or map; scalar values and sequences at
-/// the root level produce a [`TableError::Root`] error.
+/// The root must be a struct or map; scalar values and sequences at the
+/// root produce a [`TableError::Root`] error.
 ///
 /// # Example
 ///
@@ -365,8 +365,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P>
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum TableError<E> {
-    // TODO: rootにkeyの概念がないが、果たしてvalueという表現は正しいのか？（key/valueのvalueと混同する問題）
-    /// The root value was not a struct or map.
+    /// The root was not a struct or map.
     Root,
     /// A map key could not be converted to a string.
     Key(KeyError),
