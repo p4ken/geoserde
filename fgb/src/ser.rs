@@ -271,7 +271,7 @@ impl LayerOptions {
     }
 
     // TODO: FgbWriterOptions だと字面で分からないのでフルパスで。他にもないか調査。
-    /// Sets whether to write single geometries as the multi type with one
+    /// Sets whether to write a single geometry as the multi type with one
     /// member. Defaults to `false`, unlike
     /// [`FgbWriterOptions`](flatgeobuf::FgbWriterOptions).
     ///

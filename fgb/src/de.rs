@@ -32,7 +32,8 @@ use serde::de::IntoDeserializer;
 /// # Geometry types
 ///
 /// Whether a geometry can be read depends on the [`DeserializeGeometry`] impl
-/// of the target type. For `geo_types`, see [`geoserde::de`].
+/// of the target type. For `geo_types`, see
+/// [Geometry type conversion](geoserde::de#geometry-type-conversion).
 ///
 /// # Limitations
 ///
@@ -158,11 +159,10 @@ impl LayerOptions {
         }
     }
 
-    // TODO: GeometryOptionsよりも饒舌でありながら、GeometryOptionsにリンクしているのが理解できない。ほぼリンクのみで済ませるか、リンク先の追加情報がないなら直接、表にリンクしてあげるのも親切。ここだけを見ず、全体としてどうあるべきか熟考してほしい。
     /// Sets whether to read a single geometry as the multi type with one
-    /// member, such as a `Point` as a `MultiPoint`. Defaults to `false`.
+    /// member. Defaults to `false`.
     ///
-    /// See [`GeometryOptions::set_promote_to_multi`].
+    /// See [Geometry type conversion](geoserde::de#geometry-type-conversion).
     pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
         self.geometry.set_promote_to_multi(promote_to_multi);
         self
