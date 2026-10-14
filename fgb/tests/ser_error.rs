@@ -112,3 +112,26 @@ fn not_promoted_rejected() {
     let result = ser.serialize_feature(testing::ls(0), NoProps {});
     assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
 }
+
+/// A GeometryCollection is rejected even by an Unknown layer.
+#[test]
+fn geometry_collection_rejected() {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
+
+    #[derive(Serialize)]
+    struct NoProps {}
+    let gc = geo_types::GeometryCollection::new_from(vec![testing::p(0).into()]);
+    let result = ser.serialize_feature(gc, NoProps {});
+    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+}
+
+/// A GeometryCollection layer rejects every geometry.
+#[test]
+fn geometry_collection_layer_rejected() {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::GeometryCollection);
+
+    #[derive(Serialize)]
+    struct NoProps {}
+    let result = ser.serialize_feature(testing::p(0), NoProps {});
+    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+}

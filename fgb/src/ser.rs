@@ -5,9 +5,8 @@ use std::convert::Infallible;
 use std::io::Write;
 
 use geo_traits::{
-    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
-    MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
-    TriangleTrait,
+    CoordTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait, MultiLineStringTrait,
+    MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait, TriangleTrait,
 };
 use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
@@ -26,15 +25,14 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// Whether a geometry can be written depends on the
 /// [`geometry_type`](LayerOptions::geometry_type) of the layer.
 ///
-/// | Source \ Target                                                                                                                            | [`Point`][fgb::Point] | [`MultiPoint`][fgb::MultiPoint] | [`LineString`][fgb::LineString] | [`MultiLineString`][fgb::MultiLineString] | [`Polygon`][fgb::Polygon] | [`MultiPolygon`][fgb::MultiPolygon] | [`GeometryCollection`][fgb::GeometryCollection] | [`Unknown`][fgb::Unknown] |
-/// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | ------------------------------- | ------------------------------- | ----------------------------------------- | ------------------------- | ----------------------------------- | ----------------------------------------------- | ------------------------- |
-/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok                    | promoted                        | –                               | –                                         | –                         | –                                   | –                                               | promoted                  |
-/// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –                     | ok                              | –                               | –                                         | –                         | –                                   | –                                               | ok                        |
-/// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –                     | –                               | ok                              | promoted                                  | –                         | –                                   | –                                               | promoted                  |
-/// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –                     | –                               | –                               | ok                                        | –                         | –                                   | –                                               | ok                        |
-/// | [`Polygon`](geo_traits::GeometryType::Polygon), [`Rect`](geo_traits::GeometryType::Rect), [`Triangle`](geo_traits::GeometryType::Triangle) | –                     | –                               | –                               | –                                         | ok                        | promoted                            | –                                               | promoted                  |
-/// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –                     | –                               | –                               | –                                         | –                         | ok                                  | –                                               | ok                        |
-/// | [`GeometryCollection`](geo_traits::GeometryType::GeometryCollection)                                                                       | members               | members                         | members                         | members                                   | members                   | members                             | –                                               | members                   |
+/// | Source \ Target                                                                                                                            | [`Point`][fgb::Point] | [`MultiPoint`][fgb::MultiPoint] | [`LineString`][fgb::LineString] | [`MultiLineString`][fgb::MultiLineString] | [`Polygon`][fgb::Polygon] | [`MultiPolygon`][fgb::MultiPolygon] | [`Unknown`][fgb::Unknown] |
+/// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | ------------------------------- | ------------------------------- | ----------------------------------------- | ------------------------- | ----------------------------------- | ------------------------- |
+/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok                    | promoted                        | –                               | –                                         | –                         | –                                   | promoted                  |
+/// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –                     | ok                              | –                               | –                                         | –                         | –                                   | ok                        |
+/// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –                     | –                               | ok                              | promoted                                  | –                         | –                                   | promoted                  |
+/// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –                     | –                               | –                               | ok                                        | –                         | –                                   | ok                        |
+/// | [`Polygon`](geo_traits::GeometryType::Polygon), [`Rect`](geo_traits::GeometryType::Rect), [`Triangle`](geo_traits::GeometryType::Triangle) | –                     | –                               | –                               | –                                         | ok                        | promoted                            | promoted                  |
+/// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –                     | –                               | –                               | –                                         | –                         | ok                                  | ok                        |
 ///
 /// [fgb::Point]: flatgeobuf::GeometryType::Point
 /// [fgb::MultiPoint]: flatgeobuf::GeometryType::MultiPoint
@@ -42,25 +40,16 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// [fgb::MultiLineString]: flatgeobuf::GeometryType::MultiLineString
 /// [fgb::Polygon]: flatgeobuf::GeometryType::Polygon
 /// [fgb::MultiPolygon]: flatgeobuf::GeometryType::MultiPolygon
-/// [fgb::GeometryCollection]: flatgeobuf::GeometryType::GeometryCollection
 /// [fgb::Unknown]: flatgeobuf::GeometryType::Unknown
 ///
-/// - –: Fails with [`Error::Geozero`].
+/// - –: Fails with [`Error::Geozero`]. So do a `GeometryCollection` source
+///   for every target, and every source for a `GeometryCollection` target.
 /// - promoted: Fails by default. With
 ///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
 ///   multi type with one member.
-/// - members: The collection itself is ignored, so its members are written as
-///   one geometry of their type. Members of different types fail. See
-///   [Limitations](#limitations).
 ///
 /// # Limitations
 ///
-// TODO: ジオメトリコレクションは一切未対応に変えたい。deとの統一感も出る。そもそもGeometryは表にないのにCollectionだけ登場するのはなぜか。
-/// - A `GeometryCollection` is not written correctly. Its members are merged
-///   into one geometry, so with more than one member, the extra coordinates
-///   are lost when read. If its members are of different types, the members
-///   before the failing one are left behind, and the geometry of the next
-///   feature is corrupted.
 // TODO: ZとMも今回対応した方が良い。
 /// - Only x and y are written, and Z and M are dropped.
 // TODO: deの方には記載がないが、どうなのか。仕様とdocのどちがが不統一なのか。
@@ -346,25 +335,23 @@ fn process_geometry(
     geom: &impl GeometryTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    process_geometry_n(geom, 0, processor)
-}
-
-fn process_geometry_n(
-    geom: &impl GeometryTrait<T = f64>,
-    idx: usize,
-    processor: &mut impl flatgeobuf::geozero::GeomProcessor,
-) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
     match geom.as_type() {
-        GeometryType::Point(g) => process_point(g, idx, processor),
-        GeometryType::LineString(g) => process_line_string(g, true, idx, processor),
-        GeometryType::Polygon(g) => process_polygon(g, true, idx, processor),
-        GeometryType::MultiPoint(g) => process_multi_point(g, idx, processor),
-        GeometryType::MultiLineString(g) => process_multi_line_string(g, idx, processor),
-        GeometryType::MultiPolygon(g) => process_multi_polygon(g, idx, processor),
-        GeometryType::GeometryCollection(g) => process_geometry_collection(g, idx, processor),
-        GeometryType::Rect(g) => process_rect(g, idx, processor),
-        GeometryType::Triangle(g) => process_triangle(g, idx, processor),
-        GeometryType::Line(g) => process_line(g, idx, processor),
+        GeometryType::Point(g) => process_point(g, processor),
+        GeometryType::LineString(g) => process_line_string(g, true, 0, processor),
+        GeometryType::Polygon(g) => process_polygon(g, true, 0, processor),
+        GeometryType::MultiPoint(g) => process_multi_point(g, processor),
+        GeometryType::MultiLineString(g) => process_multi_line_string(g, processor),
+        GeometryType::MultiPolygon(g) => process_multi_polygon(g, processor),
+        // FgbWriter (flatgeobuf 6.0.1) drops geometrycollection_* calls, so the members would
+        // be merged into one geometry, and members of mixed types corrupt the next feature.
+        GeometryType::GeometryCollection(_) => {
+            Err(flatgeobuf::geozero::error::GeozeroError::Geometry(
+                "GeometryCollection is not supported".to_string(),
+            ))
+        }
+        GeometryType::Rect(g) => process_rect(g, processor),
+        GeometryType::Triangle(g) => process_triangle(g, processor),
+        GeometryType::Line(g) => process_line(g, processor),
     }
 }
 
@@ -378,14 +365,13 @@ fn process_coord(
 
 fn process_point(
     point: &impl PointTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.point_begin(idx)?;
+    processor.point_begin(0)?;
     if let Some(coord) = point.coord() {
         process_coord(&coord, 0, processor)?;
     }
-    processor.point_end(idx)
+    processor.point_end(0)
 }
 
 fn process_point_as_multi(
@@ -436,63 +422,47 @@ fn process_polygon(
 
 fn process_multi_point(
     mp: &impl MultiPointTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.multipoint_begin(mp.num_points(), idx)?;
+    processor.multipoint_begin(mp.num_points(), 0)?;
     for (i, point) in mp.points().enumerate() {
         if let Some(coord) = point.coord() {
             process_coord(&coord, i, processor)?;
         }
     }
-    processor.multipoint_end(idx)
+    processor.multipoint_end(0)
 }
 
 fn process_multi_line_string(
     mls: &impl MultiLineStringTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.multilinestring_begin(mls.num_line_strings(), idx)?;
+    processor.multilinestring_begin(mls.num_line_strings(), 0)?;
     for (i, ls) in mls.line_strings().enumerate() {
         process_line_string(&ls, false, i, processor)?;
     }
-    processor.multilinestring_end(idx)
+    processor.multilinestring_end(0)
 }
 
 fn process_multi_polygon(
     mp: &impl MultiPolygonTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.multipolygon_begin(mp.num_polygons(), idx)?;
+    processor.multipolygon_begin(mp.num_polygons(), 0)?;
     for (i, polygon) in mp.polygons().enumerate() {
         process_polygon(&polygon, false, i, processor)?;
     }
-    processor.multipolygon_end(idx)
-}
-
-fn process_geometry_collection(
-    gc: &impl GeometryCollectionTrait<T = f64>,
-    idx: usize,
-    processor: &mut impl flatgeobuf::geozero::GeomProcessor,
-) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.geometrycollection_begin(gc.num_geometries(), idx)?;
-    for (i, geom) in gc.geometries().enumerate() {
-        process_geometry_n(&geom, i, processor)?;
-    }
-    processor.geometrycollection_end(idx)
+    processor.multipolygon_end(0)
 }
 
 fn process_rect(
     rect: &impl RectTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
     let min = rect.min();
     let max = rect.max();
     // Rect → Polygon with 5 coords (closed ring)
-    processor.polygon_begin(true, 1, idx)?;
+    processor.polygon_begin(true, 1, 0)?;
     processor.linestring_begin(false, 5, 0)?;
     processor.xy(min.x(), min.y(), 0)?;
     processor.xy(max.x(), min.y(), 1)?;
@@ -500,39 +470,37 @@ fn process_rect(
     processor.xy(min.x(), max.y(), 3)?;
     processor.xy(min.x(), min.y(), 4)?;
     processor.linestring_end(false, 0)?;
-    processor.polygon_end(true, idx)
+    processor.polygon_end(true, 0)
 }
 
 fn process_triangle(
     tri: &impl TriangleTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
     let first = tri.first();
     let second = tri.second();
     let third = tri.third();
     // Triangle → Polygon with 4 coords (closed ring)
-    processor.polygon_begin(true, 1, idx)?;
+    processor.polygon_begin(true, 1, 0)?;
     processor.linestring_begin(false, 4, 0)?;
     processor.xy(first.x(), first.y(), 0)?;
     processor.xy(second.x(), second.y(), 1)?;
     processor.xy(third.x(), third.y(), 2)?;
     processor.xy(first.x(), first.y(), 3)?;
     processor.linestring_end(false, 0)?;
-    processor.polygon_end(true, idx)
+    processor.polygon_end(true, 0)
 }
 
 fn process_line(
     line: &impl LineTrait<T = f64>,
-    idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.linestring_begin(true, 2, idx)?;
+    processor.linestring_begin(true, 2, 0)?;
     let start = line.start();
     let end = line.end();
     processor.xy(start.x(), start.y(), 0)?;
     processor.xy(end.x(), end.y(), 1)?;
-    processor.linestring_end(true, idx)
+    processor.linestring_end(true, 0)
 }
 
 // --- FieldValue → flatgeobuf bridge ---
