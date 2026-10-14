@@ -155,3 +155,95 @@ impl geo_traits::GeometryTrait for MaybeMultiPoint {
         geo_traits::GeometryType::MultiPoint(self)
     }
 }
+
+/// `geo_types` has no Z or M, so the source implements `CoordTrait` on its own.
+#[derive(Clone, Copy)]
+pub struct DimCoord {
+    pub dim: geo_traits::Dimensions,
+    pub values: [f64; 4],
+}
+
+impl geo_traits::CoordTrait for DimCoord {
+    type T = f64;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        self.dim
+    }
+
+    fn x(&self) -> f64 {
+        self.values[0]
+    }
+
+    fn y(&self) -> f64 {
+        self.values[1]
+    }
+
+    fn nth_or_panic(&self, n: usize) -> f64 {
+        assert!(n < self.dim.size());
+        self.values[n]
+    }
+}
+
+pub struct DimLineString(pub Vec<DimCoord>);
+
+impl geo_traits::LineStringTrait for DimLineString {
+    type CoordType<'a> = DimCoord;
+
+    fn num_coords(&self) -> usize {
+        self.0.len()
+    }
+
+    unsafe fn coord_unchecked(&self, i: usize) -> Self::CoordType<'_> {
+        self.0[i]
+    }
+}
+
+impl geo_traits::GeometryTrait for DimLineString {
+    type T = f64;
+    type PointType<'a> = geo_traits::UnimplementedPoint<f64>;
+    type LineStringType<'a> = DimLineString;
+    type PolygonType<'a> = geo_traits::UnimplementedPolygon<f64>;
+    type MultiPointType<'a> = geo_traits::UnimplementedMultiPoint<f64>;
+    type MultiLineStringType<'a> = geo_traits::UnimplementedMultiLineString<f64>;
+    type MultiPolygonType<'a> = geo_traits::UnimplementedMultiPolygon<f64>;
+    type GeometryCollectionType<'a> = geo_traits::UnimplementedGeometryCollection<f64>;
+    type RectType<'a> = geo_traits::UnimplementedRect<f64>;
+    type TriangleType<'a> = geo_traits::UnimplementedTriangle<f64>;
+    type LineType<'a> = geo_traits::UnimplementedLine<f64>;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        self.0[0].dim
+    }
+
+    fn as_type(
+        &self,
+    ) -> geo_traits::GeometryType<
+        '_,
+        Self::PointType<'_>,
+        Self::LineStringType<'_>,
+        Self::PolygonType<'_>,
+        Self::MultiPointType<'_>,
+        Self::MultiLineStringType<'_>,
+        Self::MultiPolygonType<'_>,
+        Self::GeometryCollectionType<'_>,
+        Self::RectType<'_>,
+        Self::TriangleType<'_>,
+        Self::LineType<'_>,
+    > {
+        geo_traits::GeometryType::LineString(self)
+    }
+}
+
+pub fn dim_ls(dim: geo_traits::Dimensions) -> DimLineString {
+    DimLineString(
+        (0..2)
+            .map(|i| {
+                let v = f64::from(i);
+                DimCoord {
+                    dim,
+                    values: [v, v + 0.1, v + 0.2, v + 0.3],
+                }
+            })
+            .collect(),
+    )
+}

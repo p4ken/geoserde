@@ -5,8 +5,9 @@ use std::convert::Infallible;
 use std::io::Write;
 
 use geo_traits::{
-    CoordTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait, MultiLineStringTrait,
-    MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait, TriangleTrait,
+    CoordTrait, Dimensions, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
+    MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
+    TriangleTrait,
 };
 use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer};
 
@@ -42,16 +43,17 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// [fgb::MultiPolygon]: flatgeobuf::GeometryType::MultiPolygon
 /// [fgb::Unknown]: flatgeobuf::GeometryType::Unknown
 ///
-/// - –: Fails with [`Error::Geozero`]. So do a `GeometryCollection` source
-///   for every target, and every source for a `GeometryCollection` target.
+/// - –: Fails with [`Error::Geozero`].
 /// - promoted: Fails by default. With
 ///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
 ///   multi type with one member.
 ///
 /// # Limitations
 ///
-// TODO: ZとMも今回対応した方が良い。
-/// - Only x and y are written, and Z and M are dropped.
+/// - `GeometryCollection` is not supported, neither as a source nor as the
+///   layer geometry type.
+/// - A `Rect` with Z or M fails with [`Error::Geozero`], as the corners
+///   other than min and max have no definite Z or M.
 // TODO: エラーとしてハンドリングしたい。
 /// - The type of a column is fixed by the first value of its key. A later
 ///   value of another type, such as `i64` after `i32`, is written without an
@@ -104,6 +106,8 @@ impl LayerSerializer {
                 code: options.epsg,
                 ..Default::default()
             },
+            has_z: options.has_z,
+            has_m: options.has_m,
             title: options.title,
             description: options.description,
             metadata: options.metadata,
@@ -207,9 +211,12 @@ impl LayerSerializer {
 pub struct LayerOptions<'a> {
     name: &'a str,
     geometry_type: flatgeobuf::GeometryType,
+    // TODO: ここから下は、flatgeobufの型をwrapするだけで良いような？
     epsg: i32,
     index: bool,
     promote_to_multi: bool,
+    has_z: bool,
+    has_m: bool,
     title: Option<&'a str>,
     description: Option<&'a str>,
     metadata: Option<&'a str>,
@@ -231,6 +238,8 @@ impl<'a> LayerOptions<'a> {
             index: true,
             // Unlike flatgeobuf crate, following GDAL (PROMOTE_TO_MULTI).
             promote_to_multi: false,
+            has_z: false,
+            has_m: false,
             title: None,
             description: None,
             metadata: None,
@@ -274,6 +283,18 @@ impl<'a> LayerOptions<'a> {
     /// See [Geometry types](LayerSerializer#geometry-types).
     pub fn promote_to_multi(&mut self, promote_to_multi: bool) -> &mut Self {
         self.promote_to_multi = promote_to_multi;
+        self
+    }
+
+    /// Sets whether geometries have Z. Defaults to `false`.
+    pub fn has_z(&mut self, has_z: bool) -> &mut Self {
+        self.has_z = has_z;
+        self
+    }
+
+    /// Sets whether geometries have M. Defaults to `false`.
+    pub fn has_m(&mut self, has_m: bool) -> &mut Self {
+        self.has_m = has_m;
         self
     }
 
@@ -357,7 +378,13 @@ fn process_coord(
     idx: usize,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
-    processor.xy(coord.x(), coord.y(), idx)
+    let (z, m) = match coord.dim() {
+        Dimensions::Xyz => (coord.nth(2), None),
+        Dimensions::Xym => (None, coord.nth(2)),
+        Dimensions::Xyzm => (coord.nth(2), coord.nth(3)),
+        _ => (None, None),
+    };
+    processor.coordinate(coord.x(), coord.y(), z, m, None, None, idx)
 }
 
 fn process_point(
@@ -459,6 +486,12 @@ fn process_rect(
     rect: &impl RectTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+    // Like wkt crate, as the corners other than min and max have no definite Z or M.
+    if !matches!(rect.dim(), Dimensions::Xy | Dimensions::Unknown(2)) {
+        return Err(flatgeobuf::geozero::error::GeozeroError::Geometry(
+            "Rect with Z or M is not supported".to_string(),
+        ));
+    }
     let min = rect.min();
     let max = rect.max();
     // Rect → Polygon with 5 coords (closed ring)
@@ -483,10 +516,10 @@ fn process_triangle(
     // Triangle → Polygon with 4 coords (closed ring)
     processor.polygon_begin(true, 1, 0)?;
     processor.linestring_begin(false, 4, 0)?;
-    processor.xy(first.x(), first.y(), 0)?;
-    processor.xy(second.x(), second.y(), 1)?;
-    processor.xy(third.x(), third.y(), 2)?;
-    processor.xy(first.x(), first.y(), 3)?;
+    process_coord(&first, 0, processor)?;
+    process_coord(&second, 1, processor)?;
+    process_coord(&third, 2, processor)?;
+    process_coord(&first, 3, processor)?;
     processor.linestring_end(false, 0)?;
     processor.polygon_end(true, 0)
 }
@@ -498,8 +531,8 @@ fn process_line(
     processor.linestring_begin(true, 2, 0)?;
     let start = line.start();
     let end = line.end();
-    processor.xy(start.x(), start.y(), 0)?;
-    processor.xy(end.x(), end.y(), 1)?;
+    process_coord(&start, 0, processor)?;
+    process_coord(&end, 1, processor)?;
     processor.linestring_end(true, 0)
 }
 

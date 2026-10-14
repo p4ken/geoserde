@@ -421,3 +421,70 @@ fn unknown_layer_takes_first_type() -> anyhow::Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn ser_z_and_m() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::LineString)
+        .index(false)
+        .has_z(true)
+        .has_m(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "h".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::dim_ls(geo_traits::Dimensions::Xyzm), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert!(fgb_reader.header().has_z());
+    assert!(fgb_reader.header().has_m());
+    let mut fgb_iter = fgb_reader.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry().unwrap();
+        assert_eq!(
+            geom.xy().unwrap().iter().collect::<Vec<_>>(),
+            [0.0, 0.1, 1.0, 1.1]
+        );
+        assert_eq!(geom.z().unwrap().iter().collect::<Vec<_>>(), [0.2, 1.2]);
+        assert_eq!(geom.m().unwrap().iter().collect::<Vec<_>>(), [0.3, 1.3]);
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_m_without_z() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::LineString)
+        .index(false)
+        .has_m(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "i".into(),
+        count: 0,
+    };
+    let mut ls = testing::dim_ls(geo_traits::Dimensions::Xym);
+    // The third value is M for Xym.
+    ls.0[0].values[2] = 9.0;
+    ser.serialize_feature(ls, &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry().unwrap();
+        assert!(geom.z().is_none());
+        assert_eq!(geom.m().unwrap().iter().collect::<Vec<_>>(), [9.0, 1.2]);
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
