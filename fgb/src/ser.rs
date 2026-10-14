@@ -137,7 +137,7 @@ impl LayerSerializer {
         })
     }
 
-    /// Serializes a single feature (geometry + properties) to the writer.
+    /// Serializes a feature from a geometry and a properties struct.
     ///
     /// # Errors
     ///

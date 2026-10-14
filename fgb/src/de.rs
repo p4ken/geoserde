@@ -6,8 +6,7 @@ use geoserde::DeserializeGeometry;
 use geoserde::de::{GeometryError, GeometryOptions};
 use serde::de::IntoDeserializer;
 
-// TODO: 当時のAGENTS.mdに features = geometry + properties と書いてあったのに釣られすぎ。
-/// Deserializes features (geometry + properties) from a FlatGeobuf source.
+/// FlatGeobuf feature deserializer.
 ///
 /// # Example
 ///
