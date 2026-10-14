@@ -219,6 +219,7 @@ impl LayerSerializer {
 /// # }
 /// ```
 #[derive(Debug, Clone)]
+// TODO: stringを参照に変える。
 pub struct LayerOptions {
     name: String,
     geometry_type: flatgeobuf::GeometryType,
@@ -253,7 +254,7 @@ impl LayerOptions {
     }
 
     /// Sets the layer name. Defaults to empty.
-    pub fn name(mut self, name: impl Into<String>) -> Self {
+    pub fn name(&mut self, name: impl Into<String>) -> &mut Self {
         self.name = name.into();
         self
     }
@@ -262,14 +263,14 @@ impl LayerOptions {
     /// [`Unknown`](flatgeobuf::GeometryType::Unknown).
     ///
     /// See [Geometry types](LayerSerializer#geometry-types).
-    pub fn geometry_type(mut self, geometry_type: flatgeobuf::GeometryType) -> Self {
+    pub fn geometry_type(&mut self, geometry_type: flatgeobuf::GeometryType) -> &mut Self {
         self.geometry_type = geometry_type;
         self
     }
 
     /// Sets the EPSG code of the coordinate reference system. Defaults to
     /// unknown.
-    pub fn epsg(mut self, code: i32) -> Self {
+    pub fn epsg(&mut self, code: i32) -> &mut Self {
         self.epsg = code;
         self
     }
@@ -278,7 +279,7 @@ impl LayerOptions {
     ///
     /// With the index, features are sorted along a Hilbert curve, so they are
     /// not read in the order they were written.
-    pub fn index(mut self, index: bool) -> Self {
+    pub fn index(&mut self, index: bool) -> &mut Self {
         self.index = index;
         self
     }
@@ -287,25 +288,25 @@ impl LayerOptions {
     /// member. Defaults to `false`, unlike [`flatgeobuf::FgbWriterOptions`].
     ///
     /// See [Geometry types](LayerSerializer#geometry-types).
-    pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
+    pub fn promote_to_multi(&mut self, promote_to_multi: bool) -> &mut Self {
         self.promote_to_multi = promote_to_multi;
         self
     }
 
     /// Sets the layer title.
-    pub fn title(mut self, title: impl Into<String>) -> Self {
+    pub fn title(&mut self, title: impl Into<String>) -> &mut Self {
         self.title = Some(title.into());
         self
     }
 
     /// Sets the layer description.
-    pub fn description(mut self, description: impl Into<String>) -> Self {
+    pub fn description(&mut self, description: impl Into<String>) -> &mut Self {
         self.description = Some(description.into());
         self
     }
 
     /// Sets the application specific metadata of the layer.
-    pub fn metadata(mut self, metadata: impl Into<String>) -> Self {
+    pub fn metadata(&mut self, metadata: impl Into<String>) -> &mut Self {
         self.metadata = Some(metadata.into());
         self
     }

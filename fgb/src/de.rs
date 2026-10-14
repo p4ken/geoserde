@@ -74,16 +74,16 @@ impl<R: Read + Seek> LayerDeserializer<R> {
     ///
     /// Returns [`Error::Fgb`] if the FlatGeobuf header is invalid.
     pub fn new(reader: R) -> Result<Self, Error> {
-        Self::with_options(reader, LayerOptions::new())
+        Self::with_options(reader, &LayerOptions::new())
     }
 
-    fn with_options(reader: R, options: LayerOptions) -> Result<Self, Error> {
+    fn with_options(reader: R, options: &LayerOptions) -> Result<Self, Error> {
         let fgb_iter = flatgeobuf::FgbReader::open(reader)?.select_all()?;
         let header = fgb_iter.header().into();
         Ok(Self {
             fgb_iter,
             header,
-            geometry_options: options.geometry,
+            geometry_options: options.geometry.clone(),
         })
     }
 
@@ -162,7 +162,7 @@ impl LayerOptions {
     /// member. Defaults to `false`.
     ///
     /// See [Geometry type conversion](geoserde::de#geometry-type-conversion).
-    pub fn promote_to_multi(mut self, promote_to_multi: bool) -> Self {
+    pub fn promote_to_multi(&mut self, promote_to_multi: bool) -> &mut Self {
         self.geometry.set_promote_to_multi(promote_to_multi);
         self
     }
@@ -175,7 +175,7 @@ impl LayerOptions {
     /// # Errors
     ///
     /// Returns [`Error::Fgb`] if the FlatGeobuf header is invalid.
-    pub fn open<R: Read + Seek>(self, reader: R) -> Result<LayerDeserializer<R>, Error> {
+    pub fn open<R: Read + Seek>(&self, reader: R) -> Result<LayerDeserializer<R>, Error> {
         LayerDeserializer::with_options(reader, self)
     }
 
