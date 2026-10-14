@@ -102,6 +102,53 @@ fn mismatched_geometry_discarded() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A value of another type than its column is rejected, and leaves nothing behind for the
+/// next feature.
+#[test]
+fn mismatched_column_type_discarded() -> anyhow::Result<()> {
+    use flatgeobuf::FallibleStreamingIterator;
+
+    #[derive(Serialize)]
+    struct Props<T> {
+        a: T,
+        b: i32,
+    }
+
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    ser.serialize_feature(testing::p(0), &Props { a: 1_i32, b: 1 })?;
+    let err = ser
+        .serialize_feature(testing::p(1), &Props { a: 2_i64, b: 2 })
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        geoserde_fgb::ser::Error::MismatchedColumnType {
+            ref key,
+            expected: flatgeobuf::ColumnType::Int,
+            found: flatgeobuf::ColumnType::Long,
+        } if key == "a"
+    ));
+    ser.serialize_feature(testing::p(2), &Props { a: 3_i32, b: 3 })?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?.select_all()?;
+    for expected in ["1", "3"] {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+        assert_eq!(
+            props,
+            std::collections::HashMap::from([
+                ("a".to_string(), expected.to_string()),
+                ("b".to_string(), expected.to_string()),
+            ])
+        );
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
 /// Without promote_to_multi, a LineString cannot be written to a MultiLineString layer.
 #[test]
 fn not_promoted_rejected() {

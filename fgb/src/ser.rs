@@ -21,6 +21,10 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// Each property is written as a column. Nested properties are flattened into
 /// columns as described in [`geoserde::ser`].
 ///
+/// The type of a column is fixed by the first value of its key. A later value
+/// of another type, such as `i64` after `i32`, fails with
+/// [`Error::MismatchedColumnType`].
+///
 /// # Geometry types
 ///
 /// Whether a geometry can be written depends on the
@@ -47,16 +51,9 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// - promoted: Fails by default. With
 ///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
 ///   multi type with one member.
-///
-/// # Limitations
-///
-// TODO: エラーとしてハンドリングしたい。
-/// - The type of a column is fixed by the first value of its key. A later
-///   value of another type, such as `i64` after `i32`, is written without an
-///   error, and the file is corrupted.
 pub struct LayerSerializer {
     writer: flatgeobuf::FgbWriter<'static>,
-    known_key: Vec<Cow<'static, str>>,
+    columns: Vec<(Cow<'static, str>, flatgeobuf::ColumnType)>,
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
     promote_point_to_multi: bool,
 }
@@ -65,7 +62,7 @@ impl std::fmt::Debug for LayerSerializer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // `flatgeobuf::FgbWriter` does not implement `Debug`.
         f.debug_struct("LayerSerializer")
-            .field("known_key", &self.known_key)
+            .field("columns", &self.columns)
             .field("pending", &self.pending)
             .field("promote_point_to_multi", &self.promote_point_to_multi)
             .finish_non_exhaustive()
@@ -102,7 +99,7 @@ impl LayerSerializer {
         )?;
         Ok(Self {
             writer,
-            known_key: Vec::new(),
+            columns: Vec::new(),
             pending: Vec::new(),
             promote_point_to_multi,
         })
@@ -135,8 +132,8 @@ impl LayerSerializer {
         }
         for (key, value) in self.pending.drain(..) {
             let column_value = to_column_value(&value).expect("checked in serialize_property");
-            let index_of_key = self.known_key.iter().position(|k| k == &key);
-            let index_to_write = index_of_key.unwrap_or(self.known_key.len());
+            let index_of_key = self.columns.iter().position(|(k, _)| *k == key);
+            let index_to_write = index_of_key.unwrap_or(self.columns.len());
             flatgeobuf::geozero::PropertyProcessor::property(
                 &mut self.writer,
                 index_to_write,
@@ -144,7 +141,7 @@ impl LayerSerializer {
                 &column_value,
             )?;
             if index_of_key.is_none() {
-                self.known_key.push(key);
+                self.columns.push((key, column_type(&column_value)));
             }
         }
         flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0)?;
@@ -324,8 +321,19 @@ impl SerializeProperties for &mut LayerSerializer {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
-        if to_column_value(&value).is_none() {
+        let Some(column_value) = to_column_value(&value) else {
             return Err(Error::UnsupportedFieldValue(value.into_owned()));
+        };
+        let found = column_type(&column_value);
+        // FgbWriter writes a value of another type as is, and corrupts the file.
+        if let Some(&(_, expected)) = self.columns.iter().find(|(k, _)| *k == key)
+            && expected != found
+        {
+            return Err(Error::MismatchedColumnType {
+                key,
+                expected,
+                found,
+            });
         }
         self.pending.push((key, value.into_owned()));
         Ok(())
@@ -546,6 +554,28 @@ fn to_column_value<'a>(source: &'a FieldValue<'_>) -> Option<flatgeobuf::geozero
     Some(column_value)
 }
 
+// Same as flatgeobuf::feature_writer::prop_type, which is private, and by which FgbWriter
+// declares a column.
+fn column_type(value: &flatgeobuf::geozero::ColumnValue<'_>) -> flatgeobuf::ColumnType {
+    match value {
+        flatgeobuf::geozero::ColumnValue::Byte(_) => flatgeobuf::ColumnType::Byte,
+        flatgeobuf::geozero::ColumnValue::UByte(_) => flatgeobuf::ColumnType::UByte,
+        flatgeobuf::geozero::ColumnValue::Bool(_) => flatgeobuf::ColumnType::Bool,
+        flatgeobuf::geozero::ColumnValue::Short(_) => flatgeobuf::ColumnType::Short,
+        flatgeobuf::geozero::ColumnValue::UShort(_) => flatgeobuf::ColumnType::UShort,
+        flatgeobuf::geozero::ColumnValue::Int(_) => flatgeobuf::ColumnType::Int,
+        flatgeobuf::geozero::ColumnValue::UInt(_) => flatgeobuf::ColumnType::UInt,
+        flatgeobuf::geozero::ColumnValue::Long(_) => flatgeobuf::ColumnType::Long,
+        flatgeobuf::geozero::ColumnValue::ULong(_) => flatgeobuf::ColumnType::ULong,
+        flatgeobuf::geozero::ColumnValue::Float(_) => flatgeobuf::ColumnType::Float,
+        flatgeobuf::geozero::ColumnValue::Double(_) => flatgeobuf::ColumnType::Double,
+        flatgeobuf::geozero::ColumnValue::String(_) => flatgeobuf::ColumnType::String,
+        flatgeobuf::geozero::ColumnValue::Json(_) => flatgeobuf::ColumnType::Json,
+        flatgeobuf::geozero::ColumnValue::DateTime(_) => flatgeobuf::ColumnType::DateTime,
+        flatgeobuf::geozero::ColumnValue::Binary(_) => flatgeobuf::ColumnType::Binary,
+    }
+}
+
 /// Error returned when writing features to a FlatGeobuf writer.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -558,6 +588,15 @@ pub enum Error {
     Table(TableError<Infallible>),
     /// A property value has no corresponding FlatGeobuf column type.
     UnsupportedFieldValue(FieldValue<'static>),
+    /// A property value has a type other than that of its column.
+    MismatchedColumnType {
+        /// The key of the property.
+        key: Cow<'static, str>,
+        /// The type of the column.
+        expected: flatgeobuf::ColumnType,
+        /// The type of the value.
+        found: flatgeobuf::ColumnType,
+    },
     /// The geometry is not supported.
     UnsupportedGeometry(&'static str),
 }
@@ -590,6 +629,14 @@ impl std::fmt::Display for Error {
             Self::Geozero(_) => f.write_str("geozero processing failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
+            Self::MismatchedColumnType {
+                key,
+                expected,
+                found,
+            } => write!(
+                f,
+                "column type mismatch: `{key}` is {expected:?}, but got {found:?}"
+            ),
             Self::UnsupportedGeometry(g) => write!(f, "unsupported geometry: {g}"),
         }
     }
@@ -601,7 +648,9 @@ impl std::error::Error for Error {
             Self::Fgb(e) => Some(e),
             Self::Geozero(e) => Some(e),
             Self::Table(e) => Some(e),
-            Self::UnsupportedFieldValue(_) | Self::UnsupportedGeometry(_) => None,
+            Self::UnsupportedFieldValue(_)
+            | Self::MismatchedColumnType { .. }
+            | Self::UnsupportedGeometry(_) => None,
         }
     }
 }
