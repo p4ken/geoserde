@@ -90,29 +90,15 @@ impl LayerSerializer {
     fn with_options(options: &LayerOptions<'_>) -> Result<Self, Error> {
         // FgbWriter promotes LineString and Polygon only. Promote Point likewise, also in an
         // Unknown layer, which then takes the type of the promoted first feature.
-        let promote_point_to_multi = options.promote_to_multi
+        let promote_point_to_multi = options.fgb.promote_to_multi
             && matches!(
                 options.geometry_type,
                 flatgeobuf::GeometryType::MultiPoint | flatgeobuf::GeometryType::Unknown
             );
-        let fgb_options = flatgeobuf::FgbWriterOptions {
-            write_index: options.index,
-            promote_to_multi: options.promote_to_multi,
-            crs: flatgeobuf::FgbCrs {
-                code: options.epsg,
-                ..Default::default()
-            },
-            has_z: options.has_z,
-            has_m: options.has_m,
-            title: options.title,
-            description: options.description,
-            metadata: options.metadata,
-            ..Default::default()
-        };
         let writer = flatgeobuf::FgbWriter::create_with_options(
             options.name,
             options.geometry_type,
-            fgb_options,
+            copy_fgb_options(&options.fgb),
         )?;
         Ok(Self {
             writer,
@@ -203,19 +189,30 @@ impl LayerSerializer {
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LayerOptions<'a> {
     name: &'a str,
     geometry_type: flatgeobuf::GeometryType,
-    // TODO: ここから下は、flatgeobufの型をwrapするだけで良いような？
-    epsg: i32,
-    index: bool,
-    promote_to_multi: bool,
-    has_z: bool,
-    has_m: bool,
-    title: Option<&'a str>,
-    description: Option<&'a str>,
-    metadata: Option<&'a str>,
+    fgb: flatgeobuf::FgbWriterOptions<'a>,
+}
+
+impl Clone for LayerOptions<'_> {
+    fn clone(&self) -> Self {
+        Self {
+            fgb: copy_fgb_options(&self.fgb),
+            ..*self
+        }
+    }
+}
+
+// FgbWriterOptions is not Clone, but all of its fields are Copy.
+fn copy_fgb_options<'a>(
+    options: &flatgeobuf::FgbWriterOptions<'a>,
+) -> flatgeobuf::FgbWriterOptions<'a> {
+    flatgeobuf::FgbWriterOptions {
+        crs: flatgeobuf::FgbCrs { ..options.crs },
+        ..*options
+    }
 }
 
 impl Default for LayerOptions<'_> {
@@ -230,15 +227,11 @@ impl<'a> LayerOptions<'a> {
         Self {
             name: "",
             geometry_type: flatgeobuf::GeometryType::Unknown,
-            epsg: 0,
-            index: true,
-            // Unlike flatgeobuf crate, following GDAL (PROMOTE_TO_MULTI).
-            promote_to_multi: false,
-            has_z: false,
-            has_m: false,
-            title: None,
-            description: None,
-            metadata: None,
+            fgb: flatgeobuf::FgbWriterOptions {
+                // Unlike flatgeobuf crate, following GDAL (PROMOTE_TO_MULTI).
+                promote_to_multi: false,
+                ..Default::default()
+            },
         }
     }
 
@@ -260,7 +253,7 @@ impl<'a> LayerOptions<'a> {
     /// Sets the EPSG code of the coordinate reference system. Defaults to
     /// unknown.
     pub fn epsg(&mut self, code: i32) -> &mut Self {
-        self.epsg = code;
+        self.fgb.crs.code = code;
         self
     }
 
@@ -269,7 +262,7 @@ impl<'a> LayerOptions<'a> {
     /// With the index, features are sorted along a Hilbert curve, so they are
     /// not read in the order they were written.
     pub fn index(&mut self, index: bool) -> &mut Self {
-        self.index = index;
+        self.fgb.write_index = index;
         self
     }
 
@@ -278,37 +271,37 @@ impl<'a> LayerOptions<'a> {
     ///
     /// See [Geometry types](LayerSerializer#geometry-types).
     pub fn promote_to_multi(&mut self, promote_to_multi: bool) -> &mut Self {
-        self.promote_to_multi = promote_to_multi;
+        self.fgb.promote_to_multi = promote_to_multi;
         self
     }
 
     /// Sets whether geometries have Z. Defaults to `false`.
     pub fn has_z(&mut self, has_z: bool) -> &mut Self {
-        self.has_z = has_z;
+        self.fgb.has_z = has_z;
         self
     }
 
     /// Sets whether geometries have M. Defaults to `false`.
     pub fn has_m(&mut self, has_m: bool) -> &mut Self {
-        self.has_m = has_m;
+        self.fgb.has_m = has_m;
         self
     }
 
     /// Sets the layer title.
     pub fn title(&mut self, title: &'a str) -> &mut Self {
-        self.title = Some(title);
+        self.fgb.title = Some(title);
         self
     }
 
     /// Sets the layer description.
     pub fn description(&mut self, description: &'a str) -> &mut Self {
-        self.description = Some(description);
+        self.fgb.description = Some(description);
         self
     }
 
     /// Sets the application specific metadata of the layer.
     pub fn metadata(&mut self, metadata: &'a str) -> &mut Self {
-        self.metadata = Some(metadata);
+        self.fgb.metadata = Some(metadata);
         self
     }
 
