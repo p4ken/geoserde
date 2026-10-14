@@ -321,6 +321,11 @@ impl SerializeProperties for &mut LayerSerializer {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
+        // FgbWriter would write both values to the same column. The type check below
+        // misses them, as the key is not in self.columns until the feature is flushed.
+        if self.pending.iter().any(|(k, _)| *k == key) {
+            return Err(Error::DuplicateKey(key));
+        }
         let Some(column_value) = to_column_value(&value) else {
             return Err(Error::UnsupportedFieldValue(value.into_owned()));
         };
@@ -597,6 +602,8 @@ pub enum Error {
         /// The type of the value.
         found: flatgeobuf::ColumnType,
     },
+    /// A key appears more than once in a feature.
+    DuplicateKey(Cow<'static, str>),
     /// The geometry is not supported.
     UnsupportedGeometry(&'static str),
 }
@@ -637,6 +644,7 @@ impl std::fmt::Display for Error {
                 f,
                 "column type mismatch: `{key}` is {expected:?}, but got {found:?}"
             ),
+            Self::DuplicateKey(key) => write!(f, "duplicate key: `{key}`"),
             Self::UnsupportedGeometry(g) => write!(f, "unsupported geometry: {g}"),
         }
     }
@@ -650,6 +658,7 @@ impl std::error::Error for Error {
             Self::Table(e) => Some(e),
             Self::UnsupportedFieldValue(_)
             | Self::MismatchedColumnType { .. }
+            | Self::DuplicateKey(_)
             | Self::UnsupportedGeometry(_) => None,
         }
     }

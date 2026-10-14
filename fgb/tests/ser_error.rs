@@ -149,6 +149,53 @@ fn mismatched_column_type_discarded() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A key that appears twice in a feature is rejected, and leaves nothing behind for the next
+/// feature.
+#[test]
+fn duplicate_key_discarded() -> anyhow::Result<()> {
+    use flatgeobuf::FallibleStreamingIterator;
+
+    #[derive(Serialize)]
+    struct Props {
+        a: i32,
+        #[serde(flatten)]
+        extra: std::collections::BTreeMap<String, i32>,
+    }
+
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    let dup = Props {
+        a: 1,
+        extra: [("a".to_string(), 1)].into(),
+    };
+    let err = ser.serialize_feature(testing::p(0), &dup).unwrap_err();
+    assert!(matches!(
+        err,
+        geoserde_fgb::ser::Error::DuplicateKey(ref key) if key == "a"
+    ));
+    let good = Props {
+        a: 2,
+        extra: [("b".to_string(), 2)].into(),
+    };
+    ser.serialize_feature(testing::p(1), &good)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(std::io::Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(
+        props,
+        std::collections::HashMap::from([
+            ("a".to_string(), "2".to_string()),
+            ("b".to_string(), "2".to_string()),
+        ])
+    );
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
 /// Without promote_to_multi, a LineString cannot be written to a MultiLineString layer.
 #[test]
 fn not_promoted_rejected() {
