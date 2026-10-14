@@ -100,11 +100,11 @@ impl LayerSerializer {
     }
 
     /// Creates a new [`LayerOptions`] to build a `LayerSerializer` with.
-    pub fn options() -> LayerOptions {
+    pub fn options<'a>() -> LayerOptions<'a> {
         LayerOptions::new()
     }
 
-    fn with_options(options: &LayerOptions) -> Result<Self, Error> {
+    fn with_options(options: &LayerOptions<'_>) -> Result<Self, Error> {
         // FgbWriter promotes LineString and Polygon only. Promote Point likewise, also in an
         // Unknown layer, which then takes the type of the promoted first feature.
         let promote_point_to_multi = options.promote_to_multi
@@ -119,13 +119,13 @@ impl LayerSerializer {
                 code: options.epsg,
                 ..Default::default()
             },
-            title: options.title.as_deref(),
-            description: options.description.as_deref(),
-            metadata: options.metadata.as_deref(),
+            title: options.title,
+            description: options.description,
+            metadata: options.metadata,
             ..Default::default()
         };
         let writer = flatgeobuf::FgbWriter::create_with_options(
-            &options.name,
+            options.name,
             options.geometry_type,
             fgb_options,
         )?;
@@ -219,29 +219,28 @@ impl LayerSerializer {
 /// # }
 /// ```
 #[derive(Debug, Clone)]
-// TODO: stringを参照に変える。
-pub struct LayerOptions {
-    name: String,
+pub struct LayerOptions<'a> {
+    name: &'a str,
     geometry_type: flatgeobuf::GeometryType,
     epsg: i32,
     index: bool,
     promote_to_multi: bool,
-    title: Option<String>,
-    description: Option<String>,
-    metadata: Option<String>,
+    title: Option<&'a str>,
+    description: Option<&'a str>,
+    metadata: Option<&'a str>,
 }
 
-impl Default for LayerOptions {
+impl Default for LayerOptions<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl LayerOptions {
+impl<'a> LayerOptions<'a> {
     /// Creates a new `LayerOptions` with the default options.
     pub fn new() -> Self {
         Self {
-            name: String::new(),
+            name: "",
             geometry_type: flatgeobuf::GeometryType::Unknown,
             epsg: 0,
             index: true,
@@ -254,8 +253,8 @@ impl LayerOptions {
     }
 
     /// Sets the layer name. Defaults to empty.
-    pub fn name(&mut self, name: impl Into<String>) -> &mut Self {
-        self.name = name.into();
+    pub fn name(&mut self, name: &'a str) -> &mut Self {
+        self.name = name;
         self
     }
 
@@ -294,20 +293,20 @@ impl LayerOptions {
     }
 
     /// Sets the layer title.
-    pub fn title(&mut self, title: impl Into<String>) -> &mut Self {
-        self.title = Some(title.into());
+    pub fn title(&mut self, title: &'a str) -> &mut Self {
+        self.title = Some(title);
         self
     }
 
     /// Sets the layer description.
-    pub fn description(&mut self, description: impl Into<String>) -> &mut Self {
-        self.description = Some(description.into());
+    pub fn description(&mut self, description: &'a str) -> &mut Self {
+        self.description = Some(description);
         self
     }
 
     /// Sets the application specific metadata of the layer.
-    pub fn metadata(&mut self, metadata: impl Into<String>) -> &mut Self {
-        self.metadata = Some(metadata.into());
+    pub fn metadata(&mut self, metadata: &'a str) -> &mut Self {
+        self.metadata = Some(metadata);
         self
     }
 
