@@ -26,25 +26,24 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// Whether a geometry can be written depends on the
 /// [`geometry_type`](LayerOptions::geometry_type) of the layer.
 ///
-/// | Source \ Target                                                                                                                            | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] | [`MultiPolygon`] | [`GeometryCollection`] | [`Unknown`] |
-/// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------- | -------------- | ------------------- | ----------- | ---------------- | ---------------------- | ----------- |
-/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok        | promoted       | –              | –                   | –           | –                | –                      | promoted    |
-/// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –         | ok             | –              | –                   | –           | –                | –                      | ok          |
-/// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –         | –              | ok             | promoted            | –           | –                | –                      | promoted    |
-/// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –         | –              | –              | ok                  | –           | –                | –                      | ok          |
-/// | [`Polygon`](geo_traits::GeometryType::Polygon), [`Rect`](geo_traits::GeometryType::Rect), [`Triangle`](geo_traits::GeometryType::Triangle) | –         | –              | –              | –                   | ok          | promoted         | –                      | promoted    |
-/// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –         | –              | –              | –                   | –           | ok               | –                      | ok          |
-/// | [`GeometryCollection`](geo_traits::GeometryType::GeometryCollection)                                                                       | members   | members        | members        | members             | members     | members          | –                      | members     |
+/// | Source \ Target                                                                                                                            | [`Point`][fgb::Point] | [`MultiPoint`][fgb::MultiPoint] | [`LineString`][fgb::LineString] | [`MultiLineString`][fgb::MultiLineString] | [`Polygon`][fgb::Polygon] | [`MultiPolygon`][fgb::MultiPolygon] | [`GeometryCollection`][fgb::GeometryCollection] | [`Unknown`][fgb::Unknown] |
+/// | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | ------------------------------- | ------------------------------- | ----------------------------------------- | ------------------------- | ----------------------------------- | ----------------------------------------------- | ------------------------- |
+/// | [`Point`](geo_traits::GeometryType::Point)                                                                                                 | ok                    | promoted                        | –                               | –                                         | –                         | –                                   | –                                               | promoted                  |
+/// | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)                                                                                       | –                     | ok                              | –                               | –                                         | –                         | –                                   | –                                               | ok                        |
+/// | [`LineString`](geo_traits::GeometryType::LineString), [`Line`](geo_traits::GeometryType::Line)                                             | –                     | –                               | ok                              | promoted                                  | –                         | –                                   | –                                               | promoted                  |
+/// | [`MultiLineString`](geo_traits::GeometryType::MultiLineString)                                                                             | –                     | –                               | –                               | ok                                        | –                         | –                                   | –                                               | ok                        |
+/// | [`Polygon`](geo_traits::GeometryType::Polygon), [`Rect`](geo_traits::GeometryType::Rect), [`Triangle`](geo_traits::GeometryType::Triangle) | –                     | –                               | –                               | –                                         | ok                        | promoted                            | –                                               | promoted                  |
+/// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –                     | –                               | –                               | –                                         | –                         | ok                                  | –                                               | ok                        |
+/// | [`GeometryCollection`](geo_traits::GeometryType::GeometryCollection)                                                                       | members               | members                         | members                         | members                                   | members                   | members                             | –                                               | members                   |
 ///
-// TODO: 名前被りにヒヤヒヤするが、他の書き方はないか。
-/// [`Point`]: flatgeobuf::GeometryType::Point
-/// [`MultiPoint`]: flatgeobuf::GeometryType::MultiPoint
-/// [`LineString`]: flatgeobuf::GeometryType::LineString
-/// [`MultiLineString`]: flatgeobuf::GeometryType::MultiLineString
-/// [`Polygon`]: flatgeobuf::GeometryType::Polygon
-/// [`MultiPolygon`]: flatgeobuf::GeometryType::MultiPolygon
-/// [`GeometryCollection`]: flatgeobuf::GeometryType::GeometryCollection
-/// [`Unknown`]: flatgeobuf::GeometryType::Unknown
+/// [fgb::Point]: flatgeobuf::GeometryType::Point
+/// [fgb::MultiPoint]: flatgeobuf::GeometryType::MultiPoint
+/// [fgb::LineString]: flatgeobuf::GeometryType::LineString
+/// [fgb::MultiLineString]: flatgeobuf::GeometryType::MultiLineString
+/// [fgb::Polygon]: flatgeobuf::GeometryType::Polygon
+/// [fgb::MultiPolygon]: flatgeobuf::GeometryType::MultiPolygon
+/// [fgb::GeometryCollection]: flatgeobuf::GeometryType::GeometryCollection
+/// [fgb::Unknown]: flatgeobuf::GeometryType::Unknown
 ///
 /// - –: Fails with [`Error::Geozero`].
 /// - promoted: Fails by default. With

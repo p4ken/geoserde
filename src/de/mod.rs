@@ -1,5 +1,4 @@
 //! Geometry deserialization from [`geo_traits`] sources.
-//!
 //! The central trait is [`DeserializeGeometry`], which converts a
 //! [`GeometryTrait`](geo_traits::GeometryTrait) value into a concrete Rust type.
 //! When the `geo-types` feature is enabled, implementations are provided for the
@@ -10,19 +9,13 @@
 //! The [`geo_types`] implementations accept a source of the same geometry
 //! type only, unless [`GeometryOptions`] allows otherwise.
 //!
-//! | Source \ Target                                                | [`Point`] | [`MultiPoint`] | [`LineString`] | [`MultiLineString`] | [`Polygon`] |
-//! | -------------------------------------------------------------- | --------- | -------------- | -------------- | ------------------- | ----------- |
-//! | [`Point`](geo_traits::GeometryType::Point)                     | ok        | promoted       | –              | –                   | –           |
-//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | –         | ok             | –              | –                   | –           |
-//! | [`LineString`](geo_traits::GeometryType::LineString)           | –         | –              | ok             | promoted            | –           |
-//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | –         | –              | –              | ok                  | –           |
-//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | –         | –              | –              | –                   | ok          |
-//!
-//! [`Point`]: geo_types::Point
-//! [`MultiPoint`]: geo_types::MultiPoint
-//! [`LineString`]: geo_types::LineString
-//! [`MultiLineString`]: geo_types::MultiLineString
-//! [`Polygon`]: geo_types::Polygon
+//! | Source \ Target                                                | [`Point`][geo_types::Point] | [`MultiPoint`][geo_types::MultiPoint] | [`LineString`][geo_types::LineString] | [`MultiLineString`][geo_types::MultiLineString] | [`Polygon`][geo_types::Polygon] |
+//! | -------------------------------------------------------------- | --------------------------- | ------------------------------------- | ------------------------------------- | ----------------------------------------------- | ------------------------------- |
+//! | [`Point`](geo_traits::GeometryType::Point)                     | ok                          | promoted                              | –                                     | –                                               | –                               |
+//! | [`MultiPoint`](geo_traits::GeometryType::MultiPoint)           | –                           | ok                                    | –                                     | –                                               | –                               |
+//! | [`LineString`](geo_traits::GeometryType::LineString)           | –                           | –                                     | ok                                    | promoted                                        | –                               |
+//! | [`MultiLineString`](geo_traits::GeometryType::MultiLineString) | –                           | –                                     | –                                     | ok                                              | –                               |
+//! | [`Polygon`](geo_traits::GeometryType::Polygon)                 | –                           | –                                     | –                                     | –                                               | ok                              |
 //!
 //! - –: Always fails. So do `MultiPolygon`, `GeometryCollection`, `Rect`,
 //!   `Triangle` and `Line` sources for every target.
