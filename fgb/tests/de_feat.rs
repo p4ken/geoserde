@@ -310,8 +310,9 @@ fn de_promote_to_multi() -> anyhow::Result<()> {
         w.write(&mut fgb_buf)?;
     }
 
-    let options = geoserde_fgb::de::LayerOptions::new().promote_to_multi(true);
-    let mut de = geoserde_fgb::LayerDeserializer::with_options(Cursor::new(fgb_buf), options)?;
+    let mut de = geoserde_fgb::LayerDeserializer::options()
+        .promote_to_multi(true)
+        .open(Cursor::new(fgb_buf))?;
 
     #[derive(Deserialize)]
     struct NoProps {}

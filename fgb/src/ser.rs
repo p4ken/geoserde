@@ -36,6 +36,7 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// | [`MultiPolygon`](geo_traits::GeometryType::MultiPolygon)                                                                                   | –         | –              | –              | –                   | –           | ok               | –                      | ok          |
 /// | [`GeometryCollection`](geo_traits::GeometryType::GeometryCollection)                                                                       | members   | members        | members        | members             | members     | members          | –                      | members     |
 ///
+// TODO: 名前被りにヒヤヒヤするが、他の書き方はないか。
 /// [`Point`]: flatgeobuf::GeometryType::Point
 /// [`MultiPoint`]: flatgeobuf::GeometryType::MultiPoint
 /// [`LineString`]: flatgeobuf::GeometryType::LineString
@@ -95,15 +96,15 @@ impl LayerSerializer {
     ///
     /// Returns [`Error::Fgb`] if the FlatGeobuf writer cannot be set up.
     pub fn new() -> Result<Self, Error> {
-        Self::with_options(LayerOptions::new())
+        Self::with_options(&LayerOptions::new())
     }
 
-    /// Creates a new `LayerSerializer` with the given options.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Error::Fgb`] if the FlatGeobuf writer cannot be set up.
-    pub fn with_options(options: LayerOptions) -> Result<Self, Error> {
+    /// Creates a new [`LayerOptions`] to build a `LayerSerializer` with.
+    pub fn options() -> LayerOptions {
+        LayerOptions::new()
+    }
+
+    fn with_options(options: &LayerOptions) -> Result<Self, Error> {
         // FgbWriter promotes LineString and Polygon only. Promote Point likewise, also in an
         // Unknown layer, which then takes the type of the promoted first feature.
         let promote_point_to_multi = options.promote_to_multi
@@ -203,18 +204,17 @@ impl LayerSerializer {
     }
 }
 
-// TODO: ビルダーであることを明記。
-// TODO: into_serializer()みたいなのを用意するpros/consを調査。
-/// Options for writing a FlatGeobuf layer.
+/// Builder of [`LayerSerializer`], with the options for writing a FlatGeobuf
+/// layer.
 ///
 /// # Example
 ///
 /// ```
 /// # fn main() -> Result<(), geoserde_fgb::ser::Error> {
-/// let options = geoserde_fgb::ser::LayerOptions::new()
+/// let ser = geoserde_fgb::LayerSerializer::options()
 ///     .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)
-///     .epsg(4326);
-/// let ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+///     .epsg(4326)
+///     .create()?;
 /// # Ok(())
 /// # }
 /// ```
@@ -308,6 +308,15 @@ impl LayerOptions {
     pub fn metadata(mut self, metadata: impl Into<String>) -> Self {
         self.metadata = Some(metadata.into());
         self
+    }
+
+    /// Creates a new `LayerSerializer` with these options.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Fgb`] if the FlatGeobuf writer cannot be set up.
+    pub fn create(&self) -> Result<LayerSerializer, Error> {
+        LayerSerializer::with_options(self)
     }
 }
 

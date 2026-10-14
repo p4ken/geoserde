@@ -36,15 +36,15 @@ fn into_inner_keeps_features() -> anyhow::Result<()> {
 
 #[test]
 fn options_written_to_header() -> anyhow::Result<()> {
-    let options = geoserde_fgb::ser::LayerOptions::new()
+    let mut ser = geoserde_fgb::LayerSerializer::options()
         .name("layer")
         .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)
         .epsg(4326)
         .index(false)
         .title("t")
         .description("d")
-        .metadata("m");
-    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+        .metadata("m")
+        .create()?;
     ser.serialize_feature(
         testing::p(0),
         &Feat {

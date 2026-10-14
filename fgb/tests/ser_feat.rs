@@ -281,11 +281,11 @@ fn ser_multi_line_string() -> anyhow::Result<()> {
 
 #[test]
 fn line_string_promoted_to_multi() -> anyhow::Result<()> {
-    let options = geoserde_fgb::ser::LayerOptions::new()
+    let mut ser = geoserde_fgb::LayerSerializer::options()
         .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString)
         .index(false)
-        .promote_to_multi(true);
-    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+        .promote_to_multi(true)
+        .create()?;
 
     let feat = Feat {
         name: "f".into(),
@@ -312,11 +312,11 @@ fn line_string_promoted_to_multi() -> anyhow::Result<()> {
 
 #[test]
 fn point_promoted_to_multi() -> anyhow::Result<()> {
-    let options = geoserde_fgb::ser::LayerOptions::new()
+    let mut ser = geoserde_fgb::LayerSerializer::options()
         .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint)
         .index(false)
-        .promote_to_multi(true);
-    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+        .promote_to_multi(true)
+        .create()?;
 
     let feat = Feat {
         name: "f".into(),
@@ -344,10 +344,10 @@ fn point_promoted_to_multi() -> anyhow::Result<()> {
 /// With promote_to_multi, an Unknown layer takes the multi type of a first Point.
 #[test]
 fn unknown_layer_takes_promoted_point_type() -> anyhow::Result<()> {
-    let options = geoserde_fgb::ser::LayerOptions::new()
+    let mut ser = geoserde_fgb::LayerSerializer::options()
         .index(false)
-        .promote_to_multi(true);
-    let mut ser = geoserde_fgb::LayerSerializer::with_options(options)?;
+        .promote_to_multi(true)
+        .create()?;
 
     let feat = Feat {
         name: "g".into(),

@@ -50,8 +50,9 @@ pub fn fgb_writer(geom_type: flatgeobuf::GeometryType) -> flatgeobuf::FgbWriter<
 pub fn layer_ser(
     geom_type: geoserde_fgb::flatgeobuf::GeometryType,
 ) -> geoserde_fgb::LayerSerializer {
-    let options = geoserde_fgb::ser::LayerOptions::new()
+    geoserde_fgb::LayerSerializer::options()
         .geometry_type(geom_type)
-        .index(false);
-    geoserde_fgb::LayerSerializer::with_options(options).unwrap()
+        .index(false)
+        .create()
+        .unwrap()
 }
