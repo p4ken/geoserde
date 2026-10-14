@@ -43,17 +43,13 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// [fgb::MultiPolygon]: flatgeobuf::GeometryType::MultiPolygon
 /// [fgb::Unknown]: flatgeobuf::GeometryType::Unknown
 ///
-/// - –: Fails with [`Error::Geozero`].
+/// - –: Always fails. So do a `GeometryCollection` and a `Rect` with Z or M.
 /// - promoted: Fails by default. With
 ///   [`promote_to_multi`](LayerOptions::promote_to_multi), written as the
 ///   multi type with one member.
 ///
 /// # Limitations
 ///
-/// - `GeometryCollection` is not supported, neither as a source nor as the
-///   layer geometry type.
-/// - A `Rect` with Z or M fails with [`Error::Geozero`], as the corners
-///   other than min and max have no definite Z or M.
 // TODO: エラーとしてハンドリングしたい。
 /// - The type of a column is fixed by the first value of its key. A later
 ///   value of another type, such as `i64` after `i32`, is written without an
@@ -352,25 +348,24 @@ impl SerializeProperties for &mut LayerSerializer {
 fn process_geometry(
     geom: &impl GeometryTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
-) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+) -> Result<(), Error> {
     match geom.as_type() {
-        GeometryType::Point(g) => process_point(g, processor),
-        GeometryType::LineString(g) => process_line_string(g, true, 0, processor),
-        GeometryType::Polygon(g) => process_polygon(g, true, 0, processor),
-        GeometryType::MultiPoint(g) => process_multi_point(g, processor),
-        GeometryType::MultiLineString(g) => process_multi_line_string(g, processor),
-        GeometryType::MultiPolygon(g) => process_multi_polygon(g, processor),
+        GeometryType::Point(g) => process_point(g, processor)?,
+        GeometryType::LineString(g) => process_line_string(g, true, 0, processor)?,
+        GeometryType::Polygon(g) => process_polygon(g, true, 0, processor)?,
+        GeometryType::MultiPoint(g) => process_multi_point(g, processor)?,
+        GeometryType::MultiLineString(g) => process_multi_line_string(g, processor)?,
+        GeometryType::MultiPolygon(g) => process_multi_polygon(g, processor)?,
         // FgbWriter (flatgeobuf 6.0.1) drops geometrycollection_* calls, so the members would
         // be merged into one geometry, and members of mixed types corrupt the next feature.
         GeometryType::GeometryCollection(_) => {
-            Err(flatgeobuf::geozero::error::GeozeroError::Geometry(
-                "GeometryCollection is not supported".to_string(),
-            ))
+            return Err(Error::UnsupportedGeometry("GeometryCollection"));
         }
-        GeometryType::Rect(g) => process_rect(g, processor),
-        GeometryType::Triangle(g) => process_triangle(g, processor),
-        GeometryType::Line(g) => process_line(g, processor),
+        GeometryType::Rect(g) => process_rect(g, processor)?,
+        GeometryType::Triangle(g) => process_triangle(g, processor)?,
+        GeometryType::Line(g) => process_line(g, processor)?,
     }
+    Ok(())
 }
 
 fn process_coord(
@@ -485,12 +480,10 @@ fn process_multi_polygon(
 fn process_rect(
     rect: &impl RectTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
-) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+) -> Result<(), Error> {
     // Like wkt crate, as the corners other than min and max have no definite Z or M.
     if !matches!(rect.dim(), Dimensions::Xy | Dimensions::Unknown(2)) {
-        return Err(flatgeobuf::geozero::error::GeozeroError::Geometry(
-            "Rect with Z or M is not supported".to_string(),
-        ));
+        return Err(Error::UnsupportedGeometry("Rect with Z or M"));
     }
     let min = rect.min();
     let max = rect.max();
@@ -503,7 +496,8 @@ fn process_rect(
     processor.xy(min.x(), max.y(), 3)?;
     processor.xy(min.x(), min.y(), 4)?;
     processor.linestring_end(false, 0)?;
-    processor.polygon_end(true, 0)
+    processor.polygon_end(true, 0)?;
+    Ok(())
 }
 
 fn process_triangle(
@@ -571,6 +565,8 @@ pub enum Error {
     Table(TableError<Infallible>),
     /// A property value has no corresponding FlatGeobuf column type.
     UnsupportedFieldValue(FieldValue<'static>),
+    /// The geometry is not supported.
+    UnsupportedGeometry(&'static str),
 }
 
 impl From<flatgeobuf::Error> for Error {
@@ -601,6 +597,7 @@ impl std::fmt::Display for Error {
             Self::Geozero(_) => f.write_str("geozero processing failed"),
             Self::Table(_) => f.write_str("properties serialization failed"),
             Self::UnsupportedFieldValue(v) => write!(f, "unsupported field value: {v:?}"),
+            Self::UnsupportedGeometry(g) => write!(f, "unsupported geometry: {g}"),
         }
     }
 }
@@ -611,7 +608,7 @@ impl std::error::Error for Error {
             Self::Fgb(e) => Some(e),
             Self::Geozero(e) => Some(e),
             Self::Table(e) => Some(e),
-            Self::UnsupportedFieldValue(_) => None,
+            Self::UnsupportedFieldValue(_) | Self::UnsupportedGeometry(_) => None,
         }
     }
 }

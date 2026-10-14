@@ -122,7 +122,10 @@ fn geometry_collection_rejected() {
     struct NoProps {}
     let gc = geo_types::GeometryCollection::new_from(vec![testing::p(0).into()]);
     let result = ser.serialize_feature(gc, NoProps {});
-    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+    assert!(matches!(
+        result,
+        Err(geoserde_fgb::ser::Error::UnsupportedGeometry(_))
+    ));
 }
 
 /// A GeometryCollection layer rejects every geometry.
