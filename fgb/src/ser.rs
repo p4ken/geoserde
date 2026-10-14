@@ -52,9 +52,6 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 ///
 // TODO: ZとMも今回対応した方が良い。
 /// - Only x and y are written, and Z and M are dropped.
-// TODO: deの方には記載がないが、どうなのか。仕様とdocのどちがが不統一なのか。
-/// - Empty points in a `MultiPoint` are skipped. An empty `Point` is written
-///   without coordinates.
 // TODO: エラーとしてハンドリングしたい。
 /// - The type of a column is fixed by the first value of its key. A later
 ///   value of another type, such as `i64` after `i32`, is written without an
@@ -367,10 +364,11 @@ fn process_point(
     point: &impl PointTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+    let Some(coord) = point.coord() else {
+        return processor.empty_point(0);
+    };
     processor.point_begin(0)?;
-    if let Some(coord) = point.coord() {
-        process_coord(&coord, 0, processor)?;
-    }
+    process_coord(&coord, 0, processor)?;
     processor.point_end(0)
 }
 
@@ -378,10 +376,11 @@ fn process_point_as_multi(
     point: &impl PointTrait<T = f64>,
     processor: &mut impl flatgeobuf::geozero::GeomProcessor,
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
+    let Some(coord) = point.coord() else {
+        return processor.empty_point(0);
+    };
     processor.multipoint_begin(1, 0)?;
-    if let Some(coord) = point.coord() {
-        process_coord(&coord, 0, processor)?;
-    }
+    process_coord(&coord, 0, processor)?;
     processor.multipoint_end(0)
 }
 
@@ -426,6 +425,7 @@ fn process_multi_point(
 ) -> Result<(), flatgeobuf::geozero::error::GeozeroError> {
     processor.multipoint_begin(mp.num_points(), 0)?;
     for (i, point) in mp.points().enumerate() {
+        // Skipped, as geozero has no way to pass an empty member.
         if let Some(coord) = point.coord() {
             process_coord(&coord, i, processor)?;
         }

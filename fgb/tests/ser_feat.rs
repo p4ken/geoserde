@@ -252,6 +252,39 @@ fn ser_multi_point() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// An empty point in a MultiPoint is skipped.
+#[test]
+fn ser_multi_point_with_empty() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint);
+
+    let feat = Feat {
+        name: "d".into(),
+        count: 0,
+    };
+    let mp = testing::MaybeMultiPoint(vec![
+        testing::MaybePoint(Some(testing::c(0))),
+        testing::MaybePoint(None),
+        testing::MaybePoint(Some(testing::c(1))),
+    ]);
+    ser.serialize_feature(mp, &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, testing::multi_p(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
 #[test]
 fn ser_multi_line_string() -> anyhow::Result<()> {
     let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString);

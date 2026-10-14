@@ -56,3 +56,102 @@ pub fn layer_ser(
         .create()
         .unwrap()
 }
+
+/// `geo_types::Point` cannot be empty, so the source implements `PointTrait` on its own.
+#[derive(Clone, Copy)]
+pub struct MaybePoint(pub Option<geo_types::Coord>);
+
+impl geo_traits::PointTrait for MaybePoint {
+    type CoordType<'a> = geo_types::Coord;
+
+    fn coord(&self) -> Option<Self::CoordType<'_>> {
+        self.0
+    }
+}
+
+impl geo_traits::GeometryTrait for MaybePoint {
+    type T = f64;
+    type PointType<'a> = MaybePoint;
+    type LineStringType<'a> = geo_traits::UnimplementedLineString<f64>;
+    type PolygonType<'a> = geo_traits::UnimplementedPolygon<f64>;
+    type MultiPointType<'a> = geo_traits::UnimplementedMultiPoint<f64>;
+    type MultiLineStringType<'a> = geo_traits::UnimplementedMultiLineString<f64>;
+    type MultiPolygonType<'a> = geo_traits::UnimplementedMultiPolygon<f64>;
+    type GeometryCollectionType<'a> = geo_traits::UnimplementedGeometryCollection<f64>;
+    type RectType<'a> = geo_traits::UnimplementedRect<f64>;
+    type TriangleType<'a> = geo_traits::UnimplementedTriangle<f64>;
+    type LineType<'a> = geo_traits::UnimplementedLine<f64>;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn as_type(
+        &self,
+    ) -> geo_traits::GeometryType<
+        '_,
+        Self::PointType<'_>,
+        Self::LineStringType<'_>,
+        Self::PolygonType<'_>,
+        Self::MultiPointType<'_>,
+        Self::MultiLineStringType<'_>,
+        Self::MultiPolygonType<'_>,
+        Self::GeometryCollectionType<'_>,
+        Self::RectType<'_>,
+        Self::TriangleType<'_>,
+        Self::LineType<'_>,
+    > {
+        geo_traits::GeometryType::Point(self)
+    }
+}
+
+/// `geo_types::MultiPoint` cannot have an empty point either.
+pub struct MaybeMultiPoint(pub Vec<MaybePoint>);
+
+impl geo_traits::MultiPointTrait for MaybeMultiPoint {
+    type InnerPointType<'a> = MaybePoint;
+
+    fn num_points(&self) -> usize {
+        self.0.len()
+    }
+
+    unsafe fn point_unchecked(&self, i: usize) -> Self::InnerPointType<'_> {
+        self.0[i]
+    }
+}
+
+impl geo_traits::GeometryTrait for MaybeMultiPoint {
+    type T = f64;
+    type PointType<'a> = geo_traits::UnimplementedPoint<f64>;
+    type LineStringType<'a> = geo_traits::UnimplementedLineString<f64>;
+    type PolygonType<'a> = geo_traits::UnimplementedPolygon<f64>;
+    type MultiPointType<'a> = MaybeMultiPoint;
+    type MultiLineStringType<'a> = geo_traits::UnimplementedMultiLineString<f64>;
+    type MultiPolygonType<'a> = geo_traits::UnimplementedMultiPolygon<f64>;
+    type GeometryCollectionType<'a> = geo_traits::UnimplementedGeometryCollection<f64>;
+    type RectType<'a> = geo_traits::UnimplementedRect<f64>;
+    type TriangleType<'a> = geo_traits::UnimplementedTriangle<f64>;
+    type LineType<'a> = geo_traits::UnimplementedLine<f64>;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn as_type(
+        &self,
+    ) -> geo_traits::GeometryType<
+        '_,
+        Self::PointType<'_>,
+        Self::LineStringType<'_>,
+        Self::PolygonType<'_>,
+        Self::MultiPointType<'_>,
+        Self::MultiLineStringType<'_>,
+        Self::MultiPolygonType<'_>,
+        Self::GeometryCollectionType<'_>,
+        Self::RectType<'_>,
+        Self::TriangleType<'_>,
+        Self::LineType<'_>,
+    > {
+        geo_traits::GeometryType::MultiPoint(self)
+    }
+}

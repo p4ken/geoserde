@@ -135,3 +135,30 @@ fn geometry_collection_layer_rejected() {
     let result = ser.serialize_feature(testing::p(0), NoProps {});
     assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
 }
+
+/// An empty point is rejected, since FlatGeobuf cannot represent it.
+#[test]
+fn empty_point_rejected() {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    #[derive(Serialize)]
+    struct NoProps {}
+    let result = ser.serialize_feature(testing::MaybePoint(None), NoProps {});
+    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+}
+
+/// An empty point is rejected also when promoted to a MultiPoint.
+#[test]
+fn empty_point_promoted_rejected() {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint)
+        .index(false)
+        .promote_to_multi(true)
+        .create()
+        .unwrap();
+
+    #[derive(Serialize)]
+    struct NoProps {}
+    let result = ser.serialize_feature(testing::MaybePoint(None), NoProps {});
+    assert!(matches!(result, Err(geoserde_fgb::ser::Error::Geozero(_))));
+}
