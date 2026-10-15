@@ -86,6 +86,11 @@ impl<R: Read + Seek> LayerDeserializer<R> {
         })
     }
 
+    /// Returns the FlatGeobuf header.
+    pub fn header(&self) -> flatgeobuf::Header<'_> {
+        self.fgb_iter.header()
+    }
+
     /// Deserializes the next feature into a geometry and a properties struct.
     ///
     /// Returns `Ok(None)` when there are no more features.

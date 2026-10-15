@@ -323,3 +323,23 @@ fn de_promote_to_multi() -> anyhow::Result<()> {
     assert_eq!(geom, geo_types::MultiLineString::new(vec![testing::ls(0)]));
     Ok(())
 }
+
+#[test]
+fn de_header() -> anyhow::Result<()> {
+    let mut fgb_buf = Vec::new();
+    {
+        let mut w = flatgeobuf::FgbWriter::create("layer", flatgeobuf::GeometryType::Point)?;
+        Geometry::Point(testing::p(0)).process_geom(&mut w)?;
+        w.feature_end(0)?;
+        w.write(&mut fgb_buf)?;
+    }
+
+    let mut de = geoserde_fgb::LayerDeserializer::new(Cursor::new(fgb_buf))?;
+    assert_eq!(de.header().name(), Some("layer"));
+
+    #[derive(Deserialize)]
+    struct NoProps {}
+    de.features::<geo_types::Point, NoProps>().next().unwrap()?;
+    assert_eq!(de.header().features_count(), 1);
+    Ok(())
+}
