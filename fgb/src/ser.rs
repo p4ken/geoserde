@@ -1,6 +1,7 @@
 //! Writing features to FlatGeobuf.
 
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::io::Write;
 
@@ -53,9 +54,17 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 ///   multi type with one member.
 pub struct LayerSerializer {
     writer: flatgeobuf::FgbWriter<'static>,
-    columns: Vec<(Cow<'static, str>, flatgeobuf::ColumnType)>,
+    // Columns declared to the writer, by key.
+    columns: HashMap<Cow<'static, str>, DeclaredColumn>,
+    // Properties of the feature being serialized, flushed to the writer once all succeed.
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
     promote_point_to_multi: bool,
+}
+
+#[derive(Debug)]
+struct DeclaredColumn {
+    index: usize,
+    column_type: flatgeobuf::ColumnType,
 }
 
 impl std::fmt::Debug for LayerSerializer {
@@ -99,7 +108,7 @@ impl LayerSerializer {
         )?;
         Ok(Self {
             writer,
-            columns: Vec::new(),
+            columns: HashMap::new(),
             pending: Vec::new(),
             promote_point_to_multi,
         })
@@ -124,6 +133,13 @@ impl LayerSerializer {
         self.pending.clear();
         let prop_ser = TableSerializer::new(&mut *self);
         properties.serialize(prop_ser)?;
+        // FgbWriter would write both values to the same column. Checked once here, as
+        // checking each property against pending would be quadratic.
+        let mut keys: Vec<_> = self.pending.iter().map(|(key, _)| key).collect();
+        keys.sort_unstable();
+        if let Some(pair) = keys.windows(2).find(|pair| pair[0] == pair[1]) {
+            return Err(Error::DuplicateKey(pair[0].clone()));
+        }
         match geometry.as_type() {
             GeometryType::Point(p) if self.promote_point_to_multi => {
                 process_point_as_multi(p, &mut self.writer)?
@@ -132,7 +148,7 @@ impl LayerSerializer {
         }
         for (key, value) in self.pending.drain(..) {
             let column_value = to_column_value(&value).expect("checked in serialize_property");
-            let index_of_key = self.columns.iter().position(|(k, _)| *k == key);
+            let index_of_key = self.columns.get(key.as_ref()).map(|column| column.index);
             let index_to_write = index_of_key.unwrap_or(self.columns.len());
             flatgeobuf::geozero::PropertyProcessor::property(
                 &mut self.writer,
@@ -141,7 +157,11 @@ impl LayerSerializer {
                 &column_value,
             )?;
             if index_of_key.is_none() {
-                self.columns.push((key, column_type(&column_value)));
+                let column = DeclaredColumn {
+                    index: index_to_write,
+                    column_type: column_type(&column_value),
+                };
+                self.columns.insert(key, column);
             }
         }
         flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0)?;
@@ -321,22 +341,17 @@ impl SerializeProperties for &mut LayerSerializer {
         key: Cow<'static, str>,
         value: FieldValue<'_>,
     ) -> Result<(), Self::Error> {
-        // FgbWriter would write both values to the same column. The type check below
-        // misses them, as the key is not in self.columns until the feature is flushed.
-        if self.pending.iter().any(|(k, _)| *k == key) {
-            return Err(Error::DuplicateKey(key));
-        }
         let Some(column_value) = to_column_value(&value) else {
             return Err(Error::UnsupportedFieldValue(value.into_owned()));
         };
         let found = column_type(&column_value);
         // FgbWriter writes a value of another type as is, and corrupts the file.
-        if let Some(&(_, expected)) = self.columns.iter().find(|(k, _)| *k == key)
-            && expected != found
+        if let Some(column) = self.columns.get(key.as_ref())
+            && column.column_type != found
         {
             return Err(Error::MismatchedColumnType {
                 key,
-                expected,
+                expected: column.column_type,
                 found,
             });
         }
