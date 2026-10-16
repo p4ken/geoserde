@@ -232,15 +232,9 @@ fn copy_fgb_options<'a>(
     }
 }
 
-impl Default for LayerOptions<'_> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<'a> LayerOptions<'a> {
     /// Creates a new `LayerOptions` with the default options.
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             name: "",
             geometry_type: flatgeobuf::GeometryType::Unknown,

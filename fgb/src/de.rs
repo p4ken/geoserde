@@ -148,15 +148,9 @@ pub struct LayerOptions {
     geometry: GeometryOptions,
 }
 
-impl Default for LayerOptions {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LayerOptions {
     /// Creates a new `LayerOptions` with the default options.
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             geometry: GeometryOptions::new(),
         }
