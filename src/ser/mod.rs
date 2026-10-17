@@ -66,7 +66,7 @@ pub use value::FieldValue;
 
 /// An error originating from the data source during property serialization.
 #[derive(Debug, Clone)]
-pub(crate) struct SourceError(String);
+pub(super) struct SourceError(String);
 
 impl From<String> for SourceError {
     fn from(string: String) -> Self {

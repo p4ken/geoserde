@@ -441,7 +441,7 @@ pub struct KeyError {
 }
 
 impl KeyError {
-    pub(crate) fn new(parent: Option<String>, source: StringifyError) -> Self {
+    pub(super) fn new(parent: Option<String>, source: StringifyError) -> Self {
         Self { parent, source }
     }
 
@@ -474,7 +474,7 @@ pub struct ValueError {
 }
 
 impl ValueError {
-    pub(crate) fn new(key: Option<String>, source: SourceError) -> Self {
+    pub(super) fn new(key: Option<String>, source: SourceError) -> Self {
         Self { key, source }
     }
 
@@ -483,7 +483,7 @@ impl ValueError {
         self.key.as_deref()
     }
 
-    pub(crate) fn into_inner(self) -> SourceError {
+    pub(super) fn into_inner(self) -> SourceError {
         self.source
     }
 }

@@ -40,7 +40,7 @@ pub trait SerializeProperties {
 
 /// Serializer that recursively flattens nested structures into key-value pairs.
 #[derive(Debug)]
-pub struct FieldSerializer<P> {
+pub(super) struct FieldSerializer<P> {
     sink: P,
     options: FlattenOptions,
     index: usize,
@@ -49,7 +49,7 @@ pub struct FieldSerializer<P> {
 }
 
 impl<P: SerializeProperties> FieldSerializer<P> {
-    pub fn new(sink: P, options: FlattenOptions) -> Self {
+    pub(super) fn new(sink: P, options: FlattenOptions) -> Self {
         Self {
             sink,
             options,
@@ -59,7 +59,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
         }
     }
 
-    pub fn into_inner(self) -> P {
+    pub(super) fn into_inner(self) -> P {
         self.sink
     }
 
@@ -75,7 +75,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     }
 
     /// Fills in the key of an error raised by the user's `Serialize` impl.
-    pub fn locate(&self, e: TableError<P::Error>) -> TableError<P::Error> {
+    pub(super) fn locate(&self, e: TableError<P::Error>) -> TableError<P::Error> {
         match e {
             // An error returns before popping `key_stack`, so it still points
             // to the innermost value being serialized.
@@ -253,7 +253,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializ
 }
 
 #[derive(Debug)]
-pub struct VariantSerializer<'a, P> {
+pub(super) struct VariantSerializer<'a, P> {
     inner: &'a mut FieldSerializer<P>,
 }
 

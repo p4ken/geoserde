@@ -8,7 +8,7 @@ use serde::{
 use crate::ser::SourceError;
 
 #[derive(Debug)]
-pub enum StringLike {
+pub(super) enum StringLike {
     Empty,
     Bool(bool),
     I8(i8),
@@ -83,7 +83,7 @@ impl std::fmt::Display for StringLike {
     }
 }
 
-pub struct Stringifier;
+pub(super) struct Stringifier;
 
 impl Serializer for Stringifier {
     type Ok = StringLike;
@@ -247,7 +247,7 @@ impl Serializer for Stringifier {
 /// Error returned when a value cannot be converted into a single string,
 /// such as a map key.
 #[derive(Debug, Clone)]
-pub enum StringifyError {
+pub(super) enum StringifyError {
     /// The value was `None` or unit.
     Empty,
     /// The value was a sequence, map, struct or other nested structure.
