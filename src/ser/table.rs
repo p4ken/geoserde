@@ -9,19 +9,19 @@ use crate::ser::{elem::StringifyError, field::FieldSerializer, SerializeProperti
 
 /// Controls how nested structures and arrays are flattened into property keys.
 ///
-/// Use [`FlattenOption::full`] for the default configuration, or chain builder
+/// Use [`FlattenOptions::full`] for the default configuration, or chain builder
 /// methods to customise separators.
 ///
 /// # Example
 ///
 /// ```
-/// use geoserde::ser::FlattenOption;
+/// use geoserde::ser::FlattenOptions;
 ///
 /// // Use "/" instead of "." for nested attributes
-/// let option = FlattenOption::full().object("/");
+/// let options = FlattenOptions::full().object("/");
 /// ```
 #[derive(Debug, Clone)]
-pub struct FlattenOption {
+pub struct FlattenOptions {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
     // Not yet read; treated as always true.
     flatten_nested_attribute: bool,
@@ -36,8 +36,8 @@ pub struct FlattenOption {
     nested_array_index_suffix: &'static str,
 }
 
-impl FlattenOption {
-    /// Returns the default option that flattens everything.
+impl FlattenOptions {
+    /// Returns the default options that flatten everything.
     ///
     /// Nested attributes are joined with `"."`, arrays are joined with `","`,
     /// and array indices use `"["` / `"]"` brackets.
@@ -136,15 +136,15 @@ pub struct TableSerializer<P> {
 }
 
 impl<P: SerializeProperties> TableSerializer<P> {
-    /// Creates a new `TableSerializer` with the default [`FlattenOption::full`].
+    /// Creates a new `TableSerializer` with the default [`FlattenOptions::full`].
     pub fn new(sink: P) -> Self {
-        Self::with_option(sink, FlattenOption::full())
+        Self::with_options(sink, FlattenOptions::full())
     }
 
     /// Creates a new `TableSerializer` with custom flattening options.
-    pub fn with_option(sink: P, option: FlattenOption) -> Self {
+    pub fn with_options(sink: P, options: FlattenOptions) -> Self {
         Self {
-            child: FieldSerializer::new(sink, option),
+            child: FieldSerializer::new(sink, options),
         }
     }
 }

@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
 use serde::{
-    Serialize, Serializer,
     ser::{
         SerializeMap, SerializeSeq, SerializeStruct, SerializeStructVariant, SerializeTuple,
         SerializeTupleStruct, SerializeTupleVariant, StdError,
     },
+    Serialize, Serializer,
 };
 
 use crate::ser::{
-    FieldValue, FlattenOption, KeyError, TableError, ValueError,
     elem::{StringLike, Stringifier, StringifyError},
+    FieldValue, FlattenOptions, KeyError, TableError, ValueError,
 };
 
 /// Trait for sinks that receive flattened key-value property pairs.
@@ -42,17 +42,17 @@ pub trait SerializeProperties {
 #[derive(Debug)]
 pub struct FieldSerializer<P> {
     sink: P,
-    option: FlattenOption,
+    options: FlattenOptions,
     index: usize,
     key_stack: Vec<Cow<'static, str>>,
     value_seq: Vec<StringLike>,
 }
 
 impl<P: SerializeProperties> FieldSerializer<P> {
-    pub fn new(sink: P, option: FlattenOption) -> Self {
+    pub fn new(sink: P, options: FlattenOptions) -> Self {
         Self {
             sink,
-            option,
+            options,
             index: 0,
             key_stack: Vec::new(),
             value_seq: Vec::new(),
@@ -66,7 +66,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     fn build_key(&self) -> Cow<'static, str> {
         match self.key_stack.as_slice() {
             [Cow::Borrowed(single)] => Cow::Borrowed(*single),
-            multi => Cow::Owned(multi.join(self.option.nested_attribute_separator())),
+            multi => Cow::Owned(multi.join(self.options.nested_attribute_separator())),
         }
     }
 
@@ -109,9 +109,9 @@ impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
         let key = Cow::Owned(format!(
             "{}{}{}{}",
             parent_key.as_ref().unwrap_or(&Cow::default()),
-            self.option.nested_array_index_prefix(),
+            self.options.nested_array_index_prefix(),
             parent_index,
-            self.option.nested_array_index_suffix(),
+            self.options.nested_array_index_suffix(),
         ));
         self.key_stack.push(key); // "parent[0]"
         value.serialize(&mut *self)?;
@@ -133,7 +133,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     where
         T: ?Sized + Serialize,
     {
-        if self.option.array_as_string() && self.index == 0 {
+        if self.options.array_as_string() && self.index == 0 {
             match value.serialize(Stringifier) {
                 Ok(text) => {
                     self.value_seq.push(text);
@@ -164,7 +164,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
                 .drain(..)
                 .map(|text| text.to_string())
                 .collect::<Vec<_>>()
-                .join(self.option.array_element_separator());
+                .join(self.options.array_element_separator());
             self.serialize_value(value.as_str())?;
         }
         Ok(())

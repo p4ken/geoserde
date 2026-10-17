@@ -26,11 +26,11 @@ impl ser::SerializeProperties for &mut Collector {
 
 fn collect(
     source: impl Serialize,
-    option: ser::FlattenOption,
+    options: ser::FlattenOptions,
 ) -> Vec<(String, ser::FieldValue<'static>)> {
     let mut sink = Collector::default();
     source
-        .serialize(ser::TableSerializer::with_option(&mut sink, option))
+        .serialize(ser::TableSerializer::with_options(&mut sink, options))
         .unwrap();
     sink.0
 }
@@ -51,7 +51,7 @@ fn object_separator() {
         Outer {
             inner: Inner { b: 1 },
         },
-        ser::FlattenOption::full().object("/"),
+        ser::FlattenOptions::full().object("/"),
     );
     assert_eq!(entries, vec![("inner/b".into(), ser::FieldValue::I32(1))]);
 }
@@ -68,7 +68,7 @@ fn simple_array_separator() {
         Tags {
             tags: vec![1, 2, 3],
         },
-        ser::FlattenOption::full().simple_array("|"),
+        ser::FlattenOptions::full().simple_array("|"),
     );
     assert_eq!(
         entries,
@@ -92,7 +92,7 @@ fn object_array_brackets() {
         Items {
             items: vec![Item { a: 1 }, Item { a: 2 }],
         },
-        ser::FlattenOption::full().object_array("<", ">"),
+        ser::FlattenOptions::full().object_array("<", ">"),
     );
     assert_eq!(
         entries,

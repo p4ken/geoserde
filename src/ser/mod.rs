@@ -7,7 +7,7 @@
 //!
 //! # Flattening
 //!
-//! With the default [`FlattenOption::full`], the fields of the properties are
+//! With the default [`FlattenOptions::full`], the fields of the properties are
 //! flattened as follows.
 //!
 //! | Field                                                          | Key                              | Value                                |
@@ -61,7 +61,7 @@ mod value;
 
 pub use field::SerializeProperties;
 pub use flat::flatten_keys;
-pub use table::{FlattenOption, KeyError, TableError, TableSerializer, ValueError};
+pub use table::{FlattenOptions, KeyError, TableError, TableSerializer, ValueError};
 pub use value::FieldValue;
 
 /// An error originating from the data source during property serialization.

@@ -98,7 +98,7 @@ your sink, and `TableError::into_sink` takes it out.
 Nested structs, maps and arrays were rejected with
 `SerializeError::UnsupportedPropertyStructure`. They are now flattened into
 keys such as `parent.child` and `items[0]`, and arrays of scalars are joined
-into a string. Use `ser::FlattenOption` with `TableSerializer::with_option` to
+into a string. Use `ser::FlattenOptions` with `TableSerializer::with_options` to
 change the separators. `ser::flatten_keys` lists the keys a value produces.
 
 `None` and `()` are still skipped. A unit enum variant is now written under its
