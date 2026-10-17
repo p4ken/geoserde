@@ -19,7 +19,8 @@ geo-types = ["geoserde/geo-types"]
 geoserde = { version = "0.5.3-beta.3", path = "..", default-features = false }
 serde = { version = "1.0.214" }
 geo-traits = { version = "0.3.0", default-features = false }
-flatgeobuf = { version = "6.0.1", default-features = false }
+# Pin minor since 4.1.0 contained breaking changes
+flatgeobuf = { version = "~6.0.1", default-features = false }
 
 [dev-dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
