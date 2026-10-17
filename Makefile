@@ -1,4 +1,4 @@
-all: build test doc
+all: build test lint doc
 
 build: build-all-features build-no-default-features
 
@@ -8,6 +8,10 @@ build-%: FORCE
 test: FORCE
 	cargo test --workspace --all-features
 	cargo test --workspace --all-features --release
+
+lint: FORCE
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
+	cargo fmt --all -- --check
 
 doc: FORCE
 	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --workspace --no-deps --all-features -Zrustdoc-map

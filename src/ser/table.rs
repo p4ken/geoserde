@@ -1,11 +1,8 @@
 use std::convert::Infallible;
 
-use serde::{
-    ser::{Impossible, SerializeMap, SerializeStruct, StdError},
-    Serialize, Serializer,
-};
+use serde::ser::{Impossible, Serialize, SerializeMap, SerializeStruct, Serializer, StdError};
 
-use crate::ser::{elem::StringifyError, field::FieldSerializer, SerializeProperties, SourceError};
+use crate::ser::{SerializeProperties, SourceError, elem::StringifyError, field::FieldSerializer};
 
 /// Controls how nested structures and arrays are flattened into property keys.
 ///
