@@ -36,12 +36,10 @@
 
 mod elem;
 mod field;
-mod flat;
 mod table;
 mod value;
 
 pub use field::SerializeProperties;
-pub use flat::flatten_keys;
 pub use table::{FlattenOptions, KeyError, TableError, TableSerializer, ValueError};
 pub use value::FieldValue;
 
