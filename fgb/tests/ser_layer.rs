@@ -66,3 +66,34 @@ fn options_written_to_header() -> anyhow::Result<()> {
     assert_eq!(header.metadata(), Some("m"));
     Ok(())
 }
+
+#[test]
+fn flatten_options_applied_to_columns() -> anyhow::Result<()> {
+    #[derive(Serialize)]
+    struct Inner {
+        b: i32,
+    }
+    #[derive(Serialize)]
+    struct Outer {
+        inner: Inner,
+    }
+
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::Point)
+        .flatten(geoserde_fgb::geoserde::ser::FlattenOptions::full().object("/"))
+        .create()?;
+    ser.serialize_feature(
+        testing::p(0),
+        &Outer {
+            inner: Inner { b: 1 },
+        },
+    )?;
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(props["inner/b"], "1");
+    Ok(())
+}

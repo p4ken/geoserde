@@ -11,3 +11,4 @@ pub use de::LayerDeserializer;
 pub use ser::LayerSerializer;
 
 pub use flatgeobuf;
+pub use geoserde;

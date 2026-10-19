@@ -10,7 +10,7 @@ use geo_traits::{
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
 };
-use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer};
+use geoserde::ser::{FieldValue, FlattenOptions, SerializeProperties, TableError, TableSerializer};
 
 /// FlatGeobuf feature serializer.
 ///
@@ -20,7 +20,8 @@ use geoserde::ser::{FieldValue, SerializeProperties, TableError, TableSerializer
 /// # Properties
 ///
 /// Each property is written as a column. Nested properties are flattened into
-/// columns as described in [`geoserde::ser`].
+/// columns as described in [`geoserde::ser`], with the
+/// [`flatten`](LayerOptions::flatten) options.
 ///
 /// The type of a column is fixed by the first value of its key. A later value
 /// of another type, such as `i64` after `i32`, fails with
@@ -59,6 +60,7 @@ pub struct LayerSerializer {
     // Properties of the feature being serialized, flushed to the writer once all succeed.
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
     promote_point_to_multi: bool,
+    flatten: FlattenOptions,
 }
 
 #[derive(Debug)]
@@ -74,6 +76,7 @@ impl std::fmt::Debug for LayerSerializer {
             .field("columns", &self.columns)
             .field("pending", &self.pending)
             .field("promote_point_to_multi", &self.promote_point_to_multi)
+            .field("flatten", &self.flatten)
             .finish_non_exhaustive()
     }
 }
@@ -111,6 +114,7 @@ impl LayerSerializer {
             columns: HashMap::new(),
             pending: Vec::new(),
             promote_point_to_multi,
+            flatten: options.flatten.clone(),
         })
     }
 
@@ -131,7 +135,8 @@ impl LayerSerializer {
         // A geometry type mismatch is returned by the first *_begin, before the writer is
         // modified.
         self.pending.clear();
-        let prop_ser = TableSerializer::new(&mut *self);
+        let flatten = self.flatten.clone();
+        let prop_ser = TableSerializer::with_options(&mut *self, flatten);
         properties.serialize(prop_ser)?;
         // FgbWriter would write both values to the same column. Checked once here, as
         // checking each property against pending would be quadratic.
@@ -211,12 +216,14 @@ pub struct LayerOptions<'a> {
     name: &'a str,
     geometry_type: flatgeobuf::GeometryType,
     fgb: flatgeobuf::FgbWriterOptions<'a>,
+    flatten: FlattenOptions,
 }
 
 impl Clone for LayerOptions<'_> {
     fn clone(&self) -> Self {
         Self {
             fgb: copy_fgb_options(&self.fgb),
+            flatten: self.flatten.clone(),
             ..*self
         }
     }
@@ -243,6 +250,7 @@ impl<'a> LayerOptions<'a> {
                 promote_to_multi: false,
                 ..Default::default()
             },
+            flatten: FlattenOptions::full(),
         }
     }
 
@@ -313,6 +321,13 @@ impl<'a> LayerOptions<'a> {
     /// Sets the application specific metadata of the layer.
     pub fn metadata(&mut self, metadata: &'a str) -> &mut Self {
         self.fgb.metadata = Some(metadata);
+        self
+    }
+
+    /// Sets how nested properties are flattened into columns. Defaults to
+    /// [`FlattenOptions::full`].
+    pub fn flatten(&mut self, flatten: FlattenOptions) -> &mut Self {
+        self.flatten = flatten;
         self
     }
 
