@@ -33,25 +33,6 @@
 //!   returned.
 //! - The properties themselves must be a struct or a map, or
 //!   [`TableError::Root`] is returned.
-//!
-//! [`flatten_keys`] shows the keys of a type.
-//!
-//! ```
-//! #[derive(serde::Serialize)]
-//! struct Station {
-//!     name: &'static str,
-//!     address: Address,
-//! }
-//!
-//! #[derive(serde::Serialize)]
-//! struct Address {
-//!     city: &'static str,
-//! }
-//!
-//! let station = Station { name: "Tokyo", address: Address { city: "Chiyoda" } };
-//! assert_eq!(geoserde::ser::flatten_keys(&station)?, ["name", "address.city"]);
-//! # Ok::<(), geoserde::ser::TableError<std::convert::Infallible>>(())
-//! ```
 
 mod elem;
 mod field;
