@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::convert::Infallible;
 
 use serde::ser::{Impossible, Serialize, SerializeMap, SerializeStruct, Serializer, StdError};
@@ -22,15 +23,15 @@ pub struct FlattenOptions {
     /* Follow of https://gdal.org/en/stable/drivers/vector/geojson.html#open-options */
     // Not yet read; treated as always true.
     flatten_nested_attribute: bool,
-    nested_attribute_separator: &'static str,
+    nested_attribute_separator: Cow<'static, str>,
     array_as_string: bool,
 
     /* Our original options */
-    array_element_separator: &'static str,
+    array_element_separator: Cow<'static, str>,
     // Not yet read; treated as always true.
     flatten_nested_array: bool,
-    nested_array_index_prefix: &'static str,
-    nested_array_index_suffix: &'static str,
+    nested_array_index_prefix: Cow<'static, str>,
+    nested_array_index_suffix: Cow<'static, str>,
 }
 
 impl FlattenOptions {
@@ -41,12 +42,12 @@ impl FlattenOptions {
     pub const fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
-            nested_attribute_separator: ".",
+            nested_attribute_separator: Cow::Borrowed("."),
             array_as_string: true,
-            array_element_separator: ",",
+            array_element_separator: Cow::Borrowed(","),
             flatten_nested_array: true,
-            nested_array_index_prefix: "[",
-            nested_array_index_suffix: "]",
+            nested_array_index_prefix: Cow::Borrowed("["),
+            nested_array_index_suffix: Cow::Borrowed("]"),
         }
     }
 
@@ -54,16 +55,32 @@ impl FlattenOptions {
 
     // TODO: &mutにできるか。C-BUILDER
     /// Enables nested-object flattening with the given key separator.
-    pub fn object(mut self, sep: &'static str) -> Self {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use geoserde::ser::FlattenOptions;
+    /// // `a.b` becomes `a/b`
+    /// let options = FlattenOptions::full().object("/");
+    /// ```
+    pub fn object(mut self, sep: impl Into<Cow<'static, str>>) -> Self {
         self.flatten_nested_attribute = true;
-        self.nested_attribute_separator = sep;
+        self.nested_attribute_separator = sep.into();
         self
     }
 
     /// Enables simple-array flattening, joining elements with `sep`.
-    pub fn simple_array(mut self, sep: &'static str) -> Self {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use geoserde::ser::FlattenOptions;
+    /// // `1,2,3` becomes `1|2|3`
+    /// let options = FlattenOptions::full().simple_array("|");
+    /// ```
+    pub fn simple_array(mut self, sep: impl Into<Cow<'static, str>>) -> Self {
         self.array_as_string = true;
-        self.array_element_separator = sep;
+        self.array_element_separator = sep.into();
         self
     }
 
@@ -71,31 +88,43 @@ impl FlattenOptions {
     ///
     /// Each element is serialized under `key{prefix}{index}{suffix}`
     /// (e.g. `items[0]`).
-    pub fn object_array(mut self, prefix: &'static str, suffix: &'static str) -> Self {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use geoserde::ser::FlattenOptions;
+    /// // `items[0]` becomes `items<0>`
+    /// let options = FlattenOptions::full().object_array("<", ">");
+    /// ```
+    pub fn object_array(
+        mut self,
+        prefix: impl Into<Cow<'static, str>>,
+        suffix: impl Into<Cow<'static, str>>,
+    ) -> Self {
         self.flatten_nested_array = true;
-        self.nested_array_index_prefix = prefix;
-        self.nested_array_index_suffix = suffix;
+        self.nested_array_index_prefix = prefix.into();
+        self.nested_array_index_suffix = suffix.into();
         self
     }
 
-    pub(crate) fn nested_attribute_separator(&self) -> &'static str {
-        self.nested_attribute_separator
+    pub(crate) fn nested_attribute_separator(&self) -> &str {
+        &self.nested_attribute_separator
     }
 
     pub(crate) fn array_as_string(&self) -> bool {
         self.array_as_string
     }
 
-    pub(crate) fn array_element_separator(&self) -> &'static str {
-        self.array_element_separator
+    pub(crate) fn array_element_separator(&self) -> &str {
+        &self.array_element_separator
     }
 
-    pub(crate) fn nested_array_index_prefix(&self) -> &'static str {
-        self.nested_array_index_prefix
+    pub(crate) fn nested_array_index_prefix(&self) -> &str {
+        &self.nested_array_index_prefix
     }
 
-    pub(crate) fn nested_array_index_suffix(&self) -> &'static str {
-        self.nested_array_index_suffix
+    pub(crate) fn nested_array_index_suffix(&self) -> &str {
+        &self.nested_array_index_suffix
     }
 }
 

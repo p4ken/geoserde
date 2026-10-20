@@ -73,3 +73,26 @@ fn object_array_brackets() {
         ]
     );
 }
+
+/// A separator can be a `String` built at runtime.
+#[test]
+fn owned_separator() {
+    #[derive(Serialize)]
+    struct Outer {
+        inner: Inner,
+    }
+    #[derive(Serialize)]
+    struct Inner {
+        b: i32,
+    }
+
+    let sep = String::from("::");
+    let entries = testing::flatten_with_options(
+        Outer {
+            inner: Inner { b: 1 },
+        },
+        &ser::FlattenOptions::full().object(sep),
+    )
+    .unwrap();
+    assert_eq!(entries, vec![("inner::b".into(), ser::FieldValue::I32(1))]);
+}
