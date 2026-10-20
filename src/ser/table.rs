@@ -38,7 +38,7 @@ impl FlattenOptions {
     ///
     /// Nested attributes are joined with `"."`, arrays are joined with `","`,
     /// and array indices use `"["` / `"]"` brackets.
-    pub fn full() -> Self {
+    pub const fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
             nested_attribute_separator: ".",
@@ -129,25 +129,26 @@ impl FlattenOptions {
 /// # Ok::<(), geoserde::ser::TableError<std::convert::Infallible>>(())
 /// ```
 #[derive(Debug)]
-pub struct TableSerializer<P> {
-    child: FieldSerializer<P>,
+pub struct TableSerializer<'o, P> {
+    child: FieldSerializer<'o, P>,
 }
 
-impl<P: SerializeProperties> TableSerializer<P> {
+impl<'o, P: SerializeProperties> TableSerializer<'o, P> {
     /// Creates a new `TableSerializer` with the default [`FlattenOptions::full`].
     pub fn new(sink: P) -> Self {
-        Self::with_options(sink, FlattenOptions::full())
+        static FULL: FlattenOptions = FlattenOptions::full();
+        Self::with_options(sink, &FULL)
     }
 
     /// Creates a new `TableSerializer` with custom flattening options.
-    pub fn with_options(sink: P, options: FlattenOptions) -> Self {
+    pub fn with_options(sink: P, options: &'o FlattenOptions) -> Self {
         Self {
             child: FieldSerializer::new(sink, options),
         }
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<'_, P> {
     type Ok = P::Ok;
     type Error = TableError<P::Error>;
 
@@ -316,7 +317,7 @@ impl<P: SerializeProperties<Error: 'static>> Serializer for TableSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer<'_, P> {
     type Ok = P::Ok;
     type Error = TableError<P::Error>;
 
@@ -334,7 +335,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for TableSerializer
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for TableSerializer<'_, P> {
     type Ok = P::Ok;
     type Error = TableError<P::Error>;
 

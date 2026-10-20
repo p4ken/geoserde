@@ -17,7 +17,7 @@ pub fn flatten(source: impl Serialize) -> Result<Entries, ser::TableError<Infall
 /// Flattens `source` with [`ser::TableSerializer::with_options`].
 pub fn flatten_with_options(
     source: impl Serialize,
-    options: ser::FlattenOptions,
+    options: &ser::FlattenOptions,
 ) -> Result<Entries, ser::TableError<Infallible>> {
     let mut sink = Collector::default();
     source.serialize(ser::TableSerializer::with_options(&mut sink, options))?;

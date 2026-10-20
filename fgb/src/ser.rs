@@ -55,12 +55,20 @@ use geoserde::ser::{FieldValue, FlattenOptions, SerializeProperties, TableError,
 ///   multi type with one member.
 pub struct LayerSerializer {
     writer: flatgeobuf::FgbWriter<'static>,
+    buffer: PropertiesBuffer,
+    promote_point_to_multi: bool,
+    flatten: FlattenOptions,
+}
+
+// The sink of the `TableSerializer`, split out of `LayerSerializer`. The `TableSerializer`
+// borrows `LayerSerializer::flatten` while writing to the sink, so the sink cannot be
+// `&mut LayerSerializer` itself, unless `flatten` is cloned for each feature.
+#[derive(Debug)]
+struct PropertiesBuffer {
     // Columns declared to the writer, by key.
     columns: HashMap<Cow<'static, str>, DeclaredColumn>,
     // Properties of the feature being serialized, flushed to the writer once all succeed.
     pending: Vec<(Cow<'static, str>, FieldValue<'static>)>,
-    promote_point_to_multi: bool,
-    flatten: FlattenOptions,
 }
 
 #[derive(Debug)]
@@ -73,8 +81,7 @@ impl std::fmt::Debug for LayerSerializer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // `flatgeobuf::FgbWriter` does not implement `Debug`.
         f.debug_struct("LayerSerializer")
-            .field("columns", &self.columns)
-            .field("pending", &self.pending)
+            .field("buffer", &self.buffer)
             .field("promote_point_to_multi", &self.promote_point_to_multi)
             .field("flatten", &self.flatten)
             .finish_non_exhaustive()
@@ -111,8 +118,10 @@ impl LayerSerializer {
         )?;
         Ok(Self {
             writer,
-            columns: HashMap::new(),
-            pending: Vec::new(),
+            buffer: PropertiesBuffer {
+                columns: HashMap::new(),
+                pending: Vec::new(),
+            },
             promote_point_to_multi,
             flatten: options.flatten.clone(),
         })
@@ -134,13 +143,14 @@ impl LayerSerializer {
         // and flush them only after all of them succeed.
         // A geometry type mismatch is returned by the first *_begin, before the writer is
         // modified.
-        self.pending.clear();
-        let flatten = self.flatten.clone();
-        let prop_ser = TableSerializer::with_options(&mut *self, flatten);
-        properties.serialize(prop_ser)?;
+        self.buffer.pending.clear();
+        properties.serialize(TableSerializer::with_options(
+            &mut self.buffer,
+            &self.flatten,
+        ))?;
         // FgbWriter would write both values to the same column. Checked once here, as
         // checking each property against pending would be quadratic.
-        let mut keys: Vec<_> = self.pending.iter().map(|(key, _)| key).collect();
+        let mut keys: Vec<_> = self.buffer.pending.iter().map(|(key, _)| key).collect();
         keys.sort_unstable();
         if let Some(pair) = keys.windows(2).find(|pair| pair[0] == pair[1]) {
             return Err(Error::DuplicateKey(pair[0].clone()));
@@ -151,10 +161,14 @@ impl LayerSerializer {
             }
             _ => process_geometry(&geometry, &mut self.writer)?,
         }
-        for (key, value) in self.pending.drain(..) {
+        for (key, value) in self.buffer.pending.drain(..) {
             let column_value = to_column_value(&value).expect("checked in serialize_property");
-            let index_of_key = self.columns.get(key.as_ref()).map(|column| column.index);
-            let index_to_write = index_of_key.unwrap_or(self.columns.len());
+            let index_of_key = self
+                .buffer
+                .columns
+                .get(key.as_ref())
+                .map(|column| column.index);
+            let index_to_write = index_of_key.unwrap_or(self.buffer.columns.len());
             flatgeobuf::geozero::PropertyProcessor::property(
                 &mut self.writer,
                 index_to_write,
@@ -166,7 +180,7 @@ impl LayerSerializer {
                     index: index_to_write,
                     column_type: column_type(&column_value),
                 };
-                self.columns.insert(key, column);
+                self.buffer.columns.insert(key, column);
             }
         }
         flatgeobuf::geozero::FeatureProcessor::feature_end(&mut self.writer, 0)?;
@@ -341,7 +355,7 @@ impl<'a> LayerOptions<'a> {
     }
 }
 
-impl SerializeProperties for &mut LayerSerializer {
+impl SerializeProperties for &mut PropertiesBuffer {
     type Ok = ();
     type Error = Error;
 

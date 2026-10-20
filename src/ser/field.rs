@@ -37,16 +37,16 @@ pub trait SerializeProperties {
 
 /// Serializer that recursively flattens nested structures into key-value pairs.
 #[derive(Debug)]
-pub(super) struct FieldSerializer<P> {
+pub(super) struct FieldSerializer<'o, P> {
     sink: P,
-    options: FlattenOptions,
+    options: &'o FlattenOptions,
     index: usize,
     key_stack: Vec<Cow<'static, str>>,
     value_seq: Vec<StringLike>,
 }
 
-impl<P: SerializeProperties> FieldSerializer<P> {
-    pub(super) fn new(sink: P, options: FlattenOptions) -> Self {
+impl<'o, P: SerializeProperties> FieldSerializer<'o, P> {
+    pub(super) fn new(sink: P, options: &'o FlattenOptions) -> Self {
         Self {
             sink,
             options,
@@ -95,7 +95,7 @@ impl<P: SerializeProperties> FieldSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> FieldSerializer<'_, P> {
     fn serialize_element_<T>(&mut self, value: &T) -> Result<(), TableError<P::Error>>
     where
         T: ?Sized + Serialize,
@@ -122,7 +122,7 @@ impl<P: SerializeProperties<Error: 'static>> FieldSerializer<P> {
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializer<'_, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -168,7 +168,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeSeq for &mut FieldSerializ
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut FieldSerializer<'_, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -184,7 +184,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeTuple for &mut FieldSerial
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut FieldSerializer<'_, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -200,7 +200,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeTupleStruct for &mut Field
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut FieldSerializer<'_, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -219,7 +219,7 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStruct for &mut FieldSeria
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializer<P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializer<'_, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -250,11 +250,13 @@ impl<P: SerializeProperties<Error: 'static>> SerializeMap for &mut FieldSerializ
 }
 
 #[derive(Debug)]
-pub(super) struct VariantSerializer<'a, P> {
-    inner: &'a mut FieldSerializer<P>,
+pub(super) struct VariantSerializer<'a, 'o, P> {
+    inner: &'a mut FieldSerializer<'o, P>,
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeTupleVariant for VariantSerializer<'_, P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeTupleVariant
+    for VariantSerializer<'_, '_, P>
+{
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -273,7 +275,9 @@ impl<P: SerializeProperties<Error: 'static>> SerializeTupleVariant for VariantSe
     }
 }
 
-impl<P: SerializeProperties<Error: 'static>> SerializeStructVariant for VariantSerializer<'_, P> {
+impl<P: SerializeProperties<Error: 'static>> SerializeStructVariant
+    for VariantSerializer<'_, '_, P>
+{
     type Ok = ();
     type Error = TableError<P::Error>;
 
@@ -290,17 +294,17 @@ impl<P: SerializeProperties<Error: 'static>> SerializeStructVariant for VariantS
     }
 }
 
-impl<'a, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSerializer<P> {
+impl<'a, 'o, P: SerializeProperties<Error: 'static>> Serializer for &'a mut FieldSerializer<'o, P> {
     type Ok = ();
     type Error = TableError<P::Error>;
 
     type SerializeSeq = Self;
     type SerializeTuple = Self;
     type SerializeTupleStruct = Self;
-    type SerializeTupleVariant = VariantSerializer<'a, P>;
+    type SerializeTupleVariant = VariantSerializer<'a, 'o, P>;
     type SerializeMap = Self;
     type SerializeStruct = Self;
-    type SerializeStructVariant = VariantSerializer<'a, P>;
+    type SerializeStructVariant = VariantSerializer<'a, 'o, P>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         self.serialize_value(v)

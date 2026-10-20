@@ -19,7 +19,7 @@ fn object_separator() {
         Outer {
             inner: Inner { b: 1 },
         },
-        ser::FlattenOptions::full().object("/"),
+        &ser::FlattenOptions::full().object("/"),
     )
     .unwrap();
     assert_eq!(entries, vec![("inner/b".into(), ser::FieldValue::I32(1))]);
@@ -37,7 +37,7 @@ fn simple_array_separator() {
         Tags {
             tags: vec![1, 2, 3],
         },
-        ser::FlattenOptions::full().simple_array("|"),
+        &ser::FlattenOptions::full().simple_array("|"),
     )
     .unwrap();
     assert_eq!(
@@ -62,7 +62,7 @@ fn object_array_brackets() {
         Items {
             items: vec![Item { a: 1 }, Item { a: 2 }],
         },
-        ser::FlattenOptions::full().object_array("<", ">"),
+        &ser::FlattenOptions::full().object_array("<", ">"),
     )
     .unwrap();
     assert_eq!(
