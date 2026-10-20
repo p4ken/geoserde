@@ -1,0 +1,490 @@
+use std::{collections::HashMap, io::Cursor};
+
+use flatgeobuf::FallibleStreamingIterator;
+use geo_traits::to_geo::{
+    ToGeoLineString, ToGeoMultiLineString, ToGeoMultiPoint, ToGeoPoint, ToGeoPolygon,
+};
+use geo_traits::{GeometryTrait, GeometryType};
+use serde::Serialize;
+
+mod testing;
+
+#[derive(Serialize)]
+struct Feat {
+    name: String,
+    count: i32,
+}
+
+#[test]
+fn ser_point() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    let feat = Feat {
+        name: "a".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let point = match geom.as_type() {
+            GeometryType::Point(p) => p.to_point(),
+            _ => panic!("expected Point"),
+        };
+        assert_eq!(point, testing::p(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_line_string() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::LineString);
+
+    let feat = Feat {
+        name: "b".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let ls = match geom.as_type() {
+            GeometryType::LineString(ls) => ls.to_line_string(),
+            _ => panic!("expected LineString"),
+        };
+        assert_eq!(ls, testing::ls(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_properties() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    let feat = Feat {
+        name: "alpha".into(),
+        count: 3,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(
+        props,
+        HashMap::from([
+            ("name".to_string(), "alpha".to_string()),
+            ("count".to_string(), "3".to_string()),
+        ])
+    );
+
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_features_in_order() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    ser.serialize_feature(
+        testing::p(0),
+        &Feat {
+            name: "first".into(),
+            count: 1,
+        },
+    )?;
+    ser.serialize_feature(
+        testing::p(1),
+        &Feat {
+            name: "second".into(),
+            count: 2,
+        },
+    )?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+
+    let f1 = fgb_iter.next()?.unwrap();
+    let p1 = flatgeobuf::geozero::FeatureProperties::properties(f1)?;
+    assert_eq!(p1.len(), 2);
+    assert_eq!(p1["name"], "first");
+    assert_eq!(p1["count"], "1");
+
+    let f2 = fgb_iter.next()?.unwrap();
+    let p2 = flatgeobuf::geozero::FeatureProperties::properties(f2)?;
+    assert_eq!(p2.len(), 2);
+    assert_eq!(p2["name"], "second");
+    assert_eq!(p2["count"], "2");
+
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_polygon() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Polygon);
+
+    let feat = Feat {
+        name: "c".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::donut(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let poly = match geom.as_type() {
+            GeometryType::Polygon(p) => p.to_polygon(),
+            _ => panic!("expected Polygon"),
+        };
+        assert_eq!(poly, testing::donut(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_primitive_types() -> anyhow::Result<()> {
+    #[derive(Serialize)]
+    struct Prim {
+        v_bool: bool,
+        v_i8: i8,
+        v_i16: i16,
+        v_i32: i32,
+        v_i64: i64,
+        v_u8: u8,
+        v_u16: u16,
+        v_u32: u32,
+        v_u64: u64,
+        v_f32: f32,
+        v_f64: f64,
+        v_str: &'static str,
+    }
+
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Point);
+
+    ser.serialize_feature(
+        testing::p(0),
+        &Prim {
+            v_bool: true,
+            v_i8: -1,
+            v_i16: -200,
+            v_i32: -30000,
+            v_i64: -4000000000,
+            v_u8: 255,
+            v_u16: 60000,
+            v_u32: 4000000000,
+            v_u64: 10000000000,
+            v_f32: 1.5,
+            v_f64: 2.5,
+            v_str: "hello",
+        },
+    )?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    let fgb_feat = fgb_iter.next()?.unwrap();
+    let props = flatgeobuf::geozero::FeatureProperties::properties(fgb_feat)?;
+    assert_eq!(props["v_bool"], "true");
+    assert_eq!(props["v_i8"], "-1");
+    assert_eq!(props["v_i16"], "-200");
+    assert_eq!(props["v_i32"], "-30000");
+    assert_eq!(props["v_i64"], "-4000000000");
+    assert_eq!(props["v_u8"], "255");
+    assert_eq!(props["v_u16"], "60000");
+    assert_eq!(props["v_u32"], "4000000000");
+    assert_eq!(props["v_u64"], "10000000000");
+    assert_eq!(props["v_f32"], "1.5");
+    assert_eq!(props["v_f64"], "2.5");
+    assert_eq!(props["v_str"], "hello");
+
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_multi_point() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint);
+
+    let feat = Feat {
+        name: "d".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::multi_p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, testing::multi_p(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+/// An empty point in a MultiPoint is skipped.
+#[test]
+fn ser_multi_point_with_empty() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint);
+
+    let feat = Feat {
+        name: "d".into(),
+        count: 0,
+    };
+    let mp = testing::MaybeMultiPoint(vec![
+        testing::MaybePoint(Some(testing::c(0))),
+        testing::MaybePoint(None),
+        testing::MaybePoint(Some(testing::c(1))),
+    ]);
+    ser.serialize_feature(mp, &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, testing::multi_p(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_multi_line_string() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString);
+
+    let feat = Feat {
+        name: "e".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::multi_ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mls = match geom.as_type() {
+            GeometryType::MultiLineString(mls) => mls.to_multi_line_string(),
+            _ => panic!("expected MultiLineString"),
+        };
+        assert_eq!(mls, testing::multi_ls(0));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn line_string_promoted_to_multi() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiLineString)
+        .index(false)
+        .promote_to_multi(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "f".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mls = match geom.as_type() {
+            GeometryType::MultiLineString(mls) => mls.to_multi_line_string(),
+            _ => panic!("expected MultiLineString"),
+        };
+        assert_eq!(mls, geo_types::MultiLineString::new(vec![testing::ls(0)]));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn point_promoted_to_multi() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::MultiPoint)
+        .index(false)
+        .promote_to_multi(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "f".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry_trait().unwrap().unwrap();
+        let mp = match geom.as_type() {
+            GeometryType::MultiPoint(mp) => mp.to_multi_point(),
+            _ => panic!("expected MultiPoint"),
+        };
+        assert_eq!(mp, geo_types::MultiPoint::new(vec![testing::p(0)]));
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+/// With promote_to_multi, an Unknown layer takes the multi type of a first Point.
+#[test]
+fn unknown_layer_takes_promoted_point_type() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .index(false)
+        .promote_to_multi(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "g".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::p(0), &feat)?;
+    ser.serialize_feature(testing::multi_p(1), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert_eq!(
+        fgb_reader.header().geometry_type(),
+        flatgeobuf::GeometryType::MultiPoint
+    );
+    Ok(())
+}
+
+/// Without promote_to_multi, an Unknown layer takes the type of the first feature as is.
+#[test]
+fn unknown_layer_takes_first_type() -> anyhow::Result<()> {
+    let mut ser = testing::layer_ser(geoserde_fgb::flatgeobuf::GeometryType::Unknown);
+
+    let feat = Feat {
+        name: "g".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::ls(0), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert_eq!(
+        fgb_reader.header().geometry_type(),
+        flatgeobuf::GeometryType::LineString
+    );
+    Ok(())
+}
+
+#[test]
+fn ser_z_and_m() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::LineString)
+        .index(false)
+        .has_z(true)
+        .has_m(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "h".into(),
+        count: 0,
+    };
+    ser.serialize_feature(testing::dim_ls(geo_traits::Dimensions::Xyzm), &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let fgb_reader = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?;
+    assert!(fgb_reader.header().has_z());
+    assert!(fgb_reader.header().has_m());
+    let mut fgb_iter = fgb_reader.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry().unwrap();
+        assert_eq!(
+            geom.xy().unwrap().iter().collect::<Vec<_>>(),
+            [0.0, 0.1, 1.0, 1.1]
+        );
+        assert_eq!(geom.z().unwrap().iter().collect::<Vec<_>>(), [0.2, 1.2]);
+        assert_eq!(geom.m().unwrap().iter().collect::<Vec<_>>(), [0.3, 1.3]);
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ser_m_without_z() -> anyhow::Result<()> {
+    let mut ser = geoserde_fgb::LayerSerializer::options()
+        .geometry_type(geoserde_fgb::flatgeobuf::GeometryType::LineString)
+        .index(false)
+        .has_m(true)
+        .create()?;
+
+    let feat = Feat {
+        name: "i".into(),
+        count: 0,
+    };
+    let mut ls = testing::dim_ls(geo_traits::Dimensions::Xym);
+    // The third value is M for Xym.
+    ls.0[0].values[2] = 9.0;
+    ser.serialize_feature(ls, &feat)?;
+
+    let mut fgb_buf = Vec::new();
+    ser.write(&mut fgb_buf)?;
+
+    let mut fgb_iter = flatgeobuf::FgbReader::open(Cursor::new(fgb_buf))?.select_all()?;
+    {
+        let fgb_feat = fgb_iter.next()?.unwrap();
+        let geom = fgb_feat.geometry().unwrap();
+        assert!(geom.z().is_none());
+        assert_eq!(geom.m().unwrap().iter().collect::<Vec<_>>(), [9.0, 1.2]);
+    }
+    assert!(fgb_iter.next()?.is_none());
+    Ok(())
+}

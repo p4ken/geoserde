@@ -1,15 +1,25 @@
-build: FORCE
-	cargo build --all-features
+all: build test lint doc
+
+build: build-all-features build-no-default-features
+
+build-%: FORCE
+	cargo build --workspace --$*
 
 test: FORCE
-	cargo test --no-default-features --tests
-	cargo test --all-features
+	cargo test --workspace --all-features
+	cargo test --workspace --all-features --release
+
+lint: FORCE
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
+	cargo fmt --all -- --check
 
 doc: FORCE
-	cargo +nightly doc --all-features
+	RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --workspace --no-deps --all-features -Zrustdoc-map
+
+PKG ?= geoserde
 
 version: FORCE
-	@grep '^version =' Cargo.toml | cut -d '"' -f 2
+	@cargo pkgid --package $(PKG) | sed 's/.*[#@]//'
 
 .PHONY: FORCE
 FORCE:
