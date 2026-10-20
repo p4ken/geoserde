@@ -1,135 +1,55 @@
-use std::{borrow::Cow, convert::Infallible};
+use std::collections::HashMap;
 
 use geoserde::ser;
 use serde::Serialize;
 
-/// Collects only the keys of the properties.
-struct KeySink(Vec<String>);
+mod testing;
 
-impl ser::SerializeProperties for &mut KeySink {
-    type Ok = ();
-    type Error = Infallible;
+// --- Root ---
 
-    fn serialize_property(
-        &mut self,
-        key: Cow<'static, str>,
-        _value: ser::FieldValue<'_>,
-    ) -> Result<(), Self::Error> {
-        self.0.push(key.into_owned());
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(())
-    }
-}
-
-fn flatten_keys(source: impl Serialize) -> Result<Vec<String>, ser::TableError<Infallible>> {
-    let mut sink = KeySink(Vec::new());
-    source.serialize(ser::TableSerializer::new(&mut sink))?;
-    Ok(sink.0)
-}
-
-// --- flatten_keys error cases ---
-
-/// Scalar i32 is rejected at the root level.
+/// Anything but a struct or a map is rejected at the root.
 #[test]
-fn flatten_scalar_rejected() {
-    let err = flatten_keys(42_i32).unwrap_err();
-    assert!(matches!(err, ser::TableError::Root));
-    assert_eq!(err.to_string(), "data source must be a map or struct");
-}
-
-/// String is rejected at the root level.
-#[test]
-fn flatten_string_rejected() {
-    let result = flatten_keys("hello");
-    assert!(result.is_err());
-}
-
-/// Vec (sequence) is rejected at the root level.
-#[test]
-fn flatten_seq_rejected() {
-    let result = flatten_keys(vec![1, 2, 3]);
-    assert!(result.is_err());
-}
-
-/// Bool is rejected at the root level.
-#[test]
-fn flatten_bool_rejected() {
-    let result = flatten_keys(true);
-    assert!(result.is_err());
-}
-
-/// Unit is rejected at the root level.
-#[test]
-fn flatten_unit_rejected() {
-    let result = flatten_keys(());
-    assert!(result.is_err());
-}
-
-/// Tuple is rejected at the root level.
-#[test]
-fn flatten_tuple_rejected() {
-    let result = flatten_keys((1, 2));
-    assert!(result.is_err());
-}
-
-/// Unit struct is rejected at the root level.
-#[test]
-fn flatten_unit_struct_rejected() {
+fn root_rejected() {
     #[derive(Serialize)]
-    struct Empty;
-
-    let result = flatten_keys(&Empty);
-    assert!(result.is_err());
-}
-
-/// Enum unit variant is rejected at the root level.
-#[test]
-fn flatten_enum_variant_rejected() {
+    struct Unit;
     #[derive(Serialize)]
     enum Kind {
         A,
     }
 
-    let result = flatten_keys(&Kind::A);
-    assert!(result.is_err());
+    let err = testing::flatten(42_i32).unwrap_err();
+    assert!(matches!(err, ser::TableError::Root));
+    assert_eq!(err.to_string(), "data source must be a map or struct");
+
+    assert!(matches!(
+        testing::flatten("hello"),
+        Err(ser::TableError::Root)
+    ));
+    assert!(matches!(testing::flatten(true), Err(ser::TableError::Root)));
+    assert!(matches!(testing::flatten(()), Err(ser::TableError::Root)));
+    assert!(matches!(
+        testing::flatten(vec![1, 2]),
+        Err(ser::TableError::Root)
+    ));
+    assert!(matches!(
+        testing::flatten((1, 2)),
+        Err(ser::TableError::Root)
+    ));
+    assert!(matches!(testing::flatten(Unit), Err(ser::TableError::Root)));
+    assert!(matches!(
+        testing::flatten(Kind::A),
+        Err(ser::TableError::Root)
+    ));
 }
 
-// --- Successful edge cases ---
-
-/// An empty struct produces no keys.
-#[test]
-fn flatten_empty_struct_ok() {
-    #[derive(Serialize)]
-    struct EmptyFields {}
-
-    let keys = flatten_keys(&EmptyFields {}).unwrap();
-    assert!(keys.is_empty());
-}
-
-/// A map with string keys is accepted.
-#[test]
-fn flatten_string_key_map_ok() {
-    use std::collections::HashMap;
-
-    let mut map = HashMap::new();
-    map.insert("key", 42);
-
-    let keys = flatten_keys(&map).unwrap();
-    assert_eq!(keys, vec!["key"]);
-}
+// --- Map key ---
 
 /// A non-string map key is rejected.
 #[test]
-fn flatten_non_string_key_map_rejected() {
-    use std::collections::HashMap;
+fn non_string_map_key_rejected() {
+    let map = HashMap::from([(vec![1, 2], "value")]);
 
-    let mut map = HashMap::new();
-    map.insert(vec![1, 2], "value");
-
-    let err = flatten_keys(&map).unwrap_err();
+    let err = testing::flatten(&map).unwrap_err();
     let ser::TableError::Key(key_err) = &err else {
         panic!("{err:?}");
     };
@@ -141,13 +61,10 @@ fn flatten_non_string_key_map_rejected() {
 
 /// A `None` map key is rejected.
 #[test]
-fn flatten_none_key_map_rejected() {
-    use std::collections::HashMap;
+fn none_map_key_rejected() {
+    let map = HashMap::from([(None::<&str>, "value")]);
 
-    let mut map = HashMap::new();
-    map.insert(None::<&str>, "value");
-
-    let err = flatten_keys(&map).unwrap_err();
+    let err = testing::flatten(&map).unwrap_err();
     let ser::TableError::Key(key_err) = &err else {
         panic!("{err:?}");
     };
@@ -156,115 +73,9 @@ fn flatten_none_key_map_rejected() {
     assert_eq!(source.to_string(), "found an empty value");
 }
 
-/// flatten_keys succeeds on a struct with fields.
-#[test]
-fn flatten_keys_struct_ok() {
-    #[derive(Serialize)]
-    struct TwoFields {
-        alpha: i32,
-        beta: String,
-    }
-
-    let keys = flatten_keys(&TwoFields {
-        alpha: 1,
-        beta: "x".into(),
-    })
-    .unwrap();
-    assert_eq!(keys, vec!["alpha", "beta"]);
-}
-
-/// Nested struct produces dot-separated keys.
-#[test]
-fn flatten_nested_struct_keys() {
-    #[derive(Serialize)]
-    struct Outer {
-        a: i32,
-        inner: Inner,
-    }
-    #[derive(Serialize)]
-    struct Inner {
-        b: i32,
-    }
-
-    let keys = flatten_keys(&Outer {
-        a: 1,
-        inner: Inner { b: 2 },
-    })
-    .unwrap();
-    assert_eq!(keys, vec!["a", "inner.b"]);
-}
-
-/// `#[serde(flatten)]` merges the child's keys into the parent without a prefix.
-#[test]
-fn flatten_serde_flatten_keys() {
-    #[derive(Serialize)]
-    struct Outer {
-        a: i32,
-        #[serde(flatten)]
-        inner: Inner,
-    }
-    #[derive(Serialize)]
-    struct Inner {
-        b: i32,
-    }
-
-    let keys = flatten_keys(&Outer {
-        a: 1,
-        inner: Inner { b: 2 },
-    })
-    .unwrap();
-    assert_eq!(keys, vec!["a", "b"]);
-}
-
-/// Option::None fields are omitted from the flattened output.
-#[test]
-fn flatten_option_none_omitted() {
-    #[derive(Serialize)]
-    struct WithOption {
-        present: i32,
-        absent: Option<i32>,
-    }
-
-    let keys = flatten_keys(&WithOption {
-        present: 1,
-        absent: None,
-    })
-    .unwrap();
-    assert_eq!(keys, vec!["present"]);
-}
-
-/// Option::Some fields are included.
-#[test]
-fn flatten_option_some_included() {
-    #[derive(Serialize)]
-    struct WithOption {
-        present: i32,
-        extra: Option<i32>,
-    }
-
-    let keys = flatten_keys(&WithOption {
-        present: 1,
-        extra: Some(99),
-    })
-    .unwrap();
-    assert_eq!(keys, vec!["present", "extra"]);
-}
-
-// --- Error context ---
-
-struct Failing;
-
-impl Serialize for Failing {
-    fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
-        Err(serde::ser::Error::custom("boom"))
-    }
-}
-
 /// A non-string key in a nested map reports the key of the map.
 #[test]
 fn nested_map_key_error_has_parent() {
-    use std::collections::HashMap;
-
     #[derive(Serialize)]
     struct Outer {
         inner: Inner,
@@ -274,7 +85,7 @@ fn nested_map_key_error_has_parent() {
         tags: HashMap<Vec<i32>, i32>,
     }
 
-    let err = flatten_keys(&Outer {
+    let err = testing::flatten(&Outer {
         inner: Inner {
             tags: HashMap::from([(vec![1], 1)]),
         },
@@ -285,6 +96,16 @@ fn nested_map_key_error_has_parent() {
     };
     assert_eq!(key_err.parent(), Some("inner.tags"));
     assert_eq!(err.to_string(), "map key in `inner.tags` must be a string");
+}
+
+// --- Value ---
+
+struct Failing;
+
+impl Serialize for Failing {
+    fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+        Err(serde::ser::Error::custom("boom"))
+    }
 }
 
 /// An error from a nested `Serialize` impl reports the flattened key.
@@ -300,7 +121,7 @@ fn value_error_has_key() {
         bad: Failing,
     }
 
-    let err = flatten_keys(&Outer {
+    let err = testing::flatten(&Outer {
         ok: 1,
         inner: Inner { bad: Failing },
     })
@@ -322,7 +143,7 @@ fn value_error_in_array_has_index() {
         items: Vec<Failing>,
     }
 
-    let err = flatten_keys(&Props {
+    let err = testing::flatten(&Props {
         items: vec![Failing],
     })
     .unwrap_err();
@@ -335,7 +156,7 @@ fn value_error_in_array_has_index() {
 /// An error from the root `Serialize` impl has no key.
 #[test]
 fn value_error_at_root_has_no_key() {
-    let err = flatten_keys(&Failing).unwrap_err();
+    let err = testing::flatten(&Failing).unwrap_err();
     let ser::TableError::Value(value_err) = &err else {
         panic!("{err:?}");
     };

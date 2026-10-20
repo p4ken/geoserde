@@ -1,39 +1,7 @@
-use std::borrow::Cow;
-
 use geoserde::ser;
 use serde::Serialize;
 
-#[derive(Default)]
-struct Collector(Vec<(String, ser::FieldValue<'static>)>);
-
-impl ser::SerializeProperties for &mut Collector {
-    type Ok = ();
-    type Error = std::convert::Infallible;
-
-    fn serialize_property(
-        &mut self,
-        key: Cow<'static, str>,
-        value: ser::FieldValue<'_>,
-    ) -> Result<(), Self::Error> {
-        self.0.push((key.into_owned(), value.into_owned()));
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok, Self::Error> {
-        Ok(())
-    }
-}
-
-fn collect(
-    source: impl Serialize,
-    options: ser::FlattenOptions,
-) -> Vec<(String, ser::FieldValue<'static>)> {
-    let mut sink = Collector::default();
-    source
-        .serialize(ser::TableSerializer::with_options(&mut sink, options))
-        .unwrap();
-    sink.0
-}
+mod testing;
 
 /// `object` changes the separator between nested attribute keys.
 #[test]
@@ -47,12 +15,13 @@ fn object_separator() {
         b: i32,
     }
 
-    let entries = collect(
+    let entries = testing::flatten_with_options(
         Outer {
             inner: Inner { b: 1 },
         },
         ser::FlattenOptions::full().object("/"),
-    );
+    )
+    .unwrap();
     assert_eq!(entries, vec![("inner/b".into(), ser::FieldValue::I32(1))]);
 }
 
@@ -64,12 +33,13 @@ fn simple_array_separator() {
         tags: Vec<i32>,
     }
 
-    let entries = collect(
+    let entries = testing::flatten_with_options(
         Tags {
             tags: vec![1, 2, 3],
         },
         ser::FlattenOptions::full().simple_array("|"),
-    );
+    )
+    .unwrap();
     assert_eq!(
         entries,
         vec![("tags".into(), ser::FieldValue::Str("1|2|3".into()))]
@@ -88,12 +58,13 @@ fn object_array_brackets() {
         a: i32,
     }
 
-    let entries = collect(
+    let entries = testing::flatten_with_options(
         Items {
             items: vec![Item { a: 1 }, Item { a: 2 }],
         },
         ser::FlattenOptions::full().object_array("<", ">"),
-    );
+    )
+    .unwrap();
     assert_eq!(
         entries,
         vec![
