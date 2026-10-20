@@ -2,6 +2,11 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      package:
+        type: choice
+        options:
+          - geoserde
+          - geoserde-fgb
       bump:
         type: choice
         options:
@@ -9,11 +14,6 @@ on:
           - release
           - patch
           - minor
-      package:
-        type: choice
-        options:
-          - geoserde
-          - geoserde-fgb
       dry-run:
         type: choice
         options:
