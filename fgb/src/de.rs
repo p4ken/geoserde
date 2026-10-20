@@ -2,8 +2,7 @@
 
 use std::io::{Read, Seek};
 
-use geoserde::DeserializeGeometry;
-use geoserde::de::{GeometryError, GeometryOptions};
+use geoserde::de::{DeserializeGeometry, GeometryError, GeometryOptions};
 use serde::de::IntoDeserializer;
 
 /// FlatGeobuf feature deserializer.

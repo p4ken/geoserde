@@ -10,13 +10,13 @@
 //! | | Geometry | Properties |
 //! |---|---|---|
 //! | **Write** | [`geo_traits::GeometryTrait`] | [`serde::Serialize`] |
-//! | **Read** | [`DeserializeGeometry`] | [`serde::Deserialize`] |
+//! | **Read** | [`de::DeserializeGeometry`] | [`serde::Deserialize`] |
 //!
 //! # Traits for file formats
 //!
 //! | | Geometry | Properties |
 //! |---|---|---|
-//! | **Write** | — (takes any [`geo_traits::GeometryTrait`]) | [`SerializeProperties`] |
+//! | **Write** | — (takes any [`geo_traits::GeometryTrait`]) | [`ser::SerializeProperties`] |
 //! | **Read** | [`geo_traits::GeometryTrait`] | [`serde::Deserializer`] |
 //!
 //! Reading properties needs no trait of geoserde's own, since a flat row is
@@ -28,11 +28,7 @@
 //!
 //! # Cargo features
 //!
-//! * `geo-types` — [`DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
+//! * `geo-types` — [`de::DeserializeGeometry`] impls for [`geo_types`]. Enabled by default.
 
 pub mod de;
 pub mod ser;
-
-// TODO: 消す。実装する側から見ると結局 ser::FieldValue とかを書くことになる
-pub use de::DeserializeGeometry;
-pub use ser::SerializeProperties;

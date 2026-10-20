@@ -53,7 +53,6 @@ impl FlattenOptions {
 
     /* NOTE: A constructor that disables flattening is planned. */
 
-    // TODO: &mutにできるか。C-BUILDER
     /// Enables nested-object flattening with the given key separator.
     ///
     /// # Examples
