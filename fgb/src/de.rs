@@ -28,6 +28,13 @@ use serde::de::IntoDeserializer;
 /// # }
 /// ```
 ///
+/// # Properties
+///
+/// Each column is read into the field of the same name. A field that
+/// [`LayerSerializer`](crate::LayerSerializer) flattened, such as a nested
+/// struct or an array, does not read back, unless it is a struct marked
+/// `#[serde(flatten)]`.
+///
 /// # Geometry types
 ///
 /// Whether a geometry can be read depends on the [`DeserializeGeometry`] impl
