@@ -6,9 +6,9 @@ on:
         type: choice
         options:
           - beta
+          - release
           - patch
           - minor
-          - release
       package:
         type: choice
         options:
