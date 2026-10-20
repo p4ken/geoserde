@@ -1,3 +1,4 @@
+// TODO: 長すぎて https://docs.rs/geoserde/0.5.3-beta.3/geoserde/ で浮いてる
 //! Geometry deserialization from [`geo_traits`] sources.
 //! The central trait is [`DeserializeGeometry`], which converts a
 //! [`GeometryTrait`](geo_traits::GeometryTrait) value into a concrete Rust type.

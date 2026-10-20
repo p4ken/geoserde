@@ -52,6 +52,7 @@ impl FlattenOptions {
 
     /* NOTE: A constructor that disables flattening is planned. */
 
+    // TODO: &mutにできるか。C-BUILDER
     /// Enables nested-object flattening with the given key separator.
     pub fn object(mut self, sep: &'static str) -> Self {
         self.flatten_nested_attribute = true;

@@ -33,6 +33,7 @@
 //!   returned.
 //! - The properties themselves must be a struct or a map, or
 //!   [`TableError::Root`] is returned.
+// TODO: deで復元できないことを明記。serde(flatten)との違いも明確にしたい。
 
 mod elem;
 mod field;

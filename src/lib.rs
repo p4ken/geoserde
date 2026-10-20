@@ -33,5 +33,6 @@
 pub mod de;
 pub mod ser;
 
+// TODO: 消す。実装する側から見ると結局 ser::FieldValue とかを書くことになる
 pub use de::DeserializeGeometry;
 pub use ser::SerializeProperties;
