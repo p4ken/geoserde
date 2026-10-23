@@ -34,6 +34,12 @@ pub struct FlattenOptions {
     nested_array_index_suffix: Cow<'static, str>,
 }
 
+impl Default for FlattenOptions {
+    fn default() -> Self {
+        Self::full()
+    }
+}
+
 impl FlattenOptions {
     /// Returns the default options that flatten everything.
     ///
