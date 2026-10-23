@@ -51,8 +51,8 @@ mod geo;
 /// struct Xy { x: f64, y: f64 }
 ///
 /// impl DeserializeGeometry for Xy {
-///     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
-///         source: T,
+///     fn deserialize_geometry<G: geo_traits::GeometryTrait<T = f64>>(
+///         source: G,
 ///         _options: &GeometryOptions,
 ///     ) -> Result<Self, GeometryError> {
 ///         use geo_traits::{CoordTrait, GeometryType, PointTrait};
@@ -71,8 +71,8 @@ pub trait DeserializeGeometry: Sized {
     ///
     /// `options` tells which conversions between geometry types the caller
     /// allows. Impls may ignore the options that do not apply to `Self`.
-    fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: geo_traits::GeometryTrait<T = f64>>(
+        source: G,
         options: &GeometryOptions,
     ) -> Result<Self, GeometryError>;
 }
