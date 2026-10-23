@@ -63,6 +63,7 @@ impl<R> std::fmt::Debug for LayerDeserializer<R> {
 
 impl LayerDeserializer<()> {
     /// Creates a new [`LayerOptions`] to build a `LayerDeserializer` with.
+    #[must_use]
     pub fn options() -> LayerOptions {
         LayerOptions::new()
     }
@@ -93,6 +94,7 @@ impl<R: Read + Seek> LayerDeserializer<R> {
     }
 
     /// Returns the FlatGeobuf header.
+    #[must_use]
     pub fn header(&self) -> flatgeobuf::Header<'_> {
         self.fgb_iter.header()
     }
@@ -187,6 +189,7 @@ impl LayerOptions {
 }
 
 /// Iterator adapter returned by [`LayerDeserializer::features`].
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Features<'a, R, G, P> {
     inner: &'a mut LayerDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,
@@ -511,6 +514,7 @@ pub struct PropertiesError {
 impl PropertiesError {
     /// Name of the column being read, or `None` if the error is not specific
     /// to a column (e.g. a missing field).
+    #[must_use]
     pub fn column(&self) -> Option<&str> {
         self.column.as_deref()
     }

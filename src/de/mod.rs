@@ -105,6 +105,7 @@ impl Default for GeometryOptions {
 
 impl GeometryOptions {
     /// Creates a new `GeometryOptions` with the default options.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             // Following GDAL (PROMOTE_TO_MULTI) and serde, which require it to be explicit.
@@ -121,6 +122,7 @@ impl GeometryOptions {
     }
 
     /// Returns whether a single geometry may be read as the multi type.
+    #[must_use]
     pub fn promote_to_multi(&self) -> bool {
         self.promote_to_multi
     }

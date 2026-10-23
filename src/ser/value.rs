@@ -49,6 +49,7 @@ impl Serialize for FieldValue<'_> {
 impl FieldValue<'_> {
     /// Converts this value into a `FieldValue<'static>` by copying any
     /// borrowed data onto the heap.
+    #[must_use]
     pub fn into_owned(self) -> FieldValue<'static> {
         match self {
             Self::Bool(v) => FieldValue::Bool(v),
