@@ -63,6 +63,7 @@ impl<R> std::fmt::Debug for LayerDeserializer<R> {
 
 impl LayerDeserializer<()> {
     /// Creates a new [`LayerOptions`] to build a `LayerDeserializer` with.
+    #[must_use]
     pub fn options() -> LayerOptions {
         LayerOptions::new()
     }
@@ -93,6 +94,7 @@ impl<R: Read + Seek> LayerDeserializer<R> {
     }
 
     /// Returns the FlatGeobuf header.
+    #[must_use]
     pub fn header(&self) -> flatgeobuf::Header<'_> {
         self.fgb_iter.header()
     }
@@ -187,6 +189,7 @@ impl LayerOptions {
 }
 
 /// Iterator adapter returned by [`LayerDeserializer::features`].
+#[must_use = "iterators are lazy and do nothing unless consumed"]
 pub struct Features<'a, R, G, P> {
     inner: &'a mut LayerDeserializer<R>,
     _marker: std::marker::PhantomData<(G, P)>,
@@ -244,6 +247,15 @@ impl PropertiesAccess<'_> {
             .split_off(..n)
             .ok_or(PropertiesAccessError::Short)
     }
+
+    fn take_array<const N: usize>(&mut self) -> Result<[u8; N], PropertiesAccessError> {
+        let (array, rest) = self
+            .properties_buf
+            .split_first_chunk()
+            .ok_or(PropertiesAccessError::Short)?;
+        self.properties_buf = rest;
+        Ok(*array)
+    }
 }
 
 impl<'de> serde::de::MapAccess<'de> for PropertiesAccess<'de> {
@@ -253,9 +265,9 @@ impl<'de> serde::de::MapAccess<'de> for PropertiesAccess<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        let col_index = match self.properties_buf.split_off(..2) {
-            Some(bin) => u16::from_le_bytes(bin.try_into().unwrap()) as usize,
-            None => return Ok(None),
+        let col_index = match self.take_array() {
+            Ok(bin) => u16::from_le_bytes(bin) as usize,
+            Err(_) => return Ok(None),
         };
         let col = match self.header.cols.get(col_index) {
             Some(c) => c,
@@ -272,65 +284,68 @@ impl<'de> serde::de::MapAccess<'de> for PropertiesAccess<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let value = match self.col.unwrap().col_type {
+        let col = self
+            .col
+            .expect("serde calls next_value_seed only after next_key_seed returns a key");
+        let value = match col.col_type {
             flatgeobuf::ColumnType::Byte => {
-                let v = self.take_prop(1)?[0] as i8;
+                let v = i8::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(v.into_deserializer()))
             }
             flatgeobuf::ColumnType::UByte => {
-                let v = self.take_prop(1)?[0];
+                let v = u8::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(v.into_deserializer()))
             }
             flatgeobuf::ColumnType::Bool => {
-                let v = self.take_prop(1)?[0] != 0;
+                let v = u8::from_le_bytes(self.take_array()?) != 0;
                 seed.deserialize(ValueDeserializer(v.into_deserializer()))
             }
             flatgeobuf::ColumnType::Short => {
-                let n = i16::from_le_bytes(self.take_prop(2)?.try_into().unwrap());
+                let n = i16::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::UShort => {
-                let n = u16::from_le_bytes(self.take_prop(2)?.try_into().unwrap());
+                let n = u16::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::UInt => {
-                let n = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                let n = u32::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::Float => {
-                let n = f32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                let n = f32::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::Int => {
-                let n = i32::from_le_bytes(self.take_prop(4)?.try_into().unwrap());
+                let n = i32::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::Long => {
-                let n = i64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
+                let n = i64::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::ULong => {
-                let n = u64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
+                let n = u64::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::Double => {
-                let n = f64::from_le_bytes(self.take_prop(8)?.try_into().unwrap());
+                let n = f64::from_le_bytes(self.take_array()?);
                 seed.deserialize(ValueDeserializer(n.into_deserializer()))
             }
             flatgeobuf::ColumnType::String => {
-                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let len = u32::from_le_bytes(self.take_array()?) as usize;
                 let s = std::str::from_utf8(self.take_prop(len)?)
                     .map_err(PropertiesAccessError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Json | flatgeobuf::ColumnType::DateTime => {
-                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let len = u32::from_le_bytes(self.take_array()?) as usize;
                 let s = std::str::from_utf8(self.take_prop(len)?)
                     .map_err(PropertiesAccessError::Utf8)?;
                 seed.deserialize(ValueDeserializer(s.into_deserializer()))
             }
             flatgeobuf::ColumnType::Binary => {
-                let len = u32::from_le_bytes(self.take_prop(4)?.try_into().unwrap()) as usize;
+                let len = u32::from_le_bytes(self.take_array()?) as usize;
                 let b = self.take_prop(len)?;
                 seed.deserialize(ValueDeserializer(b.into_deserializer()))
             }
@@ -499,6 +514,7 @@ pub struct PropertiesError {
 impl PropertiesError {
     /// Name of the column being read, or `None` if the error is not specific
     /// to a column (e.g. a missing field).
+    #[must_use]
     pub fn column(&self) -> Option<&str> {
         self.column.as_deref()
     }

@@ -99,6 +99,7 @@ impl LayerSerializer {
     }
 
     /// Creates a new [`LayerOptions`] to build a `LayerSerializer` with.
+    #[must_use]
     pub fn options<'a>() -> LayerOptions<'a> {
         LayerOptions::new()
     }
@@ -206,6 +207,7 @@ impl LayerSerializer {
     ///
     /// This is for advanced use cases that `LayerSerializer` does not
     /// offer. To just write the layer, use [`write`](Self::write) instead.
+    #[must_use]
     pub fn into_inner(self) -> flatgeobuf::FgbWriter<'static> {
         self.writer
     }

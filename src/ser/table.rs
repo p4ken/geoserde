@@ -34,11 +34,18 @@ pub struct FlattenOptions {
     nested_array_index_suffix: Cow<'static, str>,
 }
 
+impl Default for FlattenOptions {
+    fn default() -> Self {
+        Self::full()
+    }
+}
+
 impl FlattenOptions {
     /// Returns the default options that flatten everything.
     ///
     /// Nested attributes are joined with `"."`, arrays are joined with `","`,
     /// and array indices use `"["` / `"]"` brackets.
+    #[must_use]
     pub const fn full() -> Self {
         Self {
             flatten_nested_attribute: true,
@@ -62,6 +69,7 @@ impl FlattenOptions {
     /// // `a.b` becomes `a/b`
     /// let options = FlattenOptions::full().object("/");
     /// ```
+    #[must_use]
     pub fn object(mut self, sep: impl Into<Cow<'static, str>>) -> Self {
         self.flatten_nested_attribute = true;
         self.nested_attribute_separator = sep.into();
@@ -77,6 +85,7 @@ impl FlattenOptions {
     /// // `1,2,3` becomes `1|2|3`
     /// let options = FlattenOptions::full().simple_array("|");
     /// ```
+    #[must_use]
     pub fn simple_array(mut self, sep: impl Into<Cow<'static, str>>) -> Self {
         self.array_as_string = true;
         self.array_element_separator = sep.into();
@@ -95,6 +104,7 @@ impl FlattenOptions {
     /// // `items[0]` becomes `items<0>`
     /// let options = FlattenOptions::full().object_array("<", ">");
     /// ```
+    #[must_use]
     pub fn object_array(
         mut self,
         prefix: impl Into<Cow<'static, str>>,
@@ -473,6 +483,7 @@ impl KeyError {
     }
 
     /// Flattened key of the map holding the key, or `None` for the root.
+    #[must_use]
     pub fn parent(&self) -> Option<&str> {
         self.parent.as_deref()
     }
@@ -506,6 +517,7 @@ impl ValueError {
     }
 
     /// Flattened key of the value being serialized, or `None` for the root.
+    #[must_use]
     pub fn key(&self) -> Option<&str> {
         self.key.as_deref()
     }

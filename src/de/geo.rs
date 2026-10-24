@@ -11,8 +11,8 @@ use crate::de::{DeserializeGeometry, GeometryError, GeometryOptions};
 // does not go through `GeometryTrait`, so it avoids the trait solver overflow that
 // `ToGeoGeometry` hits (rustc #128887).
 impl DeserializeGeometry for geo_types::Point {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: GeometryTrait<T = f64>>(
+        source: G,
         _options: &GeometryOptions,
     ) -> Result<Self, GeometryError> {
         match source.as_type() {
@@ -23,8 +23,8 @@ impl DeserializeGeometry for geo_types::Point {
 }
 
 impl DeserializeGeometry for geo_types::MultiPoint {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: GeometryTrait<T = f64>>(
+        source: G,
         options: &GeometryOptions,
     ) -> Result<Self, GeometryError> {
         match source.as_type() {
@@ -38,8 +38,8 @@ impl DeserializeGeometry for geo_types::MultiPoint {
 }
 
 impl DeserializeGeometry for geo_types::LineString {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: GeometryTrait<T = f64>>(
+        source: G,
         _options: &GeometryOptions,
     ) -> Result<Self, GeometryError> {
         match source.as_type() {
@@ -50,8 +50,8 @@ impl DeserializeGeometry for geo_types::LineString {
 }
 
 impl DeserializeGeometry for geo_types::MultiLineString {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: GeometryTrait<T = f64>>(
+        source: G,
         options: &GeometryOptions,
     ) -> Result<Self, GeometryError> {
         match source.as_type() {
@@ -65,8 +65,8 @@ impl DeserializeGeometry for geo_types::MultiLineString {
 }
 
 impl DeserializeGeometry for geo_types::Polygon {
-    fn deserialize_geometry<T: GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: GeometryTrait<T = f64>>(
+        source: G,
         _options: &GeometryOptions,
     ) -> Result<Self, GeometryError> {
         match source.as_type() {

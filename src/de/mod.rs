@@ -51,8 +51,8 @@ mod geo;
 /// struct Xy { x: f64, y: f64 }
 ///
 /// impl DeserializeGeometry for Xy {
-///     fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
-///         source: T,
+///     fn deserialize_geometry<G: geo_traits::GeometryTrait<T = f64>>(
+///         source: G,
 ///         _options: &GeometryOptions,
 ///     ) -> Result<Self, GeometryError> {
 ///         use geo_traits::{CoordTrait, GeometryType, PointTrait};
@@ -71,8 +71,8 @@ pub trait DeserializeGeometry: Sized {
     ///
     /// `options` tells which conversions between geometry types the caller
     /// allows. Impls may ignore the options that do not apply to `Self`.
-    fn deserialize_geometry<T: geo_traits::GeometryTrait<T = f64>>(
-        source: T,
+    fn deserialize_geometry<G: geo_traits::GeometryTrait<T = f64>>(
+        source: G,
         options: &GeometryOptions,
     ) -> Result<Self, GeometryError>;
 }
@@ -105,6 +105,7 @@ impl Default for GeometryOptions {
 
 impl GeometryOptions {
     /// Creates a new `GeometryOptions` with the default options.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             // Following GDAL (PROMOTE_TO_MULTI) and serde, which require it to be explicit.
@@ -121,6 +122,7 @@ impl GeometryOptions {
     }
 
     /// Returns whether a single geometry may be read as the multi type.
+    #[must_use]
     pub fn promote_to_multi(&self) -> bool {
         self.promote_to_multi
     }
